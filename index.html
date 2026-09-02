@@ -126,10 +126,12 @@
         <div class="modal-heading"><div><p class="eyebrow muted">Recordatorios de casa</p><h2 id="notesTitle">Notas</h2></div><button class="icon-button small" type="button" id="closeNotes" aria-label="Cerrar notas" title="Cerrar"><i data-lucide="x"></i></button></div>
         <div class="note-group"><div class="note-group-heading"><strong>Compartidas</strong><span>Las veis los dos</span></div><div class="note-list" id="sharedNotes"></div><form class="note-form" data-note-type="shared"><input type="text" maxlength="120" placeholder="Añadir una nota para los dos" aria-label="Nueva nota compartida" required /><button type="submit" aria-label="Añadir nota compartida" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
         <div class="note-group private-group"><div class="note-group-heading"><strong>Solo para <span id="privateUserLabel">Ines</span></strong><span>Privada en este perfil</span></div><div class="note-list" id="privateNotes"></div><form class="note-form" data-note-type="private"><input type="text" maxlength="120" placeholder="Añadir una nota privada" aria-label="Nueva nota privada" required /><button type="submit" aria-label="Añadir nota privada" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
-        <p class="notes-local-warning"><i data-lucide="info"></i> Las notas se guardan localmente en este prototipo. Para sincronizarlas entre móviles conectaremos una base de datos.</p>
+        <p class="notes-local-warning" id="notesConnectionStatus"><i data-lucide="loader-circle"></i> Conectando notas...</p>
       </div>
     </div>
     <div class="toast" role="status" aria-live="polite"><i data-lucide="check"></i><span></span></div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

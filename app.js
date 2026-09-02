@@ -62,21 +62,45 @@ document.querySelector('#userAvatar').addEventListener('click', () => {
 });
 
 const notesModal = document.querySelector('#notesModal');
-const sharedNotesKey = 'umbral-shared-notes';
-const privateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
+const localSharedNotesKey = 'umbral-shared-notes';
+const localPrivateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
+const supabaseConfig = window.SUPABASE_CONFIG || {};
+const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('TU-PROYECTO') && supabaseConfig.anonKey && !supabaseConfig.anonKey.includes('TU_CLAVE');
+const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
+let authUserId;
 
 function readNotes(key) {
-  return JSON.parse(localStorage.getItem(key) || '[]');
+  try {
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  } catch {
+    return [];
+  }
 }
 
 function renderNoteList(elementId, notes, emptyText) {
   const list = document.querySelector(`#${elementId}`);
-  list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row"><span>${note}</span><button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
+  list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row"><span>${note.content || note}</span><button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
 }
 
-function renderNotes() {
-  const sharedNotes = readNotes(sharedNotesKey);
-  const privateNotes = readNotes(privateNotesKey());
+async function getNotes() {
+  if (supabaseClient && authUserId) {
+    const { data, error } = await supabaseClient.from('notes').select('id, content, scope, owner_id, created_at').order('created_at', { ascending: false });
+    if (error) throw error;
+    return { shared: data.filter((note) => note.scope === 'shared'), private: data.filter((note) => note.scope === 'private') };
+  }
+  return { shared: readNotes(localSharedNotesKey), private: readNotes(localPrivateNotesKey()) };
+}
+
+async function renderNotes() {
+  let notes;
+  try {
+    notes = await getNotes();
+  } catch {
+    notes = { shared: [], private: [] };
+    showToast('No se pudieron cargar las notas');
+  }
+  const sharedNotes = notes.shared;
+  const privateNotes = notes.private;
   renderNoteList('sharedNotes', sharedNotes, 'No hay notas compartidas.');
   renderNoteList('privateNotes', privateNotes, 'Tus notas privadas aparecerán aquí.');
   const totalNotes = sharedNotes.length + privateNotes.length;
@@ -96,27 +120,58 @@ document.querySelector('[data-action="notes"]').addEventListener('keydown', (eve
 });
 document.querySelector('#closeNotes').addEventListener('click', () => notesModal.classList.remove('visible'));
 document.querySelectorAll('.note-form').forEach((form) => {
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const input = form.querySelector('input');
-    const key = form.dataset.noteType === 'shared' ? sharedNotesKey : privateNotesKey();
-    const notes = readNotes(key);
-    notes.unshift(input.value.trim());
-    localStorage.setItem(key, JSON.stringify(notes));
+    const content = input.value.trim();
+    const scope = form.dataset.noteType;
+    if (supabaseClient && authUserId) {
+      const { error } = await supabaseClient.from('notes').insert({ content, scope, owner_id: authUserId });
+      if (error) return showToast('No se pudo guardar la nota');
+    } else {
+      const key = scope === 'shared' ? localSharedNotesKey : localPrivateNotesKey();
+      const notes = readNotes(key);
+      notes.unshift(content);
+      localStorage.setItem(key, JSON.stringify(notes));
+    }
     input.value = '';
     renderNotes();
-    showToast(form.dataset.noteType === 'shared' ? 'Nota compartida añadida' : 'Nota privada guardada');
+    showToast(scope === 'shared' ? 'Nota compartida sincronizada' : 'Nota privada guardada');
   });
 });
-document.querySelector('#notesModal').addEventListener('click', (event) => {
+document.querySelector('#notesModal').addEventListener('click', async (event) => {
   const deleteButton = event.target.closest('.delete-note');
   if (!deleteButton) return;
-  const key = deleteButton.dataset.noteList === 'sharedNotes' ? sharedNotesKey : privateNotesKey();
-  const notes = readNotes(key);
-  notes.splice(Number(deleteButton.dataset.noteIndex), 1);
-  localStorage.setItem(key, JSON.stringify(notes));
+  if (supabaseClient && authUserId && deleteButton.dataset.noteId) {
+    const { error } = await supabaseClient.from('notes').delete().eq('id', deleteButton.dataset.noteId);
+    if (error) return showToast('No se pudo eliminar la nota');
+  } else {
+    const key = deleteButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
+    const notes = readNotes(key);
+    notes.splice(Number(deleteButton.dataset.noteIndex), 1);
+    localStorage.setItem(key, JSON.stringify(notes));
+  }
   renderNotes();
 });
+
+async function connectNotes() {
+  const status = document.querySelector('#notesConnectionStatus');
+  if (!supabaseClient) {
+    status.innerHTML = '<i data-lucide="hard-drive"></i> Modo local: configura Supabase para sincronizar';
+    lucide.createIcons();
+    return;
+  }
+  const { data, error } = await supabaseClient.auth.signInAnonymously();
+  if (error) {
+    status.innerHTML = '<i data-lucide="circle-alert"></i> No se pudo conectar con la nube';
+    lucide.createIcons();
+    return;
+  }
+  authUserId = data.user.id;
+  status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
+  lucide.createIcons();
+  renderNotes();
+}
 
 function formatToday() {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
@@ -199,3 +254,4 @@ document.querySelectorAll('.nav-item').forEach((item) => {
 });
 
 updateWeather();
+connectNotes();
