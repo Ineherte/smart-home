@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f7f2" />
+    <title>Umbral | Smart Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#top" aria-label="Inicio Umbral">
+          <span class="brand-mark"><i data-lucide="sparkles"></i></span>
+          <span>umbral</span>
+        </a>
+        <div class="topbar-actions">
+          <button class="icon-button" type="button" aria-label="Notificaciones" title="Notificaciones"><i data-lucide="bell"></i><span class="notification-dot"></span></button>
+          <button class="avatar" type="button" aria-label="Abrir perfil" title="Perfil">IR</button>
+        </div>
+      </header>
+
+      <section class="welcome-section" id="top">
+        <div>
+          <p class="eyebrow"><span class="status-pulse"></span> Puerta principal conectada</p>
+          <h1>Hola, Ines<span class="accent-dot">.</span></h1>
+          <p class="date-label"><span id="todayLabel">Hoy</span> <span class="sunrise" id="headerWeather">· Cargando tiempo...</span></p>
+        </div>
+        <div class="nfc-hint" aria-label="NFC activo">
+          <i data-lucide="contactless"></i>
+          <span>NFC<br /><strong>activo</strong></span>
+        </div>
+      </section>
+
+      <section class="home-summary" aria-labelledby="home-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow muted">Tu casa ahora</p>
+            <h2 id="home-title">Todo tranquilo <span class="wave">✦</span></h2>
+          </div>
+          <button class="text-button" type="button" id="refreshButton"><i data-lucide="rotate-cw"></i> Actualizar</button>
+        </div>
+        <div class="summary-grid">
+          <article class="summary-card climate-card">
+            <div class="card-icon soft-green"><i data-lucide="sun"></i></div>
+            <div><span class="card-label">Exterior · Turín</span><strong id="weatherTemp">--°</strong><small id="weatherDescription">Cargando tiempo...</small></div>
+            <i class="card-arrow" data-lucide="arrow-up-right"></i>
+          </article>
+          <article class="summary-card security-card">
+            <div class="card-icon soft-amber"><i data-lucide="shield-check"></i></div>
+            <div><span class="card-label">Seguridad</span><strong>Protegida</strong><small>Puerta cerrada</small></div>
+            <i class="card-arrow" data-lucide="arrow-up-right"></i>
+          </article>
+        </div>
+        <p class="weather-meta"><span id="weatherDetails">Humedad --% · Máx. --° / mín. --°</span> <a href="https://www.3bmeteo.com/meteo/torino" target="_blank" rel="noreferrer">Ver en 3B Meteo <i data-lucide="external-link"></i></a></p>
+      </section>
+
+      <section class="actions-section" aria-labelledby="actions-title">
+        <div class="section-heading">
+          <div><p class="eyebrow muted">Acceso rápido</p><h2 id="actions-title">¿Qué necesitas?</h2></div>
+          <span class="action-count">3 opciones</span>
+        </div>
+        <div class="action-list">
+          <button class="action-card lights-action" type="button" data-action="lights">
+            <span class="action-icon"><i data-lucide="lightbulb"></i></span>
+            <span class="action-copy"><strong>Luces</strong><small id="lightsStatus">2 encendidas · salón y cocina</small></span>
+            <span class="action-cta"><i data-lucide="arrow-right"></i></span>
+          </button>
+          <button class="action-card calendar-action" type="button" data-action="calendar">
+            <span class="action-icon"><i data-lucide="calendar-days"></i></span>
+            <span class="action-copy"><strong>Mi día</strong><small><b>2 eventos</b> · próxima a las 10:30</small></span>
+            <span class="action-cta"><i data-lucide="arrow-right"></i></span>
+          </button>
+          <button class="action-card tv-action" type="button" data-action="tv">
+            <span class="action-icon"><i data-lucide="tv"></i></span>
+            <span class="action-copy"><strong>Resumen en TV</strong><small id="tvStatus">Noticias, tiempo y titulares</small></span>
+            <span class="action-cta"><i data-lucide="arrow-right"></i></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="agenda-section" aria-labelledby="agenda-title">
+        <div class="section-heading">
+          <div><p class="eyebrow muted">A continuación</p><h2 id="agenda-title">Tu agenda</h2></div>
+          <button class="icon-button small" type="button" aria-label="Ver agenda completa" title="Ver agenda completa"><i data-lucide="more-horizontal"></i></button>
+        </div>
+        <div class="agenda-item">
+          <div class="time-block"><strong>10:30</strong><span>45 min</span></div>
+          <div class="event-line"></div>
+          <div class="event-copy"><strong>Revisión de proyecto</strong><span>Videollamada · Estudio</span></div>
+          <i class="event-arrow" data-lucide="chevron-right"></i>
+        </div>
+        <div class="agenda-item secondary-event">
+          <div class="time-block"><strong>18:00</strong><span>1 h</span></div>
+          <div class="event-line"></div>
+          <div class="event-copy"><strong>Cena con Alex</strong><span>Casa Loto · Reservado</span></div>
+          <i class="event-arrow" data-lucide="chevron-right"></i>
+        </div>
+      </section>
+
+      <footer class="bottom-nav" aria-label="Navegación principal">
+        <button class="nav-item active" type="button"><i data-lucide="house"></i><span>Inicio</span></button>
+        <button class="nav-item" type="button"><i data-lucide="sliders-horizontal"></i><span>Casa</span></button>
+        <button class="nav-item" type="button"><i data-lucide="calendar-days"></i><span>Agenda</span></button>
+        <button class="nav-item" type="button"><i data-lucide="settings-2"></i><span>Ajustes</span></button>
+      </footer>
+    </main>
+    <div class="toast" role="status" aria-live="polite"><i data-lucide="check"></i><span></span></div>
+    <script src="app.js"></script>
+  </body>
+</html>
