@@ -20,14 +20,14 @@
         </a>
         <div class="topbar-actions">
           <button class="icon-button" type="button" aria-label="Notificaciones" title="Notificaciones"><i data-lucide="bell"></i><span class="notification-dot"></span></button>
-          <button class="avatar" type="button" aria-label="Abrir perfil" title="Perfil">IR</button>
+          <button class="avatar" type="button" aria-label="Abrir perfil" title="Perfil" id="userAvatar">IN</button>
         </div>
       </header>
 
       <section class="welcome-section" id="top">
         <div>
           <p class="eyebrow"><span class="status-pulse"></span> Puerta principal conectada</p>
-          <h1>Hola, Ines<span class="accent-dot">.</span></h1>
+          <h1>Hola, <span id="userName">Ines</span><span class="accent-dot">.</span></h1>
           <p class="date-label"><span id="todayLabel">Hoy</span> <span class="sunrise" id="headerWeather">· Cargando tiempo...</span></p>
         </div>
         <div class="nfc-hint" aria-label="NFC activo">
@@ -50,9 +50,9 @@
             <div><span class="card-label">Exterior · Turín</span><strong id="weatherTemp">--°</strong><small id="weatherDescription">Cargando tiempo...</small></div>
             <i class="card-arrow" data-lucide="arrow-up-right"></i>
           </article>
-          <article class="summary-card security-card">
-            <div class="card-icon soft-amber"><i data-lucide="shield-check"></i></div>
-            <div><span class="card-label">Seguridad</span><strong>Protegida</strong><small>Puerta cerrada</small></div>
+          <article class="summary-card notes-card" data-action="notes" tabindex="0" role="button">
+            <div class="card-icon soft-amber"><i data-lucide="notebook-pen"></i></div>
+            <div><span class="card-label">Notas</span><strong id="notesCount">0 notas</strong><small id="notesPreview">Nada pendiente</small></div>
             <i class="card-arrow" data-lucide="arrow-up-right"></i>
           </article>
         </div>
@@ -109,6 +109,26 @@
         <button class="nav-item" type="button"><i data-lucide="settings-2"></i><span>Ajustes</span></button>
       </footer>
     </main>
+    <div class="identity-modal" id="identityModal" role="dialog" aria-modal="true" aria-labelledby="identityTitle">
+      <div class="identity-panel">
+        <span class="modal-mark"><i data-lucide="user-round-check"></i></span>
+        <p class="eyebrow muted">Configuración inicial</p>
+        <h2 id="identityTitle">¿Quién está en casa?</h2>
+        <p>Guardaremos esta elección solo en este teléfono para personalizar el saludo.</p>
+        <div class="identity-options">
+          <button type="button" data-user="Ines"><span>IN</span> Soy Ines <i data-lucide="arrow-right"></i></button>
+          <button type="button" data-user="Matteo"><span>MA</span> Soy Matteo <i data-lucide="arrow-right"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="notes-modal" id="notesModal" role="dialog" aria-modal="true" aria-labelledby="notesTitle">
+      <div class="notes-panel">
+        <div class="modal-heading"><div><p class="eyebrow muted">Recordatorios de casa</p><h2 id="notesTitle">Notas</h2></div><button class="icon-button small" type="button" id="closeNotes" aria-label="Cerrar notas" title="Cerrar"><i data-lucide="x"></i></button></div>
+        <div class="note-group"><div class="note-group-heading"><strong>Compartidas</strong><span>Las veis los dos</span></div><div class="note-list" id="sharedNotes"></div><form class="note-form" data-note-type="shared"><input type="text" maxlength="120" placeholder="Añadir una nota para los dos" aria-label="Nueva nota compartida" required /><button type="submit" aria-label="Añadir nota compartida" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
+        <div class="note-group private-group"><div class="note-group-heading"><strong>Solo para <span id="privateUserLabel">Ines</span></strong><span>Privada en este perfil</span></div><div class="note-list" id="privateNotes"></div><form class="note-form" data-note-type="private"><input type="text" maxlength="120" placeholder="Añadir una nota privada" aria-label="Nueva nota privada" required /><button type="submit" aria-label="Añadir nota privada" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
+        <p class="notes-local-warning"><i data-lucide="info"></i> Las notas se guardan localmente en este prototipo. Para sincronizarlas entre móviles conectaremos una base de datos.</p>
+      </div>
+    </div>
     <div class="toast" role="status" aria-live="polite"><i data-lucide="check"></i><span></span></div>
     <script src="app.js"></script>
   </body>

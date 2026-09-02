@@ -2,6 +2,9 @@ lucide.createIcons();
 
 const toast = document.querySelector('.toast');
 const toastMessage = toast.querySelector('span');
+const identityKey = 'umbral-user';
+const requestedUser = new URLSearchParams(window.location.search).get('usuario');
+let currentUser = 'Ines';
 const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 let toastTimer;
 let lightsOn = true;
@@ -29,6 +32,91 @@ const weatherDescriptions = {
   96: ['Tormenta con granizo', 'cloud-lightning'],
   99: ['Tormenta con granizo', 'cloud-lightning']
 };
+
+function setUser(name) {
+  const formattedName = name.trim().slice(0, 30) || 'Ines';
+  currentUser = formattedName;
+  localStorage.setItem(identityKey, formattedName);
+  document.querySelector('#userName').textContent = formattedName;
+  document.querySelector('#userAvatar').textContent = formattedName.slice(0, 2).toUpperCase();
+  document.querySelector('#privateUserLabel').textContent = formattedName;
+  document.querySelector('#identityModal').classList.remove('visible');
+  renderNotes();
+}
+
+const savedUser = localStorage.getItem(identityKey);
+if (requestedUser) {
+  setUser(requestedUser);
+} else if (savedUser) {
+  setUser(savedUser);
+} else {
+  document.querySelector('#identityModal').classList.add('visible');
+}
+
+document.querySelectorAll('[data-user]').forEach((option) => {
+  option.addEventListener('click', () => setUser(option.dataset.user));
+});
+
+document.querySelector('#userAvatar').addEventListener('click', () => {
+  document.querySelector('#identityModal').classList.add('visible');
+});
+
+const notesModal = document.querySelector('#notesModal');
+const sharedNotesKey = 'umbral-shared-notes';
+const privateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
+
+function readNotes(key) {
+  return JSON.parse(localStorage.getItem(key) || '[]');
+}
+
+function renderNoteList(elementId, notes, emptyText) {
+  const list = document.querySelector(`#${elementId}`);
+  list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row"><span>${note}</span><button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
+}
+
+function renderNotes() {
+  const sharedNotes = readNotes(sharedNotesKey);
+  const privateNotes = readNotes(privateNotesKey());
+  renderNoteList('sharedNotes', sharedNotes, 'No hay notas compartidas.');
+  renderNoteList('privateNotes', privateNotes, 'Tus notas privadas aparecerán aquí.');
+  const totalNotes = sharedNotes.length + privateNotes.length;
+  document.querySelector('#notesCount').textContent = `${totalNotes} ${totalNotes === 1 ? 'nota' : 'notas'}`;
+  document.querySelector('#notesPreview').textContent = sharedNotes[0] || 'Nada pendiente';
+  lucide.createIcons();
+}
+
+function openNotes() {
+  renderNotes();
+  notesModal.classList.add('visible');
+}
+
+document.querySelector('[data-action="notes"]').addEventListener('click', openNotes);
+document.querySelector('[data-action="notes"]').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') openNotes();
+});
+document.querySelector('#closeNotes').addEventListener('click', () => notesModal.classList.remove('visible'));
+document.querySelectorAll('.note-form').forEach((form) => {
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = form.querySelector('input');
+    const key = form.dataset.noteType === 'shared' ? sharedNotesKey : privateNotesKey();
+    const notes = readNotes(key);
+    notes.unshift(input.value.trim());
+    localStorage.setItem(key, JSON.stringify(notes));
+    input.value = '';
+    renderNotes();
+    showToast(form.dataset.noteType === 'shared' ? 'Nota compartida añadida' : 'Nota privada guardada');
+  });
+});
+document.querySelector('#notesModal').addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('.delete-note');
+  if (!deleteButton) return;
+  const key = deleteButton.dataset.noteList === 'sharedNotes' ? sharedNotesKey : privateNotesKey();
+  const notes = readNotes(key);
+  notes.splice(Number(deleteButton.dataset.noteIndex), 1);
+  localStorage.setItem(key, JSON.stringify(notes));
+  renderNotes();
+});
 
 function formatToday() {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
