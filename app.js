@@ -5,6 +5,14 @@ const toastMessage = toast.querySelector('span');
 const identityKey = 'umbral-user';
 const requestedUser = new URLSearchParams(window.location.search).get('usuario');
 let currentUser = 'Ines';
+const notesModal = document.querySelector('#notesModal');
+const urgentModal = document.querySelector('#urgentModal');
+const localSharedNotesKey = 'umbral-shared-notes';
+const localPrivateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
+const supabaseConfig = window.SUPABASE_CONFIG || {};
+const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('TU-PROYECTO') && supabaseConfig.anonKey && !supabaseConfig.anonKey.includes('TU_CLAVE');
+const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
+let authUserId;
 const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 let toastTimer;
 let lightsOn = true;
@@ -61,14 +69,6 @@ document.querySelector('#userAvatar').addEventListener('click', () => {
   document.querySelector('#identityModal').classList.add('visible');
 });
 
-const notesModal = document.querySelector('#notesModal');
-const localSharedNotesKey = 'umbral-shared-notes';
-const localPrivateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
-const supabaseConfig = window.SUPABASE_CONFIG || {};
-const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('TU-PROYECTO') && supabaseConfig.anonKey && !supabaseConfig.anonKey.includes('TU_CLAVE');
-const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
-let authUserId;
-
 function readNotes(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || '[]');
@@ -79,12 +79,16 @@ function readNotes(key) {
 
 function renderNoteList(elementId, notes, emptyText) {
   const list = document.querySelector(`#${elementId}`);
-  list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row"><span>${note.content || note}</span><button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
+  list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row ${note.completed ? 'completed' : ''} ${note.priority === 'urgent' ? 'urgent' : ''}"><button type="button" class="complete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="${note.completed ? 'Reabrir nota' : 'Marcar como hecha'}" title="${note.completed ? 'Reabrir nota' : 'Marcar como hecha'}"><i data-lucide="${note.completed ? 'check-circle-2' : 'circle'}"></i></button><span>${escapeHtml(note.content || note)}</span>${note.priority === 'urgent' && !note.completed ? '<b class="urgent-badge">Urgente</b>' : ''}<button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
 }
 
 async function getNotes() {
   if (supabaseClient && authUserId) {
-    const { data, error } = await supabaseClient.from('notes').select('id, content, scope, owner_id, created_at').order('created_at', { ascending: false });
+    const { data, error } = await supabaseClient.from('notes').select('id, content, scope, priority, completed, owner_id, created_at').order('created_at', { ascending: false });
     if (error) throw error;
     return { shared: data.filter((note) => note.scope === 'shared'), private: data.filter((note) => note.scope === 'private') };
   }
@@ -105,7 +109,17 @@ async function renderNotes() {
   renderNoteList('privateNotes', privateNotes, 'Tus notas privadas aparecerán aquí.');
   const totalNotes = sharedNotes.length + privateNotes.length;
   document.querySelector('#notesCount').textContent = `${totalNotes} ${totalNotes === 1 ? 'nota' : 'notas'}`;
-  document.querySelector('#notesPreview').textContent = sharedNotes[0] || 'Nada pendiente';
+  document.querySelector('#notesPreview').textContent = sharedNotes[0]?.content || sharedNotes[0] || 'Nada pendiente';
+  showUrgentNotes([...sharedNotes, ...privateNotes]);
+  lucide.createIcons();
+}
+
+function showUrgentNotes(notes) {
+  const urgentNotes = notes.filter((note) => note.priority === 'urgent' && !note.completed);
+  if (!urgentNotes.length || sessionStorage.getItem('umbral-urgent-seen') === 'true') return;
+  document.querySelector('#urgentList').innerHTML = urgentNotes.map((note) => `<p><i data-lucide="alert-circle"></i>${escapeHtml(note.content)}</p>`).join('');
+  urgentModal.classList.add('visible');
+  sessionStorage.setItem('umbral-urgent-seen', 'true');
   lucide.createIcons();
 }
 
@@ -119,14 +133,16 @@ document.querySelector('[data-action="notes"]').addEventListener('keydown', (eve
   if (event.key === 'Enter' || event.key === ' ') openNotes();
 });
 document.querySelector('#closeNotes').addEventListener('click', () => notesModal.classList.remove('visible'));
+document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openNotes(); });
 document.querySelectorAll('.note-form').forEach((form) => {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const input = form.querySelector('input');
     const content = input.value.trim();
     const scope = form.dataset.noteType;
+    const priority = form.querySelector('[name="urgent"]').checked ? 'urgent' : 'normal';
     if (supabaseClient && authUserId) {
-      const { error } = await supabaseClient.from('notes').insert({ content, scope, owner_id: authUserId });
+      const { error } = await supabaseClient.from('notes').insert({ content, scope, priority, owner_id: authUserId });
       if (error) return showToast('No se pudo guardar la nota');
     } else {
       const key = scope === 'shared' ? localSharedNotesKey : localPrivateNotesKey();
@@ -135,11 +151,29 @@ document.querySelectorAll('.note-form').forEach((form) => {
       localStorage.setItem(key, JSON.stringify(notes));
     }
     input.value = '';
+    form.querySelector('[name="urgent"]').checked = false;
     renderNotes();
     showToast(scope === 'shared' ? 'Nota compartida sincronizada' : 'Nota privada guardada');
   });
 });
 document.querySelector('#notesModal').addEventListener('click', async (event) => {
+  const completeButton = event.target.closest('.complete-note');
+  if (completeButton) {
+    if (supabaseClient && authUserId && completeButton.dataset.noteId) {
+      const notes = await getNotes();
+      const note = [...notes.shared, ...notes.private].find((item) => item.id === completeButton.dataset.noteId);
+      const { error } = await supabaseClient.from('notes').update({ completed: !note.completed }).eq('id', note.id);
+      if (error) return showToast('No se pudo actualizar la nota');
+      if (!note.completed && note.scope === 'shared') notifyOtherUser('Nota completada', `${currentUser} ha completado: ${note.content}`);
+    } else {
+      const key = completeButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
+      const notes = readNotes(key);
+      notes[Number(completeButton.dataset.noteIndex)].completed = !notes[Number(completeButton.dataset.noteIndex)].completed;
+      localStorage.setItem(key, JSON.stringify(notes));
+    }
+    renderNotes();
+    return;
+  }
   const deleteButton = event.target.closest('.delete-note');
   if (!deleteButton) return;
   if (supabaseClient && authUserId && deleteButton.dataset.noteId) {
@@ -153,6 +187,173 @@ document.querySelector('#notesModal').addEventListener('click', async (event) =>
   }
   renderNotes();
 });
+
+const calendarModal = document.querySelector('#calendarModal');
+const localEventsKey = () => `umbral-events-${currentUser.toLowerCase()}`;
+let selectedDate = new Date();
+let visibleMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+let cachedEvents = [];
+
+function dateToISO(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function formatEventDate(date) {
+  return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+}
+
+function readEvents() {
+  try {
+    return JSON.parse(localStorage.getItem(localEventsKey()) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+async function getEvents() {
+  if (supabaseClient && authUserId) {
+    const [homeEvents, iphoneEvents] = await Promise.all([
+      supabaseClient.from('events').select('id, title, event_date, event_time, duration, location, scope, owner_id, created_at').order('event_date').order('event_time'),
+      supabaseClient.from('iphone_events').select('id, external_id, title, event_date, event_time, duration_minutes, location, calendar_name, owner').order('event_date').order('event_time')
+    ]);
+    if (homeEvents.error) throw homeEvents.error;
+    if (iphoneEvents.error) throw iphoneEvents.error;
+    const importedEvents = iphoneEvents.data.map((event) => ({ ...event, id: `iphone-${event.id}`, duration: event.duration_minutes ? `${event.duration_minutes} min` : '', event_time: event.event_time || '00:00', scope: 'private', source: 'iphone' }));
+    return [...homeEvents.data, ...importedEvents];
+  }
+  return readEvents();
+}
+
+function renderCalendar() {
+  const monthLabel = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(visibleMonth);
+  document.querySelector('#calendarMonth').textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+  const firstDay = (visibleMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate();
+  const todayISO = dateToISO(new Date());
+  const selectedISO = dateToISO(selectedDate);
+  const days = [];
+  for (let index = 0; index < firstDay; index += 1) days.push('<span class="calendar-day empty"></span>');
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
+    const dateISO = dateToISO(date);
+    const hasHomeEvents = cachedEvents.some((event) => event.event_date === dateISO && event.source !== 'iphone');
+    const hasIphoneEvents = cachedEvents.some((event) => event.event_date === dateISO && event.source === 'iphone');
+    const markers = `${hasHomeEvents ? '<i class="home-marker"></i>' : ''}${hasIphoneEvents ? '<i class="iphone-marker"></i>' : ''}`;
+    days.push(`<button type="button" class="calendar-day ${dateISO === todayISO ? 'today' : ''} ${dateISO === selectedISO ? 'selected' : ''}" data-calendar-date="${dateISO}">${day}${markers}</button>`);
+  }
+  document.querySelector('#calendarDays').innerHTML = days.join('');
+  document.querySelectorAll('[data-calendar-date]').forEach((dayButton) => {
+    dayButton.addEventListener('click', () => {
+      selectedDate = new Date(`${dayButton.dataset.calendarDate}T12:00:00`);
+      renderCalendar();
+      renderSelectedDay();
+    });
+  });
+}
+
+function renderSelectedDay() {
+  const dateISO = dateToISO(selectedDate);
+  const dayEvents = cachedEvents.filter((event) => event.event_date === dateISO).sort((first, second) => (first.event_time || '00:00').localeCompare(second.event_time || '00:00'));
+  const dateLabel = formatEventDate(selectedDate);
+  document.querySelector('#selectedDateLabel').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+  document.querySelector('#selectedDayCount').textContent = `${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}`;
+  document.querySelector('#calendarEvents').innerHTML = dayEvents.length ? dayEvents.map((event) => { const isIphoneEvent = event.source === 'iphone'; const sourceLabel = isIphoneEvent ? 'Calendario iPhone' : 'Smart Home'; const eventLocation = event.location || (event.scope === 'shared' ? 'Casa · Compartido' : `Solo para ${currentUser}`); return `<div class="calendar-event ${isIphoneEvent ? 'iphone-event' : 'home-event'}"><div class="time-block"><strong>${(event.event_time || '00:00').slice(0, 5)}</strong><span>${event.duration || 'Sin duración'}</span></div><div class="event-line"></div><div class="event-copy"><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(eventLocation)}</span></div><span class="source-tag">${sourceLabel}</span>${event.scope === 'shared' && !isIphoneEvent ? '<span class="shared-tag">Casa</span>' : ''}${!isIphoneEvent ? `<button type="button" class="export-event" data-event-index="${cachedEvents.indexOf(event)}" aria-label="Añadir al Calendario del iPhone" title="Añadir al Calendario del iPhone"><i data-lucide="calendar-plus"></i></button><button type="button" class="delete-event" data-event-id="${event.id || ''}" data-event-index="${cachedEvents.indexOf(event)}" aria-label="Eliminar evento" title="Eliminar evento"><i data-lucide="trash-2"></i></button>` : ''}</div>`; }).join('') : '<p class="empty-note">No hay eventos para este día.</p>';
+  const eventForm = document.querySelector('#eventForm');
+  eventForm.date.value = dateISO;
+  lucide.createIcons();
+}
+
+async function renderCalendarData() {
+  try {
+    cachedEvents = await getEvents();
+  } catch {
+    cachedEvents = [];
+    showToast('No se pudieron cargar los eventos');
+  }
+  renderCalendar();
+  renderSelectedDay();
+  const count = cachedEvents.filter((event) => event.event_date === dateToISO(new Date())).length;
+  document.querySelector('#calendarPreview').innerHTML = count ? `<b>${count} ${count === 1 ? 'evento' : 'eventos'}</b> · ver agenda` : 'Sin eventos para hoy · añadir uno';
+}
+
+async function openCalendar() {
+  calendarModal.classList.add('visible');
+  await renderCalendarData();
+}
+
+document.querySelector('[data-action="calendar"]').addEventListener('click', openCalendar);
+document.querySelector('#previousMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); renderCalendar(); });
+document.querySelector('#nextMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); renderCalendar(); });
+document.querySelector('#closeCalendar').addEventListener('click', () => calendarModal.classList.remove('visible'));
+document.querySelector('#eventForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
+  if (supabaseClient && authUserId) {
+    const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId });
+    if (error) return showToast('No se pudo guardar el evento');
+  } else {
+    const events = readEvents();
+    events.push({ ...eventData, id: crypto.randomUUID() });
+    localStorage.setItem(localEventsKey(), JSON.stringify(events));
+  }
+  selectedDate = new Date(`${eventData.event_date}T12:00:00`);
+  visibleMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  form.title.value = '';
+  form.time.value = '';
+  form.duration.value = '';
+  form.location.value = '';
+  await renderCalendarData();
+  showToast(eventData.scope === 'shared' ? 'Evento compartido añadido' : 'Evento personal añadido');
+});
+document.querySelector('#calendarEvents').addEventListener('click', async (event) => {
+  const exportButton = event.target.closest('.export-event');
+  if (exportButton) {
+    downloadICS(cachedEvents[Number(exportButton.dataset.eventIndex)]);
+    return;
+  }
+  const deleteButton = event.target.closest('.delete-event');
+  if (!deleteButton) return;
+  if (supabaseClient && authUserId && deleteButton.dataset.eventId) {
+    const { error } = await supabaseClient.from('events').delete().eq('id', deleteButton.dataset.eventId);
+    if (error) return showToast('No se pudo eliminar el evento');
+  } else {
+    const events = readEvents();
+    events.splice(Number(deleteButton.dataset.eventIndex), 1);
+    localStorage.setItem(localEventsKey(), JSON.stringify(events));
+  }
+  renderCalendarData();
+});
+
+function downloadICS(event) {
+  const start = new Date(`${event.event_date}T${event.event_time || '00:00'}:00`);
+  const end = new Date(start.getTime() + parseDuration(event.duration));
+  const icsDate = (date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const escapeICS = (value) => String(value || '').replace(/[\\;,\n]/g, (character) => `\\${character}`);
+  const content = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Umbral Smart Home//ES', 'BEGIN:VEVENT', `UID:${event.id || crypto.randomUUID()}@umbral`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(start)}Z`, `DTEND:${icsDate(end)}Z`, `SUMMARY:${escapeICS(event.title)}`, event.location ? `LOCATION:${escapeICS(event.location)}` : '', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${event.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'evento'}.ics`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+  showToast('Abre el archivo para añadirlo al Calendario');
+}
+
+function parseDuration(duration) {
+  const hours = Number(String(duration).match(/(\d+(?:[.,]\d+)?)\s*h/i)?.[1]?.replace(',', '.') || 1);
+  const minutes = Number(String(duration).match(/(\d+)\s*min/i)?.[1] || 0);
+  return (hours * 60 + minutes) * 60 * 1000;
+}
+
+function notifyOtherUser(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
+  showToast(body);
+}
+
+async function enableNotifications() {
+  if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+}
 
 async function connectNotes() {
   const status = document.querySelector('#notesConnectionStatus');
@@ -168,9 +369,20 @@ async function connectNotes() {
     return;
   }
   authUserId = data.user.id;
+  await supabaseClient.auth.updateUser({ data: { name: currentUser } });
   status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
   lucide.createIcons();
   renderNotes();
+  await enableNotifications();
+  supabaseClient.channel('notes-live').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload) => {
+    if (payload.eventType === 'UPDATE' && payload.new.completed && payload.new.owner_id !== authUserId && payload.new.scope === 'shared') {
+      notifyOtherUser('Nota completada', 'La otra persona ha completado una nota compartida.');
+    }
+    renderNotes();
+  }).subscribe();
+  supabaseClient.channel('events-live').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+    if (calendarModal.classList.contains('visible')) renderCalendarData();
+  }).subscribe();
 }
 
 function formatToday() {
