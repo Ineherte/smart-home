@@ -299,7 +299,7 @@ document.querySelector('#closeCalendar').addEventListener('click', () => calenda
 document.querySelector('#eventForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
-  const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
+  const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value || null, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
   if (supabaseClient && authUserId) {
     const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId });
     if (error) return showToast('No se pudo guardar el evento');
