@@ -198,6 +198,10 @@ function dateToISO(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function normalizeEventDate(value) {
+  return String(value || '').slice(0, 10);
+}
+
 function formatEventDate(date) {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 }
@@ -218,7 +222,7 @@ async function getEvents() {
     ]);
     if (homeEvents.error) throw homeEvents.error;
     if (iphoneEvents.error) throw iphoneEvents.error;
-    const importedEvents = iphoneEvents.data.map((event) => ({ ...event, id: `iphone-${event.id}`, duration: event.duration_minutes ? `${event.duration_minutes} min` : '', event_time: event.event_time || '00:00', scope: 'private', source: 'iphone' }));
+    const importedEvents = iphoneEvents.data.map((event) => ({ ...event, id: `iphone-${event.id}`, event_date: normalizeEventDate(event.event_date), duration: event.duration_minutes ? `${event.duration_minutes} min` : '', event_time: event.event_time || '00:00', scope: 'private', source: 'iphone' }));
     return [...homeEvents.data, ...importedEvents];
   }
   return readEvents();
@@ -236,8 +240,8 @@ function renderCalendar() {
   for (let day = 1; day <= daysInMonth; day += 1) {
     const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day);
     const dateISO = dateToISO(date);
-    const hasHomeEvents = cachedEvents.some((event) => event.event_date === dateISO && event.source !== 'iphone');
-    const hasIphoneEvents = cachedEvents.some((event) => event.event_date === dateISO && event.source === 'iphone');
+    const hasHomeEvents = cachedEvents.some((event) => normalizeEventDate(event.event_date) === dateISO && event.source !== 'iphone');
+    const hasIphoneEvents = cachedEvents.some((event) => normalizeEventDate(event.event_date) === dateISO && event.source === 'iphone');
     const markers = `${hasHomeEvents ? '<i class="home-marker"></i>' : ''}${hasIphoneEvents ? '<i class="iphone-marker"></i>' : ''}`;
     days.push(`<button type="button" class="calendar-day ${dateISO === todayISO ? 'today' : ''} ${dateISO === selectedISO ? 'selected' : ''}" data-calendar-date="${dateISO}">${day}${markers}</button>`);
   }
@@ -253,7 +257,7 @@ function renderCalendar() {
 
 function renderSelectedDay() {
   const dateISO = dateToISO(selectedDate);
-  const dayEvents = cachedEvents.filter((event) => event.event_date === dateISO).sort((first, second) => (first.event_time || '00:00').localeCompare(second.event_time || '00:00'));
+  const dayEvents = cachedEvents.filter((event) => normalizeEventDate(event.event_date) === dateISO).sort((first, second) => (first.event_time || '00:00').localeCompare(second.event_time || '00:00'));
   const dateLabel = formatEventDate(selectedDate);
   document.querySelector('#selectedDateLabel').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
   document.querySelector('#selectedDayCount').textContent = `${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}`;
@@ -272,8 +276,10 @@ async function renderCalendarData() {
   }
   renderCalendar();
   renderSelectedDay();
-  const count = cachedEvents.filter((event) => event.event_date === dateToISO(new Date())).length;
+  const count = cachedEvents.filter((event) => normalizeEventDate(event.event_date) === dateToISO(new Date())).length;
   document.querySelector('#calendarPreview').innerHTML = count ? `<b>${count} ${count === 1 ? 'evento' : 'eventos'}</b> · ver agenda` : 'Sin eventos para hoy · añadir uno';
+  document.querySelector('#eventsConnectionStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${cachedEvents.length} eventos cargados · Smart Home e iPhone`;
+  lucide.createIcons();
 }
 
 async function openCalendar() {
