@@ -220,10 +220,9 @@ async function getEvents() {
       supabaseClient.from('events').select('id, title, event_date, event_time, duration, location, scope, owner_id, created_at').order('event_date').order('event_time'),
       supabaseClient.from('iphone_events').select('id, external_id, title, event_date, event_time, duration_minutes, location, calendar_name, owner').order('event_date').order('event_time')
     ]);
-    if (homeEvents.error) throw homeEvents.error;
     if (iphoneEvents.error) throw iphoneEvents.error;
     const importedEvents = iphoneEvents.data.map((event) => ({ ...event, id: `iphone-${event.id}`, event_date: normalizeEventDate(event.event_date), duration: event.duration_minutes ? `${event.duration_minutes} min` : '', event_time: event.event_time || '00:00', scope: 'private', source: 'iphone' }));
-    return [...homeEvents.data, ...importedEvents];
+    return [...(homeEvents.error ? [] : homeEvents.data), ...importedEvents];
   }
   return readEvents();
 }
@@ -270,9 +269,15 @@ function renderSelectedDay() {
 async function renderCalendarData() {
   try {
     cachedEvents = await getEvents();
-  } catch {
+  } catch (error) {
     cachedEvents = [];
+    const status = document.querySelector('#eventsConnectionStatus');
+    status.innerHTML = `<i data-lucide="circle-alert"></i> Error cargando eventos: ${escapeHtml(error.message || 'permiso denegado')}`;
+    lucide.createIcons();
     showToast('No se pudieron cargar los eventos');
+    renderCalendar();
+    renderSelectedDay();
+    return;
   }
   renderCalendar();
   renderSelectedDay();
@@ -376,6 +381,7 @@ async function connectNotes() {
   }
   authUserId = data.user.id;
   await supabaseClient.auth.updateUser({ data: { name: currentUser } });
+  await supabaseClient.auth.refreshSession();
   status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
   lucide.createIcons();
   renderNotes();
