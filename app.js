@@ -126,13 +126,15 @@ function showUrgentNotes(notes) {
 function openNotes() {
   renderNotes();
   notesModal.classList.add('visible');
+  if (history.state?.page !== 'notes') history.pushState({ page: 'notes' }, '', '#notas');
+  initDrawing();
 }
 
 document.querySelector('[data-action="notes"]').addEventListener('click', openNotes);
 document.querySelector('[data-action="notes"]').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') openNotes();
 });
-document.querySelector('#closeNotes').addEventListener('click', () => notesModal.classList.remove('visible'));
+document.querySelector('#closeNotes').addEventListener('click', () => history.back());
 document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openNotes(); });
 document.querySelectorAll('.note-form').forEach((form) => {
   form.addEventListener('submit', async (event) => {
@@ -289,13 +291,14 @@ async function renderCalendarData() {
 
 async function openCalendar() {
   calendarModal.classList.add('visible');
+  if (history.state?.page !== 'calendar') history.pushState({ page: 'calendar' }, '', '#agenda');
   await renderCalendarData();
 }
 
 document.querySelector('[data-action="calendar"]').addEventListener('click', openCalendar);
 document.querySelector('#previousMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); renderCalendar(); });
 document.querySelector('#nextMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); renderCalendar(); });
-document.querySelector('#closeCalendar').addEventListener('click', () => calendarModal.classList.remove('visible'));
+document.querySelector('#closeCalendar').addEventListener('click', () => history.back());
 document.querySelector('#eventForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -362,6 +365,82 @@ function notifyOtherUser(title, body) {
   showToast(body);
 }
 
+const drawingCanvas = document.querySelector('#sharedCanvas');
+const drawingKey = 'umbral-shared-drawing';
+let drawingStrokes = [];
+let activeStroke;
+let drawingReady = false;
+
+function resizeDrawingCanvas() {
+  const ratio = window.devicePixelRatio || 1;
+  const rect = drawingCanvas.getBoundingClientRect();
+  drawingCanvas.width = rect.width * ratio;
+  drawingCanvas.height = rect.height * ratio;
+  drawingCanvas.getContext('2d').scale(ratio, ratio);
+  drawStrokes();
+}
+
+function drawStrokes() {
+  const context = drawingCanvas.getContext('2d');
+  const rect = drawingCanvas.getBoundingClientRect();
+  context.clearRect(0, 0, rect.width, rect.height);
+  context.strokeStyle = '#275b49';
+  context.lineWidth = 3;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  drawingStrokes.forEach((stroke) => {
+    if (stroke.points.length < 2) return;
+    context.beginPath();
+    stroke.points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+    context.stroke();
+  });
+}
+
+async function loadDrawing() {
+  if (supabaseClient && authUserId) {
+    const { data, error } = await supabaseClient.from('shared_drawing').select('strokes').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    drawingStrokes = data?.strokes || [];
+  } else {
+    drawingStrokes = readNotes(drawingKey);
+  }
+  drawStrokes();
+}
+
+async function saveDrawing() {
+  if (supabaseClient && authUserId) {
+    const { error } = await supabaseClient.from('shared_drawing').upsert({ id: 1, strokes: drawingStrokes, updated_by: authUserId, updated_at: new Date().toISOString() });
+    if (error) showToast('No se pudo sincronizar la pizarra');
+  } else {
+    localStorage.setItem(drawingKey, JSON.stringify(drawingStrokes));
+  }
+}
+
+async function initDrawing() {
+  if (!drawingReady) {
+    drawingCanvas.addEventListener('pointerdown', (event) => {
+      drawingCanvas.setPointerCapture(event.pointerId);
+      const rect = drawingCanvas.getBoundingClientRect();
+      activeStroke = { points: [{ x: event.clientX - rect.left, y: event.clientY - rect.top }] };
+      drawingStrokes.push(activeStroke);
+      drawStrokes();
+    });
+    drawingCanvas.addEventListener('pointermove', (event) => {
+      if (!activeStroke) return;
+      const rect = drawingCanvas.getBoundingClientRect();
+      activeStroke.points.push({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+      drawStrokes();
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((eventName) => drawingCanvas.addEventListener(eventName, () => { if (activeStroke) saveDrawing(); activeStroke = null; }));
+    window.addEventListener('resize', resizeDrawingCanvas);
+    drawingReady = true;
+    resizeDrawingCanvas();
+  }
+  loadDrawing().catch(() => showToast('No se pudo cargar la pizarra compartida'));
+}
+
+document.querySelector('#clearDrawing').addEventListener('click', () => { drawingStrokes = []; drawStrokes(); saveDrawing(); showToast('Pizarra borrada'); });
+
 async function enableNotifications() {
   if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
 }
@@ -391,6 +470,12 @@ async function connectNotes() {
       notifyOtherUser('Nota completada', 'La otra persona ha completado una nota compartida.');
     }
     renderNotes();
+  }).subscribe();
+  supabaseClient.channel('drawing-live').on('postgres_changes', { event: '*', schema: 'public', table: 'shared_drawing' }, (payload) => {
+    if (payload.new?.updated_by !== authUserId) {
+      drawingStrokes = payload.new?.strokes || [];
+      drawStrokes();
+    }
   }).subscribe();
   supabaseClient.channel('events-live').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
     if (calendarModal.classList.contains('visible')) renderCalendarData();
@@ -474,12 +559,30 @@ document.querySelectorAll('.nav-item').forEach((item) => {
     document.querySelectorAll('.nav-item').forEach((navItem) => navItem.classList.remove('active'));
     item.classList.add('active');
     const sectionName = item.querySelector('span').textContent;
+    if (sectionName === 'Casa' || sectionName === 'Ajustes') {
+      showToast(`${sectionName}: vista en preparación`);
+      return;
+    }
     if (item.dataset.nav === 'agenda') {
       openCalendar();
       return;
     }
     showToast(`${sectionName}: vista en preparación`);
   });
+});
+
+window.addEventListener('popstate', () => {
+  notesModal.classList.remove('visible');
+  calendarModal.classList.remove('visible');
+  if (history.state?.page === 'notes') openNotes();
+  if (history.state?.page === 'calendar') openCalendar();
+});
+
+document.querySelector('.brand').addEventListener('click', (event) => {
+  if (history.state?.page) {
+    event.preventDefault();
+    history.back();
+  }
 });
 
 updateWeather();

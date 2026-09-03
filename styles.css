@@ -123,14 +123,14 @@ section { margin-bottom: 34px; }
 .identity-options button span { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 10px; background: var(--lime); color: var(--green); font-size: 10px; }
 .identity-options button + button span { background: var(--amber); }
 .identity-options button svg { width: 15px; margin-left: auto; color: var(--muted); }
-.notes-modal { position: fixed; inset: 0; z-index: 4; display: grid; align-items: end; padding: 0; background: rgba(29, 41, 37, .35); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.notes-modal { position: fixed; inset: 0; z-index: 4; display: grid; align-items: stretch; padding: 0; background: var(--paper); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .notes-modal.visible { opacity: 1; pointer-events: auto; }
-.notes-panel { width: min(100%, 480px); max-height: min(86vh, 650px); overflow: auto; padding: 24px 22px 28px; border-radius: 22px 22px 0 0; background: var(--paper); box-shadow: 0 -15px 45px rgba(25, 46, 35, .16); transform: translateY(20px); transition: transform .2s ease; }
-.notes-modal.visible .notes-panel { transform: translateY(0); }
-.calendar-modal { position: fixed; inset: 0; z-index: 4; display: grid; align-items: end; background: rgba(29, 41, 37, .35); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.notes-panel { width: min(100%, 480px); height: 100%; overflow: auto; padding: 24px 22px 28px; background: var(--paper); transform: translateX(20px); transition: transform .2s ease; }
+.notes-modal.visible .notes-panel { transform: translateX(0); }
+.calendar-modal { position: fixed; inset: 0; z-index: 4; display: grid; align-items: stretch; background: var(--paper); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .calendar-modal.visible { opacity: 1; pointer-events: auto; }
-.calendar-panel { width: min(100%, 480px); max-height: min(92vh, 760px); overflow: auto; padding: 24px 22px 28px; border-radius: 22px 22px 0 0; background: var(--paper); box-shadow: 0 -15px 45px rgba(25, 46, 35, .16); transform: translateY(20px); transition: transform .2s ease; }
-.calendar-modal.visible .calendar-panel { transform: translateY(0); }
+.calendar-panel { width: min(100%, 480px); height: 100%; overflow: auto; padding: 24px 22px 28px; background: var(--paper); transform: translateX(20px); transition: transform .2s ease; }
+.calendar-modal.visible .calendar-panel { transform: translateX(0); }
 .connect-microsoft { display: flex; align-items: center; gap: 8px; width: 100%; margin: -3px 0 16px; padding: 11px 12px; border: 1px solid #cbd9e8; border-radius: 11px; background: #eef4fa; color: #245071; font-size: 11px; font-weight: 700; text-align: left; }
 .connect-microsoft:hover { background: #e4eef8; }
 .connect-microsoft span { flex: 1; }
@@ -181,6 +181,13 @@ section { margin-bottom: 34px; }
 .modal-heading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 23px; }
 .modal-heading h2 { margin: 0; font-size: 27px; letter-spacing: -.05em; }
 .note-group { padding-bottom: 22px; }
+.drawing-section { padding: 21px 0 22px; border-top: 1px solid var(--line); }
+.drawing-toolbar { display: flex; align-items: center; justify-content: space-between; margin: 0 0 9px; color: var(--muted); font-size: 10px; }
+.drawing-toolbar span { display: flex; align-items: center; gap: 5px; }
+.drawing-toolbar svg { width: 14px; }
+.drawing-toolbar button { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 9px; background: var(--white); color: #b76749; }
+.drawing-toolbar button svg { width: 15px; }
+#sharedCanvas { display: block; width: 100%; height: 230px; touch-action: none; border: 1px solid #d8e1d9; border-radius: 12px; background-color: #fffefb; background-image: linear-gradient(#e8eee8 1px, transparent 1px), linear-gradient(90deg, #e8eee8 1px, transparent 1px); background-size: 22px 22px; }
 .private-group { padding-top: 21px; border-top: 1px solid var(--line); }
 .note-group-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
 .note-group-heading strong { font-size: 15px; }
