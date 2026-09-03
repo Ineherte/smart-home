@@ -461,7 +461,12 @@ document.querySelectorAll('.nav-item').forEach((item) => {
   item.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach((navItem) => navItem.classList.remove('active'));
     item.classList.add('active');
-    showToast(`${item.querySelector('span').textContent}: vista en preparación`);
+    const sectionName = item.querySelector('span').textContent;
+    if (sectionName === 'Agenda') {
+      openCalendar();
+      return;
+    }
+    showToast(`${sectionName}: vista en preparación`);
   });
 });
 
