@@ -62,6 +62,101 @@ section { margin-bottom: 34px; }
 .text-button svg { width: 13px; }
 .text-button svg.spin { animation: spin .5s linear; }
 .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.lights-panel-section {
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(39, 91, 73, 0.1);
+  border-radius: 20px;
+  padding: 18px 18px 6px;
+  box-shadow: 0 16px 40px rgba(21, 31, 27, 0.06);
+}
+
+.lights-list {
+  display: grid;
+  gap: 12px;
+  padding: 12px 0 14px;
+}
+
+.light-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 14px;
+  border-radius: 16px;
+  background: rgba(245, 248, 244, 0.8);
+  border: 1px solid rgba(39, 91, 73, 0.08);
+}
+
+.light-row .light-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.light-icon {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 204, 94, 0.18);
+  color: #b57c00;
+}
+
+.light-row[data-powered="true"] .light-icon {
+  background: rgba(255, 204, 94, 0.28);
+  color: #b57c00;
+}
+
+.light-row[data-powered="false"] .light-icon {
+  background: rgba(90, 104, 110, 0.12);
+  color: #56656c;
+}
+
+.light-row strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.light-row small {
+  color: #5d6b67;
+}
+
+.light-toggle {
+  border: none;
+  background: linear-gradient(135deg, #275b49, #1d3f35);
+  width: 62px;
+  height: 36px;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.light-toggle::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f5f6f3;
+  top: 6px;
+  left: 8px;
+  transition: all 0.2s ease;
+}
+
+.light-row[data-powered="false"] .light-toggle {
+  background: rgba(91, 104, 110, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(91, 104, 110, 0.12);
+}
+
+.light-row[data-powered="false"] .light-toggle::after {
+  left: 30px;
+  background: #dfe7e4;
+}
 .summary-card { position: relative; display: flex; gap: 11px; min-height: 114px; padding: 14px 12px; overflow: hidden; border-radius: 14px; }
 .climate-card { background: var(--green-soft); }
 .notes-card { background: #faedd0; cursor: pointer; }

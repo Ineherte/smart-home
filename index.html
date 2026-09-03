@@ -83,6 +83,17 @@
         </div>
       </section>
 
+      <section class="lights-panel-section" aria-labelledby="smartLightsTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow muted">Casa</p>
+            <h2 id="smartLightsTitle">Luces inteligentes</h2>
+          </div>
+          <button class="text-button" type="button" id="toggleAllLightsButton"><i data-lucide="lightbulb"></i> Todas</button>
+        </div>
+        <div class="lights-list" id="smartLightsList"></div>
+      </section>
+
       <section class="agenda-section" aria-labelledby="agenda-title">
         <div class="section-heading">
           <div><p class="eyebrow muted">A continuación</p><h2 id="agenda-title">Tu agenda</h2></div>
@@ -125,8 +136,8 @@
       <div class="notes-panel">
         <div class="modal-heading"><div><p class="eyebrow muted">Recordatorios de casa</p><h2 id="notesTitle">Notas</h2></div><button class="icon-button small" type="button" id="closeNotes" aria-label="Cerrar notas" title="Cerrar"><i data-lucide="x"></i></button></div>
         <div class="note-group"><div class="note-group-heading"><strong>Compartidas</strong><span>Las veis los dos</span></div><div class="note-list" id="sharedNotes"></div><form class="note-form" data-note-type="shared"><div class="note-input-wrap"><input type="text" maxlength="120" placeholder="Añadir una nota para los dos" aria-label="Nueva nota compartida" required /><label><input type="checkbox" name="urgent" /> Urgente</label></div><button type="submit" aria-label="Añadir nota compartida" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
-        <div class="drawing-section"><div class="note-group-heading"><strong>Pizarra compartida</strong><span>Lo veis los dos</span></div><div class="drawing-toolbar"><span><i data-lucide="pen-line"></i> Dibuja algo para Matteo</span><button type="button" id="clearDrawing" aria-label="Borrar pizarra" title="Borrar pizarra"><i data-lucide="eraser"></i></button></div><canvas id="sharedCanvas" aria-label="Pizarra compartida táctil"></canvas></div>
         <div class="note-group private-group"><div class="note-group-heading"><strong>Solo para <span id="privateUserLabel">Ines</span></strong><span>Privada en este perfil</span></div><div class="note-list" id="privateNotes"></div><form class="note-form" data-note-type="private"><div class="note-input-wrap"><input type="text" maxlength="120" placeholder="Añadir una nota privada" aria-label="Nueva nota privada" required /><label><input type="checkbox" name="urgent" /> Urgente</label></div><button type="submit" aria-label="Añadir nota privada" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
+        <div class="drawing-section"><div class="note-group-heading"><strong>Pizarra compartida</strong><span>Lo veis los dos</span></div><div class="drawing-toolbar"><span><i data-lucide="pen-line"></i> Dibuja algo para Matteo</span><button type="button" id="clearDrawing" aria-label="Borrar pizarra" title="Borrar pizarra"><i data-lucide="eraser"></i></button></div><canvas id="sharedCanvas" aria-label="Pizarra compartida táctil"></canvas></div>
         <p class="notes-local-warning" id="notesConnectionStatus"><i data-lucide="loader-circle"></i> Conectando notas...</p>
       </div>
     </div>
@@ -147,6 +158,7 @@
     <div class="toast" role="status" aria-live="polite"><i data-lucide="check"></i><span></span></div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
+    <script src="smart-lights-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -16,6 +16,101 @@ let authUserId;
 const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 let toastTimer;
 let lightsOn = true;
+const smartLightConfig = window.SMART_LIGHTS_CONFIG || {
+  devices: [
+    { id: 'salon-demo', name: 'Salón', room: 'salón', powered: true, code: 'switch_led' },
+    { id: 'cocina-demo', name: 'Cocina', room: 'cocina', powered: true, code: 'switch_led' }
+  ],
+  demoMode: true
+};
+const smartLights = smartLightConfig.devices.map((device) => ({
+  id: device.id,
+  name: device.name,
+  room: device.room,
+  code: device.code || 'switch_led',
+  powered: Boolean(device.powered)
+}));
+
+async function callSmartLightEndpoint(lightId, nextState) {
+  if (smartLightConfig.demoMode || !supabaseConfig.url || !supabaseConfig.anonKey) {
+    return { ok: true, demo: true };
+  }
+
+  const response = await fetch(`${supabaseConfig.url}/functions/v1/tuya-lights`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supabaseConfig.anonKey}`
+    },
+    body: JSON.stringify({
+      deviceId: lightId,
+      action: nextState ? 'on' : 'off',
+      deviceCode: smartLights.find((light) => light.id === lightId)?.code || 'switch_led'
+    })
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'No se pudo comunicar con Tuya');
+  }
+
+  return response.json();
+}
+
+function renderSmartLights() {
+  const container = document.querySelector('#smartLightsList');
+  if (!container) return;
+
+  container.innerHTML = smartLights.map((light) => `
+    <div class="light-row" data-light-id="${light.id}" data-powered="${String(light.powered)}">
+      <div class="light-meta">
+        <span class="light-icon"><i data-lucide="lightbulb"></i></span>
+        <div>
+          <strong>${light.name}</strong>
+          <small>${light.powered ? 'Encendida' : 'Apagada'} · ${light.room}</small>
+        </div>
+      </div>
+      <button type="button" class="light-toggle" data-light-toggle="${light.id}" aria-label="Cambiar estado de ${light.name}"></button>
+    </div>
+  `).join('');
+
+  lucide.createIcons();
+}
+
+function updateLightStatusText() {
+  const activeLights = smartLights.filter((light) => light.powered).length;
+  const lightsStatus = document.querySelector('#lightsStatus');
+  if (!lightsStatus) return;
+
+  lightsStatus.textContent = activeLights === smartLights.length ? '2 encendidas · salón y cocina' : activeLights === 0 ? 'Todas apagadas' : `${activeLights} encendida${activeLights === 1 ? '' : 's'} · ${smartLights.filter((light) => light.powered).map((light) => light.room).join(' y ')}`;
+}
+
+function setSmartLightState(lightId, powered) {
+  const light = smartLights.find((entry) => entry.id === lightId);
+  if (!light) return;
+
+  light.powered = powered;
+  const row = document.querySelector(`.light-row[data-light-id="${lightId}"]`);
+  if (!row) return;
+
+  row.dataset.powered = String(powered);
+  row.querySelector('small').textContent = `${powered ? 'Encendida' : 'Apagada'} · ${light.room}`;
+  updateLightStatusText();
+}
+
+async function toggleSmartLight(lightId) {
+  const light = smartLights.find((entry) => entry.id === lightId);
+  if (!light) return;
+
+  const newState = !light.powered;
+  try {
+    await callSmartLightEndpoint(lightId, newState);
+    setSmartLightState(lightId, newState);
+    showToast(newState ? `${light.name} encendida` : `${light.name} apagada`);
+  } catch (error) {
+    showToast(error.message || 'No se pudo cambiar el estado de la luz');
+  }
+}
 
 const weatherDescriptions = {
   0: ['Despejado', 'sun'],
@@ -527,9 +622,16 @@ document.querySelectorAll('[data-action]').forEach((action) => {
     const type = action.dataset.action;
 
     if (type === 'lights') {
-      lightsOn = !lightsOn;
-      document.querySelector('#lightsStatus').textContent = lightsOn ? '2 encendidas · salón y cocina' : 'Todas apagadas';
-      showToast(lightsOn ? 'Luces del salón y la cocina encendidas' : 'Todas las luces están apagadas');
+      const shouldTurnOn = smartLights.some((light) => !light.powered);
+      smartLights.forEach(async (light) => {
+        try {
+          await callSmartLightEndpoint(light.id, shouldTurnOn);
+          setSmartLightState(light.id, shouldTurnOn);
+        } catch (error) {
+          showToast(error.message || 'No se pudo cambiar el estado de la luz');
+        }
+      });
+      showToast(shouldTurnOn ? 'Luces del salón y la cocina encendidas' : 'Todas las luces están apagadas');
     }
 
     if (type === 'calendar') {
@@ -552,6 +654,25 @@ document.querySelector('#refreshButton').addEventListener('click', (event) => {
     if (updated) showToast('Tiempo actualizado hace un momento');
   });
   setTimeout(() => icon.classList.remove('spin'), 500);
+});
+
+document.querySelector('#toggleAllLightsButton').addEventListener('click', () => {
+  const shouldTurnOn = smartLights.some((light) => !light.powered);
+  smartLights.forEach(async (light) => {
+    try {
+      await callSmartLightEndpoint(light.id, shouldTurnOn);
+      setSmartLightState(light.id, shouldTurnOn);
+    } catch (error) {
+      showToast(error.message || 'No se pudo cambiar el estado de la luz');
+    }
+  });
+  showToast(shouldTurnOn ? 'Todas las luces encendidas' : 'Todas las luces apagadas');
+});
+
+document.querySelector('#smartLightsList').addEventListener('click', (event) => {
+  const toggle = event.target.closest('[data-light-toggle]');
+  if (!toggle) return;
+  toggleSmartLight(toggle.dataset.lightToggle);
 });
 
 document.querySelectorAll('.nav-item').forEach((item) => {
@@ -587,3 +708,5 @@ document.querySelector('.brand').addEventListener('click', (event) => {
 
 updateWeather();
 connectNotes();
+renderSmartLights();
+updateLightStatusText();
