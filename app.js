@@ -462,7 +462,7 @@ document.querySelectorAll('.nav-item').forEach((item) => {
     document.querySelectorAll('.nav-item').forEach((navItem) => navItem.classList.remove('active'));
     item.classList.add('active');
     const sectionName = item.querySelector('span').textContent;
-    if (sectionName === 'Agenda') {
+    if (item.dataset.nav === 'agenda') {
       openCalendar();
       return;
     }
