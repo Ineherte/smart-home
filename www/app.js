@@ -434,7 +434,7 @@ document.querySelector('#eventForm').addEventListener('submit', async (event) =>
     if (error) return showToast('No se pudo guardar el evento');
   } else {
     const events = readEvents();
-    events.push({ ...eventData, id: crypto.randomUUID() });
+    events.push({ ...eventData, id: createLocalId() });
     localStorage.setItem(localEventsKey(), JSON.stringify(events));
   }
   selectedDate = new Date(`${eventData.event_date}T12:00:00`);
@@ -470,7 +470,7 @@ function downloadICS(event) {
   const end = new Date(start.getTime() + parseDuration(event.duration));
   const icsDate = (date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const escapeICS = (value) => String(value || '').replace(/[\\;,\n]/g, (character) => `\\${character}`);
-  const content = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Umbral Smart Home//ES', 'BEGIN:VEVENT', `UID:${event.id || crypto.randomUUID()}@umbral`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(start)}Z`, `DTEND:${icsDate(end)}Z`, `SUMMARY:${escapeICS(event.title)}`, event.location ? `LOCATION:${escapeICS(event.location)}` : '', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
+  const content = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Umbral Smart Home//ES', 'BEGIN:VEVENT', `UID:${event.id || createLocalId()}@umbral`, `DTSTAMP:${icsDate(new Date())}`, `DTSTART:${icsDate(start)}Z`, `DTEND:${icsDate(end)}Z`, `SUMMARY:${escapeICS(event.title)}`, event.location ? `LOCATION:${escapeICS(event.location)}` : '', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean).join('\r\n');
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -859,6 +859,10 @@ function readFinanceLocal(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
 }
 
+function createLocalId() {
+  return globalThis.crypto?.randomUUID?.() || `umbral-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 async function getFinanceData() {
   if (supabaseClient && authUserId) {
     const [{ data: expenses, error: expensesError }, { data: bills, error: billsError }] = await Promise.all([
@@ -877,7 +881,7 @@ async function getFinanceData() {
 let financeCache = { expenses: [], bills: [] };
 
 function readFinanceRecords(key) {
-  const records = readFinanceLocal(key).map((entry) => entry.id ? entry : { ...entry, id: crypto.randomUUID() });
+  const records = readFinanceLocal(key).map((entry) => entry.id ? entry : { ...entry, id: createLocalId() });
   localStorage.setItem(key, JSON.stringify(records));
   return records;
 }
@@ -1022,7 +1026,7 @@ async function saveFinanceEntity(kind, values) {
       const records = getLocalFixedCosts();
       const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
       if (index >= 0) records[index] = { ...records[index], ...record };
-      else records.unshift({ ...record, id: crypto.randomUUID() });
+      else records.unshift({ ...record, id: createLocalId() });
       localStorage.setItem(localFixedCostsKey, JSON.stringify(records));
       financeEditing = null;
       return { localOnly: true, error };
@@ -1031,7 +1035,7 @@ async function saveFinanceEntity(kind, values) {
     const records = kind === 'fixed' ? getLocalFixedCosts() : readFinanceRecords(key);
     const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
     if (index >= 0) records[index] = { ...records[index], ...record };
-    else records.unshift({ ...record, id: crypto.randomUUID() });
+    else records.unshift({ ...record, id: createLocalId() });
     localStorage.setItem(key, JSON.stringify(records));
   }
   financeEditing = null;
