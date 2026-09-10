@@ -1147,22 +1147,21 @@ async function syncFinanceImport(kind, rows) {
 }
 
 async function saveImportedExpenses(rows) {
-  if (supabaseClient && authUserId) {
-    try {
-      const syncResult = await syncFinanceImport('tricount', rows);
-      if (syncResult?.localOnly) {
-        document.querySelector('#financeStatus').innerHTML = '<i data-lucide="hard-drive"></i> Importación guardada localmente. Conecta Supabase para sincronizar con la nube.';
-      } else {
-        document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${syncResult.imported || rows.length} gastos sincronizados con Tricount.`;
-      }
-      lucide.createIcons();
-      return;
-    } catch (error) {
-      throw error;
-    }
-  }
+  const current = readFinanceRecords(localExpensesKey);
+  const savedRows = rows.map((row) => ({ ...row, id: row.id || createLocalId() }));
+  localStorage.setItem(localExpensesKey, JSON.stringify([...savedRows, ...current]));
+  financeCache.expenses = readFinanceRecords(localExpensesKey);
+  renderFinance(financeCache);
+  document.querySelector('#financeStatus').innerHTML = `<i data-lucide="hard-drive"></i> ${rows.length} gastos guardados en este dispositivo.`;
+  lucide.createIcons();
 
-  localStorage.setItem(localExpensesKey, JSON.stringify([...rows, ...readFinanceLocal(localExpensesKey)]));
+  if (supabaseClient && authUserId) {
+    syncFinanceImport('tricount', rows).then((syncResult) => {
+      document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${syncResult.imported || rows.length} gastos sincronizados con Tricount.`;
+      lucide.createIcons();
+    }).catch((error) => console.warn('[Umbral] Importación local pendiente de nube:', error));
+  }
+  return { imported: rows.length, localOnly: true };
 }
 
 function normalizeSharedTricountData(payload) {
@@ -1196,13 +1195,15 @@ document.querySelector('#financeShareForm').addEventListener('submit', async (ev
   button.innerHTML = '<i data-lucide="loader-circle"></i> Cargando...';
   lucide.createIcons();
   try {
-    const response = await fetch(`${supabaseConfig.url}/functions/v1/tricount-share-sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: supabaseConfig.anonKey, Authorization: `Bearer ${supabaseConfig.anonKey}` }, body: JSON.stringify({ shareLink }) });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const response = await fetch(`${supabaseConfig.url}/functions/v1/tricount-share-sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: supabaseConfig.anonKey, Authorization: `Bearer ${supabaseConfig.anonKey}` }, body: JSON.stringify({ shareLink }), signal: controller.signal });
+    clearTimeout(timeout);
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'No se pudo cargar el Tricount compartido');
     const rows = normalizeSharedTricountData(result);
     if (!rows.length) throw new Error('El enlace no contiene gastos importables');
     await saveImportedExpenses(rows);
-    await refreshFinance();
     form.reset();
     showToast(`${rows.length} gastos de Tricount añadidos`);
   } catch (error) {
