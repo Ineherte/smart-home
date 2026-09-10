@@ -36,6 +36,7 @@ const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.u
 const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
 let authUserId;
 let householdId;
+let householdRole = 'member';
 const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 const weatherDetailUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&past_days=30&forecast_days=7&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Europe%2FRome';
 let toastTimer;
@@ -619,6 +620,12 @@ async function connectNotes() {
     lucide.createIcons();
     return;
   }
+  const { data: profile } = await supabaseClient.from('profiles').select('display_name').eq('id', authUserId).maybeSingle();
+  if (profile?.display_name) setUser(profile.display_name);
+  if (householdRole === 'guest') {
+    document.querySelectorAll('[data-action="finance"]').forEach((element) => { element.hidden = true; });
+    document.querySelectorAll('.finance-modal').forEach((element) => element.setAttribute('aria-hidden', 'true'));
+  }
   await loadHouseholdAdmin();
   if (inviteToken) {
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -646,12 +653,16 @@ async function connectNotes() {
 }
 
 async function ensureHousehold() {
-  const { data: memberships, error: membershipError } = await supabaseClient.from('household_members').select('household_id').eq('user_id', authUserId).limit(1);
+  const { data: memberships, error: membershipError } = await supabaseClient.from('household_members').select('household_id, role').eq('user_id', authUserId).limit(1);
   if (membershipError) return null;
-  if (memberships?.[0]?.household_id) return memberships[0].household_id;
+  if (memberships?.[0]?.household_id) {
+    householdRole = memberships[0].role;
+    return memberships[0].household_id;
+  }
   const { data: household, error: householdError } = await supabaseClient.from('households').insert({ name: 'Casa', created_by: authUserId }).select('id').single();
   if (householdError) return null;
   const { error: memberError } = await supabaseClient.from('household_members').insert({ household_id: household.id, user_id: authUserId, role: 'owner' });
+  householdRole = 'owner';
   return memberError ? null : household.id;
 }
 

@@ -21,10 +21,13 @@ create table if not exists public.households (
 create table if not exists public.household_members (
   household_id uuid not null references public.households(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  role text not null default 'member' check (role in ('owner', 'member')),
+  role text not null default 'member' check (role in ('owner', 'member', 'guest')),
   created_at timestamptz not null default now(),
   primary key (household_id, user_id)
 );
+
+alter table public.household_members drop constraint if exists household_members_role_check;
+alter table public.household_members add constraint household_members_role_check check (role in ('owner', 'member', 'guest'));
 
 create index if not exists household_members_user_idx on public.household_members(user_id);
 
@@ -43,6 +46,18 @@ $$;
 
 revoke all on function public.is_household_member(uuid) from public;
 grant execute on function public.is_household_member(uuid) to authenticated;
+
+create or replace function public.is_household_manager(target_household uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.household_members
+    where household_id = target_household and user_id = auth.uid() and role in ('owner', 'member')
+  );
+$$;
+revoke all on function public.is_household_manager(uuid) from public;
+grant execute on function public.is_household_manager(uuid) to authenticated;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -97,10 +112,10 @@ create policy "Read household members" on public.household_members for select to
 create policy "Create first household owner" on public.household_members for insert to authenticated with check (user_id = auth.uid() and role = 'owner' and exists (select 1 from public.households where id = household_id and created_by = auth.uid()));
 create policy "Manage members as owner" on public.household_members for all to authenticated using (exists (select 1 from public.household_members owner where owner.household_id = household_members.household_id and owner.user_id = auth.uid() and owner.role = 'owner')) with check (exists (select 1 from public.household_members owner where owner.household_id = household_members.household_id and owner.user_id = auth.uid() and owner.role = 'owner'));
 
-create policy "Read household expenses" on public.shared_expenses for select to authenticated using (public.is_household_member(household_id));
-create policy "Create household expenses" on public.shared_expenses for insert to authenticated with check (public.is_household_member(household_id) and created_by = auth.uid());
-create policy "Update household expenses" on public.shared_expenses for update to authenticated using (public.is_household_member(household_id)) with check (public.is_household_member(household_id));
-create policy "Delete household expenses" on public.shared_expenses for delete to authenticated using (public.is_household_member(household_id) and created_by = auth.uid());
+create policy "Read household expenses" on public.shared_expenses for select to authenticated using (public.is_household_manager(household_id));
+create policy "Create household expenses" on public.shared_expenses for insert to authenticated with check (public.is_household_manager(household_id) and created_by = auth.uid());
+create policy "Update household expenses" on public.shared_expenses for update to authenticated using (public.is_household_manager(household_id)) with check (public.is_household_manager(household_id));
+create policy "Delete household expenses" on public.shared_expenses for delete to authenticated using (public.is_household_manager(household_id) and created_by = auth.uid());
 
 drop policy if exists "Read shared or own notes" on public.notes;
 drop policy if exists "Create notes for self" on public.notes;
@@ -120,22 +135,22 @@ create policy "Create household events" on public.events for insert to authentic
 create policy "Update household events" on public.events for update to authenticated using (public.is_household_member(household_id)) with check (public.is_household_member(household_id));
 create policy "Delete household events" on public.events for delete to authenticated using (public.is_household_member(household_id));
 
-create policy "Read household bills" on public.shared_bills for select to authenticated using (public.is_household_member(household_id));
-create policy "Create household bills" on public.shared_bills for insert to authenticated with check (public.is_household_member(household_id) and created_by = auth.uid());
-create policy "Update household bills" on public.shared_bills for update to authenticated using (public.is_household_member(household_id)) with check (public.is_household_member(household_id));
-create policy "Delete household bills" on public.shared_bills for delete to authenticated using (public.is_household_member(household_id) and created_by = auth.uid());
+create policy "Read household bills" on public.shared_bills for select to authenticated using (public.is_household_manager(household_id));
+create policy "Create household bills" on public.shared_bills for insert to authenticated with check (public.is_household_manager(household_id) and created_by = auth.uid());
+create policy "Update household bills" on public.shared_bills for update to authenticated using (public.is_household_manager(household_id)) with check (public.is_household_manager(household_id));
+create policy "Delete household bills" on public.shared_bills for delete to authenticated using (public.is_household_manager(household_id) and created_by = auth.uid());
 
-create policy "Read household fixed costs" on public.shared_fixed_costs for select to authenticated using (public.is_household_member(household_id));
-create policy "Create household fixed costs" on public.shared_fixed_costs for insert to authenticated with check (public.is_household_member(household_id) and (created_by is null or created_by = auth.uid()));
-create policy "Update household fixed costs" on public.shared_fixed_costs for update to authenticated using (public.is_household_member(household_id)) with check (public.is_household_member(household_id));
-create policy "Delete household fixed costs" on public.shared_fixed_costs for delete to authenticated using (public.is_household_member(household_id));
+create policy "Read household fixed costs" on public.shared_fixed_costs for select to authenticated using (public.is_household_manager(household_id));
+create policy "Create household fixed costs" on public.shared_fixed_costs for insert to authenticated with check (public.is_household_manager(household_id) and (created_by is null or created_by = auth.uid()));
+create policy "Update household fixed costs" on public.shared_fixed_costs for update to authenticated using (public.is_household_manager(household_id)) with check (public.is_household_manager(household_id));
+create policy "Delete household fixed costs" on public.shared_fixed_costs for delete to authenticated using (public.is_household_manager(household_id));
 
 -- Shared settlement visibility is scoped to the household.
 alter table public.shared_settlements enable row level security;
 drop policy if exists "Read shared settlements" on public.shared_settlements;
 drop policy if exists "Create shared settlements" on public.shared_settlements;
-create policy "Read household settlements" on public.shared_settlements for select to authenticated using (public.is_household_member(household_id));
-create policy "Create household settlements" on public.shared_settlements for insert to authenticated with check (public.is_household_member(household_id) and (created_by is null or created_by = auth.uid()));
+create policy "Read household settlements" on public.shared_settlements for select to authenticated using (public.is_household_manager(household_id));
+create policy "Create household settlements" on public.shared_settlements for insert to authenticated with check (public.is_household_manager(household_id) and (created_by is null or created_by = auth.uid()));
 
 -- Realtime must never be used as an authorization layer; RLS remains authoritative.
 alter table public.shared_expenses replica identity full;
