@@ -783,18 +783,95 @@ section { margin-bottom: 43px; }
 .attention-item > svg { width: 15px; color: var(--muted); }
 .attention-empty { display: flex; align-items: center; gap: 8px; padding: 12px 0; color: var(--muted); font-size: 10px; }
 .attention-empty svg { width: 15px; color: var(--green); }
-.home-state-visual { position: relative; width: 82px; height: 58px; margin: 0 0 0 16px; border-radius: 18px; background: linear-gradient(145deg, #edf7ee, #e0f0e5); box-shadow: inset 0 0 0 1px rgba(34, 91, 73, .08); overflow: hidden; }
-.home-state-visual::before { position: absolute; right: -16px; bottom: -31px; width: 78px; height: 78px; border: 1px solid rgba(34, 91, 73, .12); border-radius: 50%; content: ''; }
-.home-state-house { position: absolute; right: 14px; bottom: 9px; display: grid; width: 35px; height: 33px; place-items: center; border: 1px solid #add3b9; border-radius: 11px; background: #f6fbf5; color: var(--green); }
-.home-state-house svg { position: relative; z-index: 1; width: 20px; stroke-width: 2.2; }
-.home-state-sun { position: absolute; top: 10px; left: 12px; display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; background: #f7d98c; color: #946925; box-shadow: 0 4px 10px rgba(185, 130, 45, .12); animation: calm-float 3.6s ease-in-out infinite; }
-.home-state-sun svg { width: 13px; stroke-width: 2; }
-.home-state-spark { position: absolute; color: #d88964; font-family: Georgia, serif; animation: calm-blink 2.4s ease-in-out infinite; }
-.home-state-spark-one { top: 17px; right: 6px; font-size: 11px; }
-.home-state-spark-two { right: 35px; bottom: 5px; font-size: 13px; animation-delay: .9s; }
-@keyframes calm-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes calm-blink { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: .9; transform: scale(1.08); } }
-@media (prefers-reduced-motion: reduce) { .home-state-sun, .home-state-spark { animation: none; } }
+/* Weather state scene: one shell, layered fx toggled by data-weather-state. */
+.home-state-visual { position: relative; width: 82px; height: 58px; margin: 0 0 0 16px; border-radius: 18px; background: linear-gradient(145deg, #edf7ee, #e0f0e5); box-shadow: inset 0 0 0 1px rgba(34, 91, 73, .08); overflow: hidden; transition: background .6s ease; }
+.home-state-house { position: absolute; z-index: 2; right: 14px; bottom: 9px; display: grid; width: 35px; height: 33px; place-items: center; border: 1px solid #add3b9; border-radius: 11px; background: #f6fbf5; color: var(--green); }
+.home-state-house svg { width: 20px; stroke-width: 2.2; }
+.weather-fx { position: absolute; display: none; }
+
+/* Sun (clear day) */
+.fx-sun { top: 9px; left: 11px; width: 27px; height: 27px; }
+.fx-sun-core { position: absolute; inset: 5px; border-radius: 50%; background: #f7d98c; box-shadow: 0 4px 10px rgba(185, 130, 45, .18); animation: sun-pulse 4s ease-in-out infinite; }
+.fx-sun-ray { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(247, 217, 140, .55); animation: sun-glow 4s ease-in-out infinite; }
+.fx-sun-ray-b { animation-delay: 1s; }
+.fx-sun-ray-c { animation-delay: 2s; }
+.fx-sun-ray-d { animation-delay: 3s; }
+@keyframes sun-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 4px 10px rgba(185, 130, 45, .18); } 50% { transform: scale(1.1); box-shadow: 0 6px 14px rgba(185, 130, 45, .28); } }
+@keyframes sun-glow { 0% { transform: scale(.8); opacity: .6; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* Moon and stars (clear night) */
+.fx-moon { top: 8px; left: 13px; width: 22px; height: 22px; }
+.fx-moon-core { position: absolute; inset: 0; border-radius: 50%; background: #dfe6f2; box-shadow: -7px -2px 0 0 #e7f0f6 inset, 0 0 12px rgba(210, 222, 240, .5); animation: moon-drift 6s ease-in-out infinite; }
+.fx-star { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #eef3fa; animation: star-twinkle 2.6s ease-in-out infinite; }
+.fx-star-a { top: 2px; right: 6px; }
+.fx-star-b { top: 16px; right: -2px; animation-delay: .8s; }
+.fx-star-c { top: 26px; right: 12px; animation-delay: 1.6s; }
+@keyframes moon-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes star-twinkle { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+
+/* Clouds (cloudy, partly-cloudy, rain, storm, snow) */
+.fx-cloud { top: 16px; width: 30px; height: 16px; }
+.fx-cloud-a { left: 8px; z-index: 1; }
+.fx-cloud-b { left: 22px; top: 22px; opacity: .75; }
+.fx-cloud-shape { position: absolute; inset: 0; border-radius: 999px; background: #eef4f0; box-shadow: 8px -4px 0 -1px #eef4f0, -6px 2px 0 -2px #e3ece6; animation: cloud-drift 7s ease-in-out infinite; }
+.fx-cloud-b .fx-cloud-shape { animation-duration: 9s; animation-delay: 1s; }
+@keyframes cloud-drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+
+/* Rain */
+.fx-rain { top: 28px; left: 12px; width: 30px; height: 22px; }
+.fx-drop { position: absolute; top: 0; width: 2px; height: 8px; border-radius: 2px; background: #8fb7dd; animation: rain-fall 1s linear infinite; }
+.fx-drop-a { left: 2px; animation-delay: 0s; }
+.fx-drop-b { left: 13px; animation-delay: .33s; }
+.fx-drop-c { left: 24px; animation-delay: .66s; }
+@keyframes rain-fall { 0% { transform: translateY(-4px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(18px); opacity: 0; } }
+
+/* Snow */
+.fx-snow { top: 26px; left: 12px; width: 30px; height: 24px; }
+.fx-flake { position: absolute; top: 0; width: 4px; height: 4px; border-radius: 50%; background: #eef3fb; animation: snow-fall 3s ease-in-out infinite; }
+.fx-flake-a { left: 2px; animation-delay: 0s; }
+.fx-flake-b { left: 14px; animation-delay: 1s; }
+.fx-flake-c { left: 24px; animation-delay: 2s; }
+@keyframes snow-fall { 0% { transform: translate(0, -4px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(4px, 20px); opacity: 0; } }
+
+/* Fog */
+.fx-fog { top: 18px; left: 8px; width: 34px; height: 20px; }
+.fx-band { position: absolute; left: 0; width: 34px; height: 4px; border-radius: 4px; background: #d9e3dd; filter: blur(1px); animation: fog-drift 4.5s ease-in-out infinite; }
+.fx-band-a { top: 4px; }
+.fx-band-b { top: 13px; width: 26px; opacity: .8; animation-delay: 1.2s; }
+@keyframes fog-drift { 0%, 100% { transform: translateX(-3px); opacity: .7; } 50% { transform: translateX(3px); opacity: 1; } }
+
+/* Storm bolt */
+.fx-bolt { top: 24px; left: 17px; width: 12px; height: 18px; }
+.fx-bolt-shape { position: absolute; inset: 0; background: #f4d879; clip-path: polygon(55% 0, 10% 55%, 45% 55%, 25% 100%, 90% 40%, 55% 40%); animation: bolt-flash 2.2s ease-in-out infinite; }
+@keyframes bolt-flash { 0%, 88%, 100% { opacity: 0; } 90%, 96% { opacity: 1; } }
+
+/* Which fx render per state */
+[data-weather-state="sun"] .fx-sun,
+[data-weather-state="partly-cloudy"] .fx-sun,
+[data-weather-state="partly-cloudy"] .fx-cloud-a,
+[data-weather-state="night"] .fx-moon,
+[data-weather-state="night-cloudy"] .fx-moon,
+[data-weather-state="night-cloudy"] .fx-cloud-a,
+[data-weather-state="cloudy"] .fx-cloud-a,
+[data-weather-state="cloudy"] .fx-cloud-b,
+[data-weather-state="fog"] .fx-fog,
+[data-weather-state="rain"] .fx-cloud-a,
+[data-weather-state="rain"] .fx-rain,
+[data-weather-state="storm"] .fx-cloud-a,
+[data-weather-state="storm"] .fx-rain,
+[data-weather-state="storm"] .fx-bolt,
+[data-weather-state="snow"] .fx-cloud-a,
+[data-weather-state="snow"] .fx-snow { display: block; }
+[data-weather-state="partly-cloudy"] .fx-sun { top: 5px; left: 5px; width: 20px; height: 20px; }
+[data-weather-state="night"] { background: linear-gradient(145deg, #223a35, #16281f); }
+[data-weather-state="night"] .home-state-house,
+[data-weather-state="night-cloudy"] .home-state-house { border-color: #3a5e50; background: #1c2f28; color: var(--lime); }
+[data-weather-state="night-cloudy"] { background: linear-gradient(145deg, #223a35, #16281f); }
+[data-weather-state="storm"] { background: linear-gradient(145deg, #dfe6df, #cfd9d2); }
+@media (prefers-reduced-motion: reduce) {
+  .fx-sun-core, .fx-sun-ray, .fx-moon-core, .fx-star, .fx-cloud-shape, .fx-drop, .fx-flake, .fx-band, .fx-bolt-shape { animation: none; }
+}
+
 .home-summary .section-heading { align-items: center; }
 .home-summary .section-heading h2 { font-size: 28px; }
 .home-summary .summary-grid { grid-template-columns: minmax(0, 1.35fr) minmax(130px, .65fr); }

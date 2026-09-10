@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=17" />
+    <link rel="stylesheet" href="styles.css?v=18" />
     <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
@@ -62,7 +62,17 @@
             <p class="eyebrow muted">Tu casa ahora</p>
             <h2 id="home-title">Todo tranquilo <span class="wave">✦</span></h2>
           </div>
-          <div class="home-state-visual" aria-label="Casa tranquila" role="img"><span class="home-state-sun"><i data-lucide="sun-medium"></i></span><span class="home-state-house"><i data-lucide="house"></i></span><span class="home-state-spark home-state-spark-one">✦</span><span class="home-state-spark home-state-spark-two">·</span></div>
+          <div class="home-state-visual" id="homeStateVisual" data-weather-state="sun" aria-label="Estado del tiempo en casa" role="img">
+            <span class="weather-fx fx-sun"><span class="fx-sun-core"></span><span class="fx-sun-ray fx-sun-ray-a"></span><span class="fx-sun-ray fx-sun-ray-b"></span><span class="fx-sun-ray fx-sun-ray-c"></span><span class="fx-sun-ray fx-sun-ray-d"></span></span>
+            <span class="weather-fx fx-moon"><span class="fx-moon-core"></span><span class="fx-star fx-star-a"></span><span class="fx-star fx-star-b"></span><span class="fx-star fx-star-c"></span></span>
+            <span class="weather-fx fx-cloud fx-cloud-a"><span class="fx-cloud-shape"></span></span>
+            <span class="weather-fx fx-cloud fx-cloud-b"><span class="fx-cloud-shape"></span></span>
+            <span class="weather-fx fx-rain"><span class="fx-drop fx-drop-a"></span><span class="fx-drop fx-drop-b"></span><span class="fx-drop fx-drop-c"></span></span>
+            <span class="weather-fx fx-snow"><span class="fx-flake fx-flake-a"></span><span class="fx-flake fx-flake-b"></span><span class="fx-flake fx-flake-c"></span></span>
+            <span class="weather-fx fx-fog"><span class="fx-band fx-band-a"></span><span class="fx-band fx-band-b"></span></span>
+            <span class="weather-fx fx-bolt"><span class="fx-bolt-shape"></span></span>
+            <span class="home-state-house"><i data-lucide="house"></i></span>
+          </div>
           <button class="text-button" type="button" id="refreshButton"><i data-lucide="rotate-cw"></i> Actualizar</button>
         </div>
         <div class="summary-grid">
@@ -259,6 +269,6 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=28"></script>
   </body>
 </html>

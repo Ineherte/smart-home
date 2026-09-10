@@ -52,7 +52,7 @@ const supabaseConfigured = Boolean(supabaseConfig.url && supabaseConfig.anonKey 
 let authUserId;
 let householdId;
 let householdRole = 'member';
-const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
+const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 const weatherDetailUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&past_days=30&forecast_days=7&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Europe%2FRome';
 let toastTimer;
 let lightsOn = true;
@@ -807,6 +807,21 @@ document.querySelector('#inviteForm').addEventListener('submit', async (event) =
   event.currentTarget.reset();
 });
 
+function weatherSceneState(code, isDay) {
+  if ([95, 96, 99].includes(code)) return 'storm';
+  if ([71, 73, 75].includes(code)) return 'snow';
+  if ([45, 48].includes(code)) return 'fog';
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'rain';
+  if (code === 2) return isDay ? 'partly-cloudy' : 'night-cloudy';
+  if (code === 3) return isDay ? 'cloudy' : 'night-cloudy';
+  return isDay ? 'sun' : 'night';
+}
+
+function setHomeStateVisual(code, isDay) {
+  const visual = document.querySelector('#homeStateVisual');
+  if (visual) visual.dataset.weatherState = weatherSceneState(code, isDay);
+}
+
 function formatToday() {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 }
@@ -829,6 +844,7 @@ async function loadWeather() {
   const weatherIcon = document.querySelector('.climate-card .card-icon svg');
   weatherIcon.setAttribute('data-lucide', icon);
   weatherIcon.outerHTML = `<i data-lucide="${icon}"></i>`;
+  setHomeStateVisual(current.weather_code, current.is_day !== 0);
   lucide.createIcons();
   return true;
 }
