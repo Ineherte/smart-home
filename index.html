@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="stylesheet" href="styles.css?v=19" />
     <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
@@ -62,18 +62,95 @@
             <p class="eyebrow muted">Tu casa ahora</p>
             <h2 id="home-title">Todo tranquilo <span class="wave">✦</span></h2>
           </div>
-          <div class="home-state-visual" id="homeStateVisual" data-weather-state="sun" aria-label="Estado del tiempo en casa" role="img">
-            <span class="weather-fx fx-sun"><span class="fx-sun-core"></span><span class="fx-sun-ray fx-sun-ray-a"></span><span class="fx-sun-ray fx-sun-ray-b"></span><span class="fx-sun-ray fx-sun-ray-c"></span><span class="fx-sun-ray fx-sun-ray-d"></span></span>
-            <span class="weather-fx fx-moon"><span class="fx-moon-core"></span><span class="fx-star fx-star-a"></span><span class="fx-star fx-star-b"></span><span class="fx-star fx-star-c"></span></span>
-            <span class="weather-fx fx-cloud fx-cloud-a"><span class="fx-cloud-shape"></span></span>
-            <span class="weather-fx fx-cloud fx-cloud-b"><span class="fx-cloud-shape"></span></span>
-            <span class="weather-fx fx-rain"><span class="fx-drop fx-drop-a"></span><span class="fx-drop fx-drop-b"></span><span class="fx-drop fx-drop-c"></span></span>
-            <span class="weather-fx fx-snow"><span class="fx-flake fx-flake-a"></span><span class="fx-flake fx-flake-b"></span><span class="fx-flake fx-flake-c"></span></span>
-            <span class="weather-fx fx-fog"><span class="fx-band fx-band-a"></span><span class="fx-band fx-band-b"></span></span>
-            <span class="weather-fx fx-bolt"><span class="fx-bolt-shape"></span></span>
-            <span class="home-state-house"><i data-lucide="house"></i></span>
-          </div>
           <button class="text-button" type="button" id="refreshButton"><i data-lucide="rotate-cw"></i> Actualizar</button>
+        </div>
+        <div class="weather-scene" id="homeStateVisual" data-weather-state="sun" aria-label="Escena de la casa según el tiempo" role="img">
+          <svg class="weather-scene-svg" viewBox="0 0 300 150" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop class="sc-sky-stop-a" offset="0"></stop>
+                <stop class="sc-sky-stop-b" offset="1"></stop>
+              </linearGradient>
+            </defs>
+            <rect class="sc-sky-bg" x="0" y="0" width="300" height="150" fill="url(#skyGradient)"></rect>
+            <g class="sc-sky">
+              <g class="sc-sun">
+                <circle class="sc-sun-ray" r="27" cx="52" cy="46"></circle>
+                <circle class="sc-sun-ray sc-sun-ray-b" r="27" cx="52" cy="46"></circle>
+                <circle class="sc-sun-core" r="16" cx="52" cy="46"></circle>
+              </g>
+              <g class="sc-moon">
+                <circle class="sc-moon-core" r="15" cx="52" cy="42"></circle>
+                <circle class="sc-moon-shadow" r="13" cx="58" cy="37"></circle>
+                <circle class="sc-star sc-star-a" r="1.4" cx="90" cy="26"></circle>
+                <circle class="sc-star sc-star-b" r="1" cx="108" cy="44"></circle>
+                <circle class="sc-star sc-star-c" r="1.6" cx="76" cy="58"></circle>
+                <circle class="sc-star sc-star-d" r="1.1" cx="120" cy="20"></circle>
+              </g>
+              <g class="sc-birds">
+                <path class="sc-bird sc-bird-a" d="M0 0 q4 -6 8 0 q4 -6 8 0"></path>
+                <path class="sc-bird sc-bird-b" d="M0 0 q3 -5 6 0 q3 -5 6 0"></path>
+              </g>
+              <g class="sc-clouds-back">
+                <path class="sc-cloud-shape" d="M0 12 a10 10 0 0 1 10 -10 a13 13 0 0 1 25 3 a9 9 0 0 1 -2 18 h-27 a9 9 0 0 1 -6 -11z"></path>
+              </g>
+              <g class="sc-clouds-front">
+                <path class="sc-cloud-shape" d="M0 10 a8 8 0 0 1 8 -8 a11 11 0 0 1 21 2 a8 8 0 0 1 -2 15 h-22 a7 7 0 0 1 -5 -9z"></path>
+              </g>
+              <g class="sc-fog">
+                <rect class="sc-fog-band sc-fog-band-a" x="-40" y="70" width="260" height="10" rx="5"></rect>
+                <rect class="sc-fog-band sc-fog-band-b" x="-20" y="88" width="220" height="9" rx="4.5"></rect>
+                <rect class="sc-fog-band sc-fog-band-c" x="-30" y="104" width="240" height="8" rx="4"></rect>
+              </g>
+            </g>
+            <g class="sc-ground">
+              <path d="M0 118 Q150 100 300 118 V150 H0 Z"></path>
+              <path class="sc-ground-shade" d="M0 122 Q150 108 300 122 V150 H0 Z"></path>
+            </g>
+            <g class="sc-tree">
+              <rect class="sc-tree-trunk" x="221" y="98" width="5" height="20" rx="2"></rect>
+              <g class="sc-tree-canopy">
+                <circle cx="223" cy="88" r="14"></circle>
+                <circle cx="213" cy="94" r="10"></circle>
+                <circle cx="234" cy="95" r="10"></circle>
+              </g>
+            </g>
+            <g class="sc-house">
+              <rect class="sc-wall" x="118" y="72" width="86" height="46" rx="3"></rect>
+              <polygon class="sc-roof" points="112,72 161,40 210,72"></polygon>
+              <rect class="sc-chimney" x="182" y="46" width="10" height="18" rx="1.5"></rect>
+              <g class="sc-smoke">
+                <circle class="sc-smoke-puff sc-smoke-a" cx="187" cy="40" r="3.2"></circle>
+                <circle class="sc-smoke-puff sc-smoke-b" cx="187" cy="40" r="3.2"></circle>
+                <circle class="sc-smoke-puff sc-smoke-c" cx="187" cy="40" r="3.2"></circle>
+              </g>
+              <rect class="sc-window sc-window-a" x="128" y="82" width="16" height="16" rx="2"></rect>
+              <rect class="sc-window sc-window-b" x="178" y="82" width="16" height="16" rx="2"></rect>
+              <line class="sc-window-cross" x1="136" y1="82" x2="136" y2="98"></line>
+              <line class="sc-window-cross" x1="128" y1="90" x2="144" y2="90"></line>
+              <line class="sc-window-cross" x1="186" y1="82" x2="186" y2="98"></line>
+              <line class="sc-window-cross" x1="178" y1="90" x2="194" y2="90"></line>
+              <path class="sc-door" d="M154 118 v-20 a7 7 0 0 1 14 0 v20 z"></path>
+              <circle class="sc-door-knob" cx="164" cy="104" r="1.3"></circle>
+            </g>
+            <g class="sc-rain">
+              <line class="sc-drop" x1="70" y1="60" x2="66" y2="76"></line>
+              <line class="sc-drop" x1="95" y1="60" x2="91" y2="76"></line>
+              <line class="sc-drop" x1="120" y1="60" x2="116" y2="76"></line>
+              <line class="sc-drop" x1="145" y1="60" x2="141" y2="76"></line>
+              <line class="sc-drop" x1="245" y1="60" x2="241" y2="76"></line>
+              <line class="sc-drop" x1="270" y1="60" x2="266" y2="76"></line>
+            </g>
+            <g class="sc-snow">
+              <circle class="sc-flake" cx="70" cy="55" r="2"></circle>
+              <circle class="sc-flake" cx="100" cy="60" r="1.6"></circle>
+              <circle class="sc-flake" cx="130" cy="52" r="2.2"></circle>
+              <circle class="sc-flake" cx="250" cy="58" r="1.8"></circle>
+              <circle class="sc-flake" cx="270" cy="50" r="2"></circle>
+            </g>
+            <rect class="sc-flash" x="0" y="0" width="300" height="150"></rect>
+            <path class="sc-bolt" d="M245 55 l-9 16 h6 l-8 15 16 -19 h-6 z"></path>
+          </svg>
         </div>
         <div class="summary-grid">
           <article class="summary-card climate-card" id="weatherCard" tabindex="0" role="button" aria-label="Abrir detalle meteorológico">
