@@ -598,7 +598,10 @@ async function connectNotes() {
     return;
   }
   const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-  if (sessionError || !sessionData.session) {
+  const sessionUser = sessionData.session?.user;
+  const isAnonymousSession = Boolean(sessionUser?.is_anonymous || sessionUser?.app_metadata?.provider === 'anonymous');
+  if (sessionError || !sessionData.session || isAnonymousSession) {
+    if (isAnonymousSession) await supabaseClient.auth.signOut();
     status.innerHTML = '<i data-lucide="lock-keyhole"></i> Inicia sesión para sincronizar tus datos';
     authModal.classList.add('visible');
     lucide.createIcons();
