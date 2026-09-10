@@ -929,7 +929,7 @@ function financeEntries(data) {
     fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : []
   };
   return [
-    ...safeData.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: financeCategory(entry.category, entry.description), payer: entry.paid_by || 'Ines', label: entry.description })),
+    ...safeData.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: financeCategory(entry.category, entry.description), payer: entry.paid_by || 'Ines', label: entry.description, settled: Boolean(entry.settled) })),
     ...safeData.bills.filter((entry) => Number(entry.amount) > 0).map((entry) => ({ ...entry, kind: 'bill', date: entry.due_date || entry.created_at, category: entry.provider || 'Otro', payer: entry.paid_by || 'Ines', label: `${entry.provider} · ${entry.description}` })),
     ...safeData.fixedCosts.filter((entry) => entry.active !== false).map((entry) => ({ ...entry, kind: 'fixed', date: new Date().toISOString().slice(0, 10), category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description, source: 'fixed' }))
   ];
@@ -952,14 +952,15 @@ function filteredFinanceData(data) {
 }
 
 function calculateFinanceSettlement(entries) {
-  const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const activeEntries = entries.filter((entry) => !entry.settled);
+  const total = activeEntries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
   const fairShare = total / 2;
   const paid = { Ines: 0, Matteo: 0 };
-  entries.forEach((entry) => { paid[entry.payer] = (paid[entry.payer] || 0) + Number(entry.amount || 0); });
+  activeEntries.forEach((entry) => { paid[entry.payer] = (paid[entry.payer] || 0) + Number(entry.amount || 0); });
   const balance = { Ines: paid.Ines - fairShare, Matteo: paid.Matteo - fairShare };
   const creditor = balance.Ines >= 0 ? 'Ines' : 'Matteo';
   const debtor = creditor === 'Ines' ? 'Matteo' : 'Ines';
-  return { total, fairShare, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor };
+  return { total, fairShare, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor, settledTotal: entries.filter((entry) => entry.settled).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) };
 }
 
 function renderFinanceBreakdown(entries) {
@@ -967,7 +968,7 @@ function renderFinanceBreakdown(entries) {
   const sorted = Object.entries(totals).sort(([, first], [, second]) => second - first);
   const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
   document.querySelector('#financeBreakdownTotal').textContent = financeMoney(total);
-  document.querySelector('#financeCategoryBreakdown').innerHTML = sorted.length ? sorted.map(([category, amount]) => `<div class="finance-category-row"><strong>${escapeHtml(category)}</strong><div class="finance-category-track"><span style="width:${total ? Math.max(4, amount / total * 100) : 0}%"></span></div><b>${financeMoney(amount)}</b></div>`).join('') : '<p class="empty-note">Aún no hay datos para analizar.</p>';
+  document.querySelector('#financeCategoryBreakdown').innerHTML = sorted.length ? sorted.map(([category, amount]) => `<button type="button" class="finance-category-row" data-finance-category="${escapeHtml(category)}"><strong>${escapeHtml(category)}</strong><div class="finance-category-track"><span style="width:${total ? Math.max(4, amount / total * 100) : 0}%"></span></div><b>${financeMoney(amount)}</b></button>`).join('') : '<p class="empty-note">Aún no hay datos para analizar.</p>';
 }
 
 function renderFinancePayerChart(settlement) {
@@ -1002,10 +1003,10 @@ function renderFinance(data) {
   document.querySelector('#financeBillTotal').textContent = financeMoney(billTotal);
   document.querySelector('#financeSourceCount').textContent = sourceCount;
   renderFixedCosts(data.fixedCosts || []);
-  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />Los pagos están equilibrados entre Ines y Matteo.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />Cálculo 50/50 sobre ${financeMoney(settlement.total)} registrados.</span>`;
+  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />Los pagos pendientes están equilibrados.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.settledTotal ? `${financeMoney(settlement.settledTotal)} ya saldados · ` : ''}Reparto 50/50 pendiente.</span>`;
   renderFinanceBreakdown(allEntries);
   renderFinancePayerChart(settlement);
-  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
+  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => { const settled = Boolean(expense.settled); return `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-expense-settled="${expense.id}"><i data-lucide="${settled ? 'check-circle-2' : 'circle'}"></i><em class="finance-expense-status ${settled ? 'is-settled' : ''}">${settled ? 'Saldado' : 'Pendiente de saldar'}</em></button></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
   billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => { const isPaid = bill.status === 'paid'; return `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-bill-status="${bill.id}"><i data-lucide="${isPaid ? 'check-circle-2' : 'circle'}"></i><em class="finance-status-badge ${isPaid ? 'is-paid' : ''}">${isPaid ? 'Pagada' : 'Pendiente'}</em></button></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
   lucide.createIcons();
 }
@@ -1041,6 +1042,7 @@ function startFinanceEdit(kind, id) {
   if (kind === 'expense') {
     form.category.value = entry.category || 'Otros';
     form.date.value = entry.expense_date || '';
+    form.settled.checked = Boolean(entry.settled);
   }
   if (kind === 'bill') {
     form.provider.value = entry.provider || 'Otro';
@@ -1128,12 +1130,27 @@ async function toggleBillStatus(id) {
   }
 }
 
+async function toggleExpenseSettled(id) {
+  const expense = financeCache.expenses.find((item) => item.id === id);
+  if (!expense) return;
+  expense.settled = !Boolean(expense.settled);
+  const expenses = readFinanceRecords(localExpensesKey);
+  const index = expenses.findIndex((item) => item.id === id);
+  if (index >= 0) { expenses[index].settled = expense.settled; localStorage.setItem(localExpensesKey, JSON.stringify(expenses)); }
+  renderFinance(financeCache);
+  showToast(expense.settled ? 'Gasto marcado como saldado' : 'Gasto marcado como pendiente');
+  if (supabaseClient && authUserId && !String(id).startsWith('umbral-')) {
+    supabaseClient.from('shared_expenses').update({ settled: expense.settled }).eq('id', id).then(({ error }) => { if (error) console.warn('[Umbral] No se sincronizó el estado del gasto:', error.message); });
+  }
+}
+
 function financeRowFromImport(row) {
   const values = Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase().replace(/[^a-z0-9]/g, ''), value]));
   const amountValue = values.amount || values.importe || values.total || values.cantidad || values.value;
   const amount = Number(String(amountValue || '').replace(',', '.').replace(/[^\d.-]/g, ''));
   if (!Number.isFinite(amount)) return null;
-  return { description: String(values.description || values.descripcion || values.concept || values.concepto || values.name || 'Gasto importado'), amount, currency: 'EUR', paid_by: String(values.paidby || values.pagopor || values.payer || 'Ines').toLowerCase().includes('matteo') ? 'Matteo' : 'Ines', category: String(values.category || values.categoria || 'Otros'), expense_date: values.date || values.fecha || new Date().toISOString().slice(0, 10), source: 'tricount' };
+  const description = String(values.description || values.descripcion || values.concept || values.concepto || values.name || 'Gasto importado');
+  return { description, amount, currency: 'EUR', paid_by: String(values.paidby || values.pagopor || values.payer || 'Ines').toLowerCase().includes('matteo') ? 'Matteo' : 'Ines', category: financeCategory(values.category || values.categoria, description), expense_date: values.date || values.fecha || new Date().toISOString().slice(0, 10), source: 'tricount', settled: false };
 }
 
 async function getSupabaseSessionToken() {
@@ -1247,7 +1264,7 @@ document.querySelector('#financeShareForm').addEventListener('submit', async (ev
 document.querySelector('#expenseForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
-  const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual' };
+  const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual', settled: Boolean(form.get('settled')) };
   try { await saveFinanceEntity('expense', expense); event.currentTarget.reset(); event.currentTarget.date.value = new Date().toISOString().slice(0, 10); setFinanceFormButton(event.currentTarget, 'Añadir gasto', 'plus'); financeCache.expenses = readFinanceRecords(localExpensesKey); renderFinance(financeCache); showToast('Gasto guardado'); } catch (error) { reportAppError(error); showToast('No se pudo guardar el gasto'); }
 });
 
@@ -1286,6 +1303,18 @@ document.querySelector('#fixedCostList').addEventListener('click', (event) => {
   const remove = event.target.closest('[data-fixed-delete]');
   if (edit) startFinanceEdit('fixed', edit.dataset.fixedEdit);
   if (remove) deleteFinanceEntity('fixed', remove.dataset.fixedDelete);
+});
+document.querySelector('#financeCategoryBreakdown').addEventListener('click', (event) => {
+  const categoryButton = event.target.closest('[data-finance-category]');
+  if (!categoryButton) return;
+  document.querySelector('#financeCategoryFilter').value = categoryButton.dataset.financeCategory;
+  document.querySelector('[data-finance-view="expenses"]').click();
+  renderFinance(financeCache);
+  document.querySelector('#expenseList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+document.querySelector('#expenseList').addEventListener('click', (event) => {
+  const settled = event.target.closest('[data-expense-settled]');
+  if (settled) toggleExpenseSettled(settled.dataset.expenseSettled);
 });
 document.querySelector('#expenseList').addEventListener('click', (event) => {
   const edit = event.target.closest('[data-expense-edit]');

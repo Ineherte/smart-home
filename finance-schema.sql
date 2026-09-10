@@ -7,6 +7,7 @@ create table public.shared_expenses (
   category text not null default 'Otros' check (category in ('Hogar', 'Alimentación', 'Transporte', 'Viajes', 'Ocio', 'Compras', 'Salud', 'Otros', 'Alquiler', 'Luz', 'Internet', 'Agua', 'Gas', 'Compra')),
   expense_date date not null default current_date,
   source text not null default 'manual' check (source in ('manual', 'tricount', 'email')),
+  settled boolean not null default false,
   source_reference text,
   notes text,
   created_by uuid not null references auth.users(id) default auth.uid(),
