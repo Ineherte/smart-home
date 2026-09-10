@@ -201,6 +201,7 @@
         <div class="finance-metrics"><div><span>Gastos</span><strong id="financeExpenseCount">0</strong><small id="financeExpenseTotal">0,00 €</small></div><div><span>Facturas pendientes</span><strong id="financeBillCount">0</strong><small id="financeBillTotal">0,00 €</small></div><div><span>Fuentes</span><strong id="financeSourceCount">0</strong><small>importadas y manuales</small></div></div>
         <div class="finance-insight" id="financeSettlement"><i data-lucide="scale"></i><span>Añade gastos para calcular quién debe a quién.</span></div>
         <div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero</strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div>
+        <div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha adelantado más</strong><span>Reparto 50/50</span></div><div id="financePayerChart"></div></div>
         <div class="finance-toolbar"><button class="text-button" type="button" id="exportFinance"><i data-lucide="download"></i> Excel</button><label class="text-button finance-import-label"><i data-lucide="upload"></i> Importar Tricount<input id="financeImport" type="file" accept=".csv,.xlsx,.xls" hidden /></label></div>
         <div class="finance-tabs"><button class="finance-tab active" type="button" data-finance-view="expenses">Gastos</button><button class="finance-tab" type="button" data-finance-view="bills">Facturas</button></div>
         <div class="finance-filter-row"><input id="financeSearch" type="search" placeholder="Buscar gasto, factura o proveedor" aria-label="Buscar en finanzas" /><select id="financeCategoryFilter" aria-label="Filtrar por categoría"><option value="all">Todas las categorías</option><option>Alquiler</option><option>Luz</option><option>Internet</option><option>Agua</option><option>Gas</option><option>Compra</option><option>Transporte</option><option>Ocio</option><option>Otros</option></select><select id="financePeriod" aria-label="Filtrar por periodo"><option value="all">Todo el historial</option><option value="current">Este mes</option></select></div>
@@ -215,6 +216,6 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
   </body>
 </html>

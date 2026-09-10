@@ -442,6 +442,12 @@ section { margin-bottom: 34px; }
 .finance-category-row b { color: var(--ink); font-size: 10px; }
 .finance-category-track { height: 6px; overflow: hidden; border-radius: 99px; background: var(--paper); }
 .finance-category-track span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+.finance-payer-row { display: grid; grid-template-columns: 54px 1fr auto; align-items: center; gap: 8px; margin-top: 10px; font-size: 10px; }
+.finance-payer-row strong { color: var(--ink); }
+.finance-payer-track { height: 12px; overflow: hidden; border-radius: 99px; background: #e8eee8; }
+.finance-payer-track span { display: block; height: 100%; min-width: 3px; border-radius: inherit; background: var(--green); }
+.finance-payer-row:last-child .finance-payer-track span { background: #c98d52; }
+.finance-payer-row b { color: var(--ink); font-size: 10px; }
 .finance-toolbar { display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 15px; }
 .finance-import-label { cursor: pointer; }
 .finance-tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid var(--line); }

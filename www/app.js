@@ -932,6 +932,11 @@ function renderFinanceBreakdown(entries) {
   document.querySelector('#financeCategoryBreakdown').innerHTML = sorted.length ? sorted.map(([category, amount]) => `<div class="finance-category-row"><strong>${escapeHtml(category)}</strong><div class="finance-category-track"><span style="width:${total ? Math.max(4, amount / total * 100) : 0}%"></span></div><b>${financeMoney(amount)}</b></div>`).join('') : '<p class="empty-note">Aún no hay datos para analizar.</p>';
 }
 
+function renderFinancePayerChart(settlement) {
+  const maximum = Math.max(settlement.paid.Ines, settlement.paid.Matteo, 1);
+  document.querySelector('#financePayerChart').innerHTML = ['Ines', 'Matteo'].map((person) => `<div class="finance-payer-row"><strong>${person}</strong><div class="finance-payer-track"><span style="width:${Math.max(3, settlement.paid[person] / maximum * 100)}%"></span></div><b>${financeMoney(settlement.paid[person])}</b></div>`).join('');
+}
+
 function renderFixedCosts(fixedCosts) {
   const list = document.querySelector('#fixedCostList');
   list.innerHTML = fixedCosts.length ? fixedCosts.map((cost) => `<div class="finance-fixed-item"><span class="fixed-cost-icon"><i data-lucide="repeat-2"></i></span><span class="finance-fixed-copy"><strong>${escapeHtml(cost.description)}</strong><small>${escapeHtml(cost.category || 'Otros')} · Pagó ${escapeHtml(cost.paid_by || 'Ines')} · Cada mes</small></span><b class="finance-fixed-amount">${financeMoney(cost.amount)}</b><span class="finance-item-actions"><button type="button" data-fixed-edit="${cost.id}" aria-label="Editar ${escapeHtml(cost.description)}" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-fixed-delete="${cost.id}" aria-label="Eliminar ${escapeHtml(cost.description)}" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos fijos configurados.</p>';
@@ -956,6 +961,7 @@ function renderFinance(data) {
   renderFixedCosts(data.fixedCosts || []);
   document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />Los pagos están equilibrados entre Ines y Matteo.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />Cálculo 50/50 sobre ${financeMoney(settlement.total)} registrados.</span>`;
   renderFinanceBreakdown(allEntries);
+  renderFinancePayerChart(settlement);
   expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(expense.category || 'Otros')} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
   billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')} · ${bill.status === 'paid' ? 'Pagada' : 'Pendiente'}</small></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
   lucide.createIcons();
@@ -1106,7 +1112,7 @@ document.querySelector('#expenseForm').addEventListener('submit', async (event) 
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual' };
-  try { await saveFinanceEntity('expense', expense); event.currentTarget.reset(); setFinanceFormButton(event.currentTarget, 'Añadir gasto', 'plus'); await refreshFinance(); showToast('Gasto guardado'); } catch { showToast('No se pudo guardar el gasto'); }
+  try { await saveFinanceEntity('expense', expense); event.currentTarget.reset(); event.currentTarget.date.value = new Date().toISOString().slice(0, 10); setFinanceFormButton(event.currentTarget, 'Añadir gasto', 'plus'); await refreshFinance(); showToast('Gasto guardado'); } catch { showToast('No se pudo guardar el gasto'); }
 });
 
 document.querySelector('#billForm').addEventListener('submit', async (event) => {
@@ -1188,6 +1194,7 @@ document.querySelectorAll('[data-finance-view]').forEach((tab) => tab.addEventLi
 }));
 ['#financeSearch', '#financeCategoryFilter', '#financePeriod'].forEach((selector) => document.querySelector(selector).addEventListener('input', () => renderFinance(financeCache)));
 document.querySelector('#closeFinance').addEventListener('click', () => history.back());
+document.querySelector('#expenseForm').date.value = new Date().toISOString().slice(0, 10);
 
 function showToast(message) {
   toastMessage.textContent = message;
