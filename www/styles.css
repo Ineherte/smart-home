@@ -953,20 +953,23 @@ section { margin-bottom: 43px; }
 
 /* Central block v2: weather is the anchor, notes and lights say something useful. */
 .home-summary .summary-grid { grid-template-columns: 1.2fr 1fr; grid-template-rows: auto auto; gap: 10px; }
-.home-summary .climate-card { grid-row: 1 / 3; min-height: 232px; }
-.home-summary .notes-card, .home-summary .lights-card { grid-row: auto; min-height: 108px; align-items: flex-start; padding: 16px; }
+.home-summary .climate-card { grid-row: 1 / 3; min-height: 232px; flex-direction: column; align-items: flex-start; }
+.home-summary .climate-card > div:nth-child(2) { width: 100%; margin-top: 0; }
+.home-summary .notes-card, .home-summary .lights-card { grid-row: auto; min-height: 108px; flex-direction: column; align-items: flex-start; padding: 16px; }
 .home-summary .notes-card .card-icon, .home-summary .lights-card .card-icon { position: static; width: 34px; height: 34px; }
-.home-summary .notes-card > div:nth-child(2), .home-summary .lights-card > div:nth-child(2) { margin-top: 0; }
+.home-summary .notes-card > div:nth-child(2), .home-summary .lights-card > div:nth-child(2) { width: 100%; margin-top: 0; }
 .home-summary .notes-card strong { margin-top: 12px; font-size: 13px; line-height: 1.35; }
-.home-summary .lights-card strong { display: inline; margin: 12px 0 0; font-size: 24px; }
+.home-summary .lights-card strong { display: inline; margin: 12px 0 0; font-size: 22px; }
 .home-summary .lights-card small { display: inline; margin-left: 4px; color: var(--muted); font-size: 10px; }
+.home-summary .climate-card strong { font-size: 30px; }
 .soft-blue { color: #3d6b9e; background: rgba(255, 255, 255, .55); }
 .lights-card { background: #e7eff8; cursor: pointer; }
-.card-quick-action { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; margin-top: auto; padding: 8px 12px; border-radius: 9px; background: var(--ink); color: var(--lime); font-size: 10px; font-weight: 700; }
+.card-quick-action { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; margin-top: auto; padding: 9px 14px; border-radius: 10px; background: #f7c873; color: #5a3c14; font-size: 11px; font-weight: 700; pointer-events: auto; }
+.card-quick-action:hover { background: #f4bb54; }
 .card-quick-action svg { width: 13px; }
-.weather-forecast-strip { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(34, 91, 73, .12); }
-.forecast-slot { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 9px; }
-.forecast-slot strong { color: var(--ink); font-family: "Space Grotesk", sans-serif; font-size: 12px; }
+.weather-forecast-strip { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 100%; margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(34, 91, 73, .12); overflow: hidden; }
+.forecast-slot { display: flex; flex: 1 1 0; flex-direction: column; gap: 3px; min-width: 0; color: var(--muted); font-size: 9px; }
+.home-summary .forecast-slot strong { margin-top: 0; color: var(--ink); font-family: "Space Grotesk", sans-serif; font-size: 13px; }
 @media (max-width: 390px) { .home-summary .summary-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; } .home-summary .climate-card { grid-row: 1; grid-column: 1 / -1; min-height: 190px; } .home-summary .notes-card { grid-row: 2; } .home-summary .lights-card { grid-row: 2; } }
 
 /* Notes: clearer groups, faster to scan, urgency stands out. */

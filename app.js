@@ -318,9 +318,13 @@ function openNotes() {
   initDrawing();
 }
 
-document.querySelector('[data-action="notes"]').addEventListener('click', openNotes);
-document.querySelector('[data-action="notes"]').addEventListener('keydown', (event) => {
+document.querySelector('.notes-card[data-action="notes"]').addEventListener('click', openNotes);
+document.querySelector('.notes-card[data-action="notes"]').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') openNotes();
+});
+document.querySelector('.notes-card .card-quick-action').addEventListener('click', (event) => {
+  event.stopPropagation();
+  openNotes();
 });
 document.querySelector('#closeNotes').addEventListener('click', () => history.back());
 document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openNotes(); });
