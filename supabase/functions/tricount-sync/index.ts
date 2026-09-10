@@ -79,7 +79,7 @@ Deno.serve(async (request) => {
       return json({ error: 'No hay gastos válidos para importar' }, 400);
     }
 
-    const { error: insertError } = await supabase.from('shared_expenses').insert(normalized);
+    const { error: insertError } = await supabase.from('shared_expenses').upsert(normalized, { onConflict: 'source_reference', ignoreDuplicates: true });
     if (insertError) {
       return json({ error: insertError.message }, 500);
     }

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'umbral-shell-v11';
+const CACHE_NAME = 'umbral-shell-v15';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css?v=4',
-  './app.js?v=12',
+  './app.js?v=16',
   './smart-lights-config.js',
   './supabase-config.js',
   './manifest.webmanifest',

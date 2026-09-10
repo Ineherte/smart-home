@@ -888,7 +888,7 @@ async function getFinanceData() {
       supabaseClient.from('shared_fixed_costs').select('*').eq('active', true).order('created_at'),
       supabaseClient.from('shared_settlements').select('*').order('payment_date', { ascending: false })
     ]);
-    return { expenses: expenses || [], bills: bills || [], fixedCosts: fixedError || !fixedCosts?.length ? fixedError ? getLocalFixedCosts() : defaultFixedCosts : fixedCosts, settlements: settlementsError ? readFinanceLocal(localSettlementsKey) : (settlements || []).map((payment) => ({ ...payment, from: payment.from_person, to: payment.to_person })) };
+    return { expenses: dedupeImportedExpenses(expenses || []), bills: bills || [], fixedCosts: fixedError || !fixedCosts?.length ? fixedError ? getLocalFixedCosts() : defaultFixedCosts : fixedCosts, settlements: settlementsError ? readFinanceLocal(localSettlementsKey) : (settlements || []).map((payment) => ({ ...payment, from: payment.from_person, to: payment.to_person })) };
   }
   return { expenses: readFinanceRecords(localExpensesKey), bills: readFinanceRecords(localBillsKey), fixedCosts: getLocalFixedCosts(), settlements: readFinanceRecords(localSettlementsKey) };
 }
@@ -897,8 +897,19 @@ let financeCache = { expenses: [], bills: [] };
 
 function readFinanceRecords(key) {
   const records = readFinanceLocal(key).map((entry) => entry.id ? entry : { ...entry, id: createLocalId() });
-  localStorage.setItem(key, JSON.stringify(records));
-  return records;
+  const uniqueRecords = key === localExpensesKey ? dedupeImportedExpenses(records) : records;
+  localStorage.setItem(key, JSON.stringify(uniqueRecords));
+  return uniqueRecords;
+}
+
+function dedupeImportedExpenses(expenses) {
+  const seen = new Set();
+  return expenses.filter((expense) => {
+    if (expense.source !== 'tricount' || !expense.source_reference) return true;
+    if (seen.has(expense.source_reference)) return false;
+    seen.add(expense.source_reference);
+    return true;
+  });
 }
 
 function getLocalFixedCosts() {
@@ -1216,11 +1227,17 @@ async function syncFinanceImport(kind, rows) {
 
 async function saveImportedExpenses(rows) {
   const current = readFinanceRecords(localExpensesKey);
-  const savedRows = rows.map((row) => ({ ...row, id: row.id || createLocalId() }));
+  const existingReferences = new Set(current.map((row) => row.source_reference).filter(Boolean));
+  const savedRows = rows.filter((row) => !row.source_reference || !existingReferences.has(row.source_reference)).map((row) => ({ ...row, id: createLocalId() }));
+  if (!savedRows.length) {
+    document.querySelector('#financeStatus').innerHTML = '<i data-lucide="check-circle-2"></i> Este Tricount ya estaba cargado.';
+    lucide.createIcons();
+    return { imported: 0, duplicate: true };
+  }
   localStorage.setItem(localExpensesKey, JSON.stringify([...savedRows, ...current]));
   financeCache.expenses = readFinanceRecords(localExpensesKey);
   renderFinance(financeCache);
-  document.querySelector('#financeStatus').innerHTML = `<i data-lucide="hard-drive"></i> ${rows.length} gastos guardados en este dispositivo.`;
+  document.querySelector('#financeStatus').innerHTML = `<i data-lucide="hard-drive"></i> ${savedRows.length} gastos nuevos guardados en este dispositivo.`;
   lucide.createIcons();
 
   if (supabaseClient && authUserId) {
@@ -1229,7 +1246,7 @@ async function saveImportedExpenses(rows) {
       lucide.createIcons();
     }).catch((error) => console.warn('[Umbral] Importación local pendiente de nube:', error));
   }
-  return { imported: rows.length, localOnly: true };
+  return { imported: savedRows.length, localOnly: true };
 }
 
 function normalizeSharedTricountData(payload) {
