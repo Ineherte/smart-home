@@ -1230,6 +1230,8 @@ async function saveImportedExpenses(rows) {
   const existingReferences = new Set(current.map((row) => row.source_reference).filter(Boolean));
   const savedRows = rows.filter((row) => !row.source_reference || !existingReferences.has(row.source_reference)).map((row) => ({ ...row, id: createLocalId() }));
   if (!savedRows.length) {
+    financeCache.expenses = readFinanceRecords(localExpensesKey);
+    renderFinance(financeCache);
     document.querySelector('#financeStatus').innerHTML = '<i data-lucide="check-circle-2"></i> Este Tricount ya estaba cargado.';
     lucide.createIcons();
     return { imported: 0, duplicate: true };
