@@ -11,6 +11,18 @@ function reportAppError(error) {
 window.addEventListener('error', (event) => reportAppError(event.error || event.message));
 window.addEventListener('unhandledrejection', (event) => reportAppError(event.reason));
 
+function updateConnectionState() {
+  const status = document.querySelector('.orientation-status');
+  if (!status) return;
+  status.innerHTML = navigator.onLine
+    ? '<i data-lucide="circle-check"></i> Sincronización activa'
+    : '<i data-lucide="cloud-off"></i> Sin conexión · última copia local';
+  status.classList.toggle('is-offline', !navigator.onLine);
+  lucide.createIcons();
+}
+window.addEventListener('online', updateConnectionState);
+window.addEventListener('offline', updateConnectionState);
+
 const toast = document.querySelector('.toast');
 const toastMessage = toast.querySelector('span');
 const identityKey = 'umbral-user';
@@ -196,11 +208,6 @@ if (!supabaseConfigured) {
   });
 }
 
-document.querySelector('#userAvatar').addEventListener('click', () => {
-  if (supabaseConfigured) authModal.classList.add('visible');
-  else document.querySelector('#identityModal').classList.add('visible');
-});
-
 function readNotes(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || '[]');
@@ -242,6 +249,7 @@ async function renderNotes() {
   const totalNotes = sharedNotes.length + privateNotes.length;
   document.querySelector('#notesCount').textContent = `${totalNotes} ${totalNotes === 1 ? 'nota' : 'notas'}`;
   document.querySelector('#notesPreview').textContent = sharedNotes[0]?.content || sharedNotes[0] || 'Nada pendiente';
+  renderAttention({ urgentCount: [...sharedNotes, ...privateNotes].filter((note) => note.priority === 'urgent' && !note.completed).length });
   showUrgentNotes([...sharedNotes, ...privateNotes]);
   lucide.createIcons();
 }
@@ -254,6 +262,30 @@ function showUrgentNotes(notes) {
   sessionStorage.setItem('umbral-urgent-seen', 'true');
   lucide.createIcons();
 }
+
+const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0 };
+
+function renderAttention(nextState = {}) {
+  Object.assign(attentionState, nextState);
+  const { urgentCount, pendingBills, settlementAmount } = attentionState;
+  const list = document.querySelector('#attentionList');
+  const count = document.querySelector('#attentionCount');
+  if (!list || !count) return;
+  const items = [];
+  if (urgentCount) items.push({ icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Notas', action: 'notes' });
+  if (pendingBills) items.push({ icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Casa financiera', action: 'finance' });
+  if (settlementAmount > 0.009) items.push({ icon: 'arrow-right-left', title: `Liquidación pendiente · ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
+  count.textContent = items.length ? `${items.length} pendiente${items.length === 1 ? '' : 's'}` : 'Todo en orden';
+  list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
+  lucide.createIcons();
+}
+
+document.querySelector('#attentionList').addEventListener('click', (event) => {
+  const action = event.target.closest('[data-attention-action]')?.dataset.attentionAction;
+  if (!action) return;
+  if (action === 'notes') openNotes();
+  if (action === 'finance') openFinance();
+});
 
 function openNotes() {
   renderNotes();
@@ -635,6 +667,9 @@ async function connectNotes() {
   }
   const { data: profile } = await supabaseClient.from('profiles').select('display_name').eq('id', authUserId).maybeSingle();
   if (profile?.display_name) setUser(profile.display_name);
+  document.querySelector('#accountDisplayName').textContent = profile?.display_name || currentUser;
+  document.querySelector('#accountAvatar').textContent = (profile?.display_name || currentUser).slice(0, 2).toUpperCase();
+  document.querySelector('#accountEmail').textContent = sessionData.session.user.email || 'Cuenta autenticada';
   if (householdRole === 'guest') {
     document.querySelectorAll('[data-action="finance"]').forEach((element) => { element.hidden = true; });
     document.querySelectorAll('.finance-modal').forEach((element) => element.setAttribute('aria-hidden', 'true'));
@@ -685,6 +720,8 @@ async function loadHouseholdAdmin() {
   const { data: members } = await supabaseClient.from('household_members').select('user_id, role').eq('household_id', householdId);
   const isOwner = members?.some((member) => member.user_id === authUserId && member.role === 'owner');
   if (!isOwner) return;
+  const mount = document.querySelector('#accountMembersMount');
+  if (mount) mount.appendChild(admin);
   admin.hidden = false;
   document.querySelector('#householdMemberCount').textContent = `${members.length} ${members.length === 1 ? 'persona' : 'personas'}`;
 }
@@ -736,6 +773,20 @@ document.querySelector('#authForm').addEventListener('submit', async (event) => 
   if (authSignUpMode && !result.data.session) return showAuthError('Revisa tu correo para confirmar la cuenta y vuelve a entrar.');
   authModal.classList.remove('visible');
   await connectNotes();
+});
+
+document.querySelector('#userAvatar').addEventListener('click', () => {
+  if (supabaseClient && authUserId) {
+    document.querySelector('#accountModal').classList.add('visible');
+    lucide.createIcons();
+  } else if (supabaseConfigured) {
+    authModal.classList.add('visible');
+  }
+});
+document.querySelector('#closeAccount').addEventListener('click', () => document.querySelector('#accountModal').classList.remove('visible'));
+document.querySelector('#signOutButton').addEventListener('click', async () => {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  window.location.reload();
 });
 
 document.querySelector('#inviteForm').addEventListener('submit', async (event) => {
@@ -1153,6 +1204,7 @@ function renderFinance(data) {
   document.querySelector('#financeBillCount').textContent = data.bills.filter((bill) => bill.status !== 'paid').length;
   document.querySelector('#financeBillTotal').textContent = financeMoney(billTotal);
   document.querySelector('#financeSourceCount').textContent = sourceCount;
+  renderAttention({ pendingBills: data.bills.filter((bill) => bill.status !== 'paid').length, settlementAmount: settlement.amount });
   document.querySelector('#settlementPaymentTotal').textContent = `${financeMoney(settlement.paymentsTotal)} entregados`;
   renderFixedCosts(data.fixedCosts || []);
   document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya entregados · ` : ''}Compensación global 50/50.</span>`;
@@ -1648,6 +1700,11 @@ document.querySelectorAll('.nav-item').forEach((item) => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    if (item.querySelector('span')?.textContent === 'Ajustes') {
+      document.querySelector('#accountModal').classList.add('visible');
+      lucide.createIcons();
+      return;
+    }
     const sectionName = item.querySelector('span').textContent;
     showToast(`${sectionName}: próximamente`);
   });
@@ -1677,6 +1734,7 @@ connectNotes();
 loadNews();
 renderSmartLights();
 updateLightStatusText();
+updateConnectionState();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));

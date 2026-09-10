@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="styles.css?v=14" />
     <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
@@ -40,8 +40,8 @@
       </section>
 
       <div class="space-switcher" role="tablist" aria-label="Espacio de trabajo">
-        <button class="space-tab active" type="button" role="tab" aria-selected="true" data-space-target="home"><i data-lucide="house"></i><span>Casa</span><small>Control y ambiente</small></button>
-        <button class="space-tab" type="button" role="tab" aria-selected="false" data-space-target="personal"><i data-lucide="sparkles"></i><span>Mi espacio</span><small>Agenda e información</small></button>
+        <button class="space-tab active" type="button" role="tab" aria-selected="true" data-space-target="home"><i data-lucide="sun-medium"></i><span>Ahora</span><small>Lo que necesita atención</small></button>
+        <button class="space-tab" type="button" role="tab" aria-selected="false" data-space-target="personal"><i data-lucide="layers-3"></i><span>Vida</span><small>Agenda e información</small></button>
       </div>
 
       <div class="orientation-bar" aria-label="Estado rápido de Umbral">
@@ -50,6 +50,11 @@
         <span id="orientationDate">Hoy en casa</span>
         <span class="orientation-weather" id="orientationWeather">--°</span>
       </div>
+
+      <section class="attention-section" data-space-shared aria-labelledby="attentionTitle">
+        <div class="section-heading"><div><p class="eyebrow muted">Centro de decisiones</p><h2 id="attentionTitle">Ahora</h2></div><span class="attention-count" id="attentionCount">Todo en orden</span></div>
+        <div class="attention-list" id="attentionList"><div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div></div>
+      </section>
 
       <section class="home-summary" data-space-shared aria-labelledby="home-title">
         <div class="section-heading">
@@ -148,9 +153,9 @@
       </section>
 
       <footer class="bottom-nav" aria-label="Navegación principal">
-        <button class="nav-item active" type="button" data-view-target="home"><i data-lucide="house"></i><span>Inicio</span></button>
+        <button class="nav-item active" type="button" data-view-target="home"><i data-lucide="sun-medium"></i><span>Ahora</span></button>
         <button class="nav-item" type="button" data-view-target="home"><i data-lucide="sliders-horizontal"></i><span>Casa</span></button>
-        <button class="nav-item" type="button" data-view-target="personal"><i data-lucide="sparkles"></i><span>Mi espacio</span></button>
+        <button class="nav-item" type="button" data-view-target="personal"><i data-lucide="layers-3"></i><span>Vida</span></button>
         <button class="nav-item" type="button"><i data-lucide="settings-2"></i><span>Ajustes</span></button>
       </footer>
     </main>
@@ -167,6 +172,15 @@
         <button class="auth-switch" id="authModeSwitch" type="button">Crear una cuenta nueva</button>
         <p class="auth-error" id="authError" role="alert"></p>
       </form>
+    </div>
+    <div class="account-modal" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+      <div class="account-panel">
+        <div class="modal-heading"><div><p class="eyebrow muted">Cuenta y hogar</p><h2 id="accountTitle">Tu cuenta</h2></div><button class="icon-button small" type="button" id="closeAccount" aria-label="Cerrar cuenta"><i data-lucide="x"></i></button></div>
+        <div class="account-identity"><span class="account-avatar" id="accountAvatar">IN</span><div><strong id="accountDisplayName">Ines</strong><small id="accountEmail">Cuenta autenticada</small></div></div>
+        <div class="account-status"><i data-lucide="shield-check"></i><span><strong>Acceso protegido</strong><small>Tu sesión se conserva en este dispositivo.</small></span></div>
+        <div id="accountMembersMount"></div>
+        <button class="account-signout" type="button" id="signOutButton"><i data-lucide="log-out"></i> Cerrar sesión</button>
+      </div>
     </div>
     <div class="identity-modal" id="identityModal" role="dialog" aria-modal="true" aria-labelledby="identityTitle">
       <div class="identity-panel">
@@ -244,6 +258,6 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="app.js?v=24"></script>
+    <script src="app.js?v=26"></script>
   </body>
 </html>
