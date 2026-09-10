@@ -1,6 +1,16 @@
 if (!window.lucide) window.lucide = { createIcons() {} };
 window.lucide.createIcons();
 
+function reportAppError(error) {
+  const message = error?.message || String(error);
+  const status = document.querySelector('#financeStatus');
+  if (status) status.textContent = `Umbral necesita atención: ${message}`;
+  console.error('[Umbral]', error);
+}
+
+window.addEventListener('error', (event) => reportAppError(event.error || event.message));
+window.addEventListener('unhandledrejection', (event) => reportAppError(event.reason));
+
 const toast = document.querySelector('.toast');
 const toastMessage = toast.querySelector('span');
 const identityKey = 'umbral-user';
@@ -1020,6 +1030,32 @@ async function saveFinanceEntity(kind, values) {
   const table = kind === 'expense' ? 'shared_expenses' : kind === 'bill' ? 'shared_bills' : 'shared_fixed_costs';
   const key = kind === 'expense' ? localExpensesKey : kind === 'bill' ? localBillsKey : localFixedCostsKey;
   const record = { ...values };
+
+  if (kind === 'fixed') {
+    const records = getLocalFixedCosts();
+    const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
+    const savedRecord = index >= 0 ? { ...records[index], ...record } : { ...record, id: createLocalId() };
+    if (index >= 0) records[index] = savedRecord;
+    else records.unshift(savedRecord);
+    localStorage.setItem(localFixedCostsKey, JSON.stringify(records));
+    financeEditing = null;
+
+    if (supabaseClient && authUserId) {
+      try {
+        const query = savedRecord.id && index >= 0
+          ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
+          : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
+        const { error } = await query;
+        if (error) console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error.message);
+        return { localOnly: Boolean(error) };
+      } catch (error) {
+        console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error);
+        return { localOnly: true };
+      }
+    }
+    return { localOnly: true };
+  }
+
   if (supabaseClient && authUserId) {
     const query = financeEditing?.kind === kind && financeEditing.id ? supabaseClient.from(table).update(record).eq('id', financeEditing.id) : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
     const { error } = await query;
