@@ -280,6 +280,16 @@ section { margin-bottom: 34px; }
 .identity-options button span { display: grid; width: 33px; height: 33px; place-items: center; border-radius: 10px; background: var(--lime); color: var(--green); font-size: 10px; }
 .identity-options button + button span { background: var(--amber); }
 .identity-options button svg { width: 15px; margin-left: auto; color: var(--muted); }
+.household-admin { margin-top: 21px; padding-top: 18px; border-top: 1px solid var(--line); }
+.household-admin[hidden] { display: none; }
+.household-admin-heading { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+.household-admin-heading strong { font-size: 13px; }
+.household-admin-heading span { color: var(--muted); font-size: 10px; }
+.invite-form { display: grid; grid-template-columns: 1fr 84px; gap: 6px; }
+.invite-form input, .invite-form select { min-width: 0; padding: 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--ink); font-size: 10px; }
+.invite-form button { display: flex; grid-column: 1 / -1; align-items: center; justify-content: center; gap: 5px; padding: 9px; border-radius: 8px; background: var(--green); color: var(--lime); font-size: 10px; font-weight: 700; }
+.invite-form button svg { width: 13px; }
+.invite-result { min-height: 14px; margin: 9px 0 0; color: var(--green); font-size: 9px; line-height: 1.4; word-break: break-word; }
 .notes-modal { position: fixed; inset: 0; z-index: 4; display: grid; align-items: stretch; padding: 0; background: var(--paper); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .notes-modal.visible { opacity: 1; pointer-events: auto; }
 .notes-panel { width: min(100%, 480px); height: 100%; overflow: auto; padding: 24px 22px 28px; background: var(--paper); transform: translateX(20px); transition: transform .2s ease; }

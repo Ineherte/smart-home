@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=10" />
     <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
@@ -176,6 +176,11 @@
         <div class="identity-options">
           <button type="button" data-user="Ines"><span>IN</span> Soy Ines <i data-lucide="arrow-right"></i></button>
           <button type="button" data-user="Matteo"><span>MA</span> Soy Matteo <i data-lucide="arrow-right"></i></button>
+        </div>
+        <div class="household-admin" id="householdAdmin" hidden>
+          <div class="household-admin-heading"><strong>Personas de la casa</strong><span id="householdMemberCount">Solo tú</span></div>
+          <form id="inviteForm" class="invite-form"><input name="email" type="email" placeholder="Email de Matteo o invitado" aria-label="Email de la persona invitada" required /><select name="role" aria-label="Tipo de acceso"><option value="member">Miembro</option><option value="guest">Invitado</option></select><button type="submit"><i data-lucide="user-plus"></i> Invitar</button></form>
+          <p class="invite-result" id="inviteResult"></p>
         </div>
       </div>
     </div>

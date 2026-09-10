@@ -608,11 +608,20 @@ async function connectNotes() {
     return;
   }
   authUserId = sessionData.session.user.id;
-  householdId = await ensureHousehold();
+  const inviteToken = new URLSearchParams(window.location.search).get('invite');
+  if (inviteToken) {
+    const { data: acceptedHousehold, error: inviteError } = await supabaseClient.rpc('accept_household_invite', { raw_token: inviteToken });
+    if (!inviteError && acceptedHousehold) householdId = acceptedHousehold;
+  }
+  householdId = householdId || await ensureHousehold();
   if (!householdId) {
     status.innerHTML = '<i data-lucide="circle-alert"></i> No se pudo preparar tu hogar compartido';
     lucide.createIcons();
     return;
+  }
+  await loadHouseholdAdmin();
+  if (inviteToken) {
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
   await supabaseClient.auth.updateUser({ data: { name: currentUser } });
   status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
@@ -646,8 +655,30 @@ async function ensureHousehold() {
   return memberError ? null : household.id;
 }
 
+async function loadHouseholdAdmin() {
+  const admin = document.querySelector('#householdAdmin');
+  if (!admin || !householdId) return;
+  const { data: members } = await supabaseClient.from('household_members').select('user_id, role').eq('household_id', householdId);
+  const isOwner = members?.some((member) => member.user_id === authUserId && member.role === 'owner');
+  if (!isOwner) return;
+  admin.hidden = false;
+  document.querySelector('#householdMemberCount').textContent = `${members.length} ${members.length === 1 ? 'persona' : 'personas'}`;
+}
+
+async function hashInviteToken(token) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 let authSignUpMode = false;
 function showAuthError(message) { document.querySelector('#authError').textContent = message; }
+
+const authErrorParams = new URLSearchParams(window.location.search);
+if (authErrorParams.get('error')) {
+  authModal.classList.add('visible');
+  showAuthError(authErrorParams.get('error_description') || 'El enlace de confirmación no es válido o ha caducado. Solicita un correo nuevo.');
+  window.history.replaceState({}, document.title, window.location.pathname);
+}
 
 document.querySelector('#authModeSwitch').addEventListener('click', (event) => {
   authSignUpMode = !authSignUpMode;
@@ -667,14 +698,32 @@ document.querySelector('#authForm').addEventListener('submit', async (event) => 
   const submit = event.currentTarget.querySelector('.auth-submit');
   submit.disabled = true;
   showAuthError('');
+  const pendingInvite = new URLSearchParams(window.location.search).get('invite');
+  const emailRedirectTo = `${window.location.origin}${window.location.pathname}${pendingInvite ? `?invite=${encodeURIComponent(pendingInvite)}` : ''}`;
   const result = authSignUpMode
-    ? await supabaseClient.auth.signUp({ email, password, options: { data: { name: email.split('@')[0] } } })
+    ? await supabaseClient.auth.signUp({ email, password, options: { data: { name: email.split('@')[0] }, emailRedirectTo } })
     : await supabaseClient.auth.signInWithPassword({ email, password });
   submit.disabled = false;
   if (result.error) return showAuthError(result.error.message);
   if (authSignUpMode && !result.data.session) return showAuthError('Revisa tu correo para confirmar la cuenta y vuelve a entrar.');
   authModal.classList.remove('visible');
   await connectNotes();
+});
+
+document.querySelector('#inviteForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!supabaseClient || !householdId) return;
+  const values = new FormData(event.currentTarget);
+  const tokenBytes = new Uint8Array(24);
+  crypto.getRandomValues(tokenBytes);
+  const token = btoa(String.fromCharCode(...tokenBytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const tokenHash = await hashInviteToken(token);
+  const { error } = await supabaseClient.from('household_invites').insert({ household_id: householdId, invited_email: String(values.get('email')).trim().toLowerCase(), role: values.get('role'), token_hash: tokenHash, created_by: authUserId });
+  const result = document.querySelector('#inviteResult');
+  if (error) { result.textContent = error.message; return; }
+  const link = `${window.location.origin}${window.location.pathname}?invite=${token}`;
+  result.textContent = `Enlace creado: ${link}`;
+  event.currentTarget.reset();
 });
 
 function formatToday() {
