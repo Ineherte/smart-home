@@ -23,17 +23,18 @@ Estas funciones:
 1. Crea tu proyecto en Supabase.
 2. Ejecuta el SQL de `finance-schema.sql`.
 3. Si ya habías ejecutado una versión anterior del esquema, ejecuta también `finance-settlement.sql` para añadir quién pagó cada factura.
-4. Añade estas variables de entorno en Supabase Edge Functions:
+4. Ejecuta `finance-fixed-costs.sql` para crear y compartir alquiler e internet como gastos fijos mensuales.
+5. Añade estas variables de entorno en Supabase Edge Functions:
 
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
 
-5. Haz deploy de las funciones:
+6. Haz deploy de las funciones:
 
    - `supabase functions deploy tricount-sync`
    - `supabase functions deploy invoice-ingest`
 
-6. Conecta tu flujo de automatización (n8n, Make, Zapier, OAuth con Gmail / Outlook, o una app de backend) para llamar a estas endpoints y autenticar con el usuario real.
+7. Conecta tu flujo de automatización (n8n, Make, Zapier, OAuth con Gmail / Outlook, o una app de backend) para llamar a estas endpoints y autenticar con el usuario real.
 
 ## Uso recomendado
 
@@ -41,6 +42,7 @@ Estas funciones:
 - Octopus / TIM: usa Gmail o Outlook con OAuth para detectar el correo, extraer importe y mandar el payload a `invoice-ingest`.
 - El navegador nunca debe leer directamente tu bandeja de entrada ni tus credenciales de terceros.
 - La vista financiera calcula el reparto 50/50, muestra quién debe a quién y permite exportar cuatro hojas Excel: gastos, facturas, categorías y liquidación.
+- Los gastos fijos se guardan aparte de las facturas variables para no confundir alquiler e internet con importaciones mensuales.
 
 ## Ejecutar la app
 
