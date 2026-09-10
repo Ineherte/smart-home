@@ -52,7 +52,7 @@ const supabaseConfigured = Boolean(supabaseConfig.url && supabaseConfig.anonKey 
 let authUserId;
 let householdId;
 let householdRole = 'member';
-const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
+const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 const weatherDetailUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&past_days=30&forecast_days=7&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Europe%2FRome';
 let toastTimer;
 let lightsOn = true;
@@ -124,9 +124,11 @@ function renderSmartLights() {
 function updateLightStatusText() {
   const activeLights = smartLights.filter((light) => light.powered).length;
   const lightsStatus = document.querySelector('#lightsStatus');
+  const lightsOnCount = document.querySelector('#lightsOnCount');
+  if (lightsOnCount) lightsOnCount.textContent = activeLights;
   if (!lightsStatus) return;
 
-  lightsStatus.textContent = activeLights === smartLights.length ? '2 encendidas · salón y cocina' : activeLights === 0 ? 'Todas apagadas' : `${activeLights} encendida${activeLights === 1 ? '' : 's'} · ${smartLights.filter((light) => light.powered).map((light) => light.room).join(' y ')}`;
+  lightsStatus.textContent = activeLights === 0 ? 'todas apagadas' : `encendida${activeLights === 1 ? '' : 's'} · ${smartLights.filter((light) => light.powered).map((light) => light.room).join(' y ')}`;
 }
 
 function setSmartLightState(lightId, powered) {
@@ -279,7 +281,27 @@ function renderAttention(nextState = {}) {
   section?.classList.toggle('has-items', items.length > 0);
   count.textContent = items.length ? `${items.length} pendiente${items.length === 1 ? '' : 's'}` : 'Todo en orden';
   list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
+  updateHomeStatusMessage(urgentCount, pendingBills, settlementAmount);
   lucide.createIcons();
+}
+
+function updateHomeStatusMessage(urgentCount, pendingBills, settlementAmount) {
+  const title = document.querySelector('#home-title');
+  const eyebrow = document.querySelector('#home-title')?.closest('.section-heading')?.querySelector('.eyebrow');
+  if (!title || !eyebrow) return;
+  if (urgentCount) {
+    eyebrow.textContent = 'Necesita tu atención';
+    title.innerHTML = `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'} <span class="wave">!</span>`;
+  } else if (pendingBills) {
+    eyebrow.textContent = 'Casa financiera';
+    title.innerHTML = `${pendingBills} factura${pendingBills === 1 ? '' : 's'} por pagar <span class="wave">·</span>`;
+  } else if (settlementAmount > 0.009) {
+    eyebrow.textContent = 'Entre los dos';
+    title.innerHTML = `Falta saldar ${financeMoney(settlementAmount)} <span class="wave">↔</span>`;
+  } else {
+    eyebrow.textContent = 'Tu casa ahora';
+    title.innerHTML = 'Todo tranquilo <span class="wave">✦</span>';
+  }
 }
 
 document.querySelector('#attentionList').addEventListener('click', (event) => {
@@ -845,8 +867,18 @@ async function loadWeather() {
   weatherIcon.setAttribute('data-lucide', icon);
   weatherIcon.outerHTML = `<i data-lucide="${icon}"></i>`;
   setHomeStateVisual(current.weather_code, current.is_day !== 0);
+  renderWeatherForecastStrip(data.hourly);
   lucide.createIcons();
   return true;
+}
+
+function renderWeatherForecastStrip(hourly) {
+  const strip = document.querySelector('#weatherForecastStrip');
+  if (!strip || !hourly?.time?.length) return;
+  const nowIndex = hourly.time.findIndex((time) => new Date(time) >= new Date());
+  const startIndex = Math.max(nowIndex, 0);
+  const slots = [2, 4, 6, 8].map((offset) => startIndex + offset).filter((index) => index < hourly.time.length);
+  strip.innerHTML = slots.map((index) => `<div class="forecast-slot"><span>${new Date(hourly.time[index]).getHours()}h</span><strong>${Math.round(hourly.temperature_2m[index])}°</strong></div>`).join('');
 }
 
 function updateWeather() {
@@ -1661,6 +1693,11 @@ document.querySelectorAll('[data-action]').forEach((action) => {
 
     if (type === 'finance') {
       openFinance();
+    }
+
+    if (type === 'lights') {
+      setWorkspace('home');
+      document.querySelector('#smartLightsTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 });
