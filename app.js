@@ -909,6 +909,19 @@ function financeSourceLabel(source) {
   return source === 'tricount' ? 'Tricount' : source === 'email' ? 'Correo' : source === 'fixed' ? 'Fijo' : 'Manual';
 }
 
+const financeCategories = ['Hogar', 'Alimentación', 'Transporte', 'Viajes', 'Ocio', 'Compras', 'Salud', 'Otros'];
+
+function financeCategory(value, description = '') {
+  const text = `${value || ''} ${description || ''}`.toLowerCase();
+  if (/alquil|internet|tim|octopus|luz|agua|gas|hogar|casa/.test(text)) return 'Hogar';
+  if (/pizza|pizz|cena|comida|comer|restaurant|restaurante|supermercado|compra|gelato|vino|aperitivo|bebida|aliment/.test(text)) return 'Alimentación';
+  if (/tren|taxi|metro|bus|avion|aereo|aeropuerto|vuelo|viaje|hotel|airbnb|retorno|billete/.test(text)) return text.includes('viaj') || /avion|aereo|vuelo|hotel|airbnb|retorno/.test(text) ? 'Viajes' : 'Transporte';
+  if (/ocio|cine|concierto|teatro|fiesta|entrada|bar/.test(text)) return 'Ocio';
+  if (/regalo|ropa|compra|tienda|electron|mueble/.test(text)) return 'Compras';
+  if (/farmacia|medic|salud|doctor|dentista/.test(text)) return 'Salud';
+  return financeCategories.includes(value) ? value : 'Otros';
+}
+
 function financeEntries(data) {
   const safeData = {
     expenses: Array.isArray(data?.expenses) ? data.expenses : [],
@@ -916,7 +929,7 @@ function financeEntries(data) {
     fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : []
   };
   return [
-    ...safeData.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description })),
+    ...safeData.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: financeCategory(entry.category, entry.description), payer: entry.paid_by || 'Ines', label: entry.description })),
     ...safeData.bills.filter((entry) => Number(entry.amount) > 0).map((entry) => ({ ...entry, kind: 'bill', date: entry.due_date || entry.created_at, category: entry.provider || 'Otro', payer: entry.paid_by || 'Ines', label: `${entry.provider} · ${entry.description}` })),
     ...safeData.fixedCosts.filter((entry) => entry.active !== false).map((entry) => ({ ...entry, kind: 'fixed', date: new Date().toISOString().slice(0, 10), category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description, source: 'fixed' }))
   ];
@@ -933,7 +946,7 @@ function filteredFinanceData(data) {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const matches = (entry) => {
     const searchable = `${entry.description || ''} ${entry.provider || ''} ${entry.category || ''} ${entry.source || ''}`.toLowerCase();
-    return (!query || searchable.includes(query)) && (category === 'all' || entry.category === category || entry.provider === category) && (period !== 'current' || String(entry.date || '').slice(0, 7) === currentMonth);
+    return (!query || searchable.includes(query)) && (category === 'all' || financeCategory(entry.category, entry.description) === category || entry.provider === category) && (period !== 'current' || String(entry.date || '').slice(0, 7) === currentMonth);
   };
   return { expenses: safeData.expenses.filter(matches), bills: safeData.bills.filter(matches) };
 }
@@ -992,8 +1005,8 @@ function renderFinance(data) {
   document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />Los pagos están equilibrados entre Ines y Matteo.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />Cálculo 50/50 sobre ${financeMoney(settlement.total)} registrados.</span>`;
   renderFinanceBreakdown(allEntries);
   renderFinancePayerChart(settlement);
-  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(expense.category || 'Otros')} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
-  billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')} · ${bill.status === 'paid' ? 'Pagada' : 'Pendiente'}</small></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
+  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
+  billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => { const isPaid = bill.status === 'paid'; return `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-bill-status="${bill.id}"><i data-lucide="${isPaid ? 'check-circle-2' : 'circle'}"></i><em class="finance-status-badge ${isPaid ? 'is-paid' : ''}">${isPaid ? 'Pagada' : 'Pendiente'}</em></button></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
   lucide.createIcons();
 }
 
@@ -1098,6 +1111,21 @@ async function deleteFinanceEntity(kind, id) {
   }
   await refreshFinance();
   showToast('Movimiento eliminado');
+}
+
+async function toggleBillStatus(id) {
+  const bill = financeCache.bills.find((item) => item.id === id);
+  if (!bill) return;
+  const status = bill.status === 'paid' ? 'pending' : 'paid';
+  bill.status = status;
+  const bills = readFinanceRecords(localBillsKey);
+  const index = bills.findIndex((item) => item.id === id);
+  if (index >= 0) { bills[index].status = status; localStorage.setItem(localBillsKey, JSON.stringify(bills)); }
+  renderFinance(financeCache);
+  showToast(status === 'paid' ? 'Factura marcada como pagada' : 'Factura marcada como pendiente');
+  if (supabaseClient && authUserId && !String(id).startsWith('umbral-')) {
+    supabaseClient.from('shared_bills').update({ status }).eq('id', id).then(({ error }) => { if (error) console.warn('[Umbral] No se sincronizó el estado de la factura:', error.message); });
+  }
 }
 
 function financeRowFromImport(row) {
@@ -1266,8 +1294,10 @@ document.querySelector('#expenseList').addEventListener('click', (event) => {
   if (remove) deleteFinanceEntity('expense', remove.dataset.expenseDelete);
 });
 document.querySelector('#billList').addEventListener('click', (event) => {
+  const status = event.target.closest('[data-bill-status]');
   const edit = event.target.closest('[data-bill-edit]');
   const remove = event.target.closest('[data-bill-delete]');
+  if (status) toggleBillStatus(status.dataset.billStatus);
   if (edit) startFinanceEdit('bill', edit.dataset.billEdit);
   if (remove) deleteFinanceEntity('bill', remove.dataset.billDelete);
 });

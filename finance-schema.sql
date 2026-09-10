@@ -4,7 +4,7 @@ create table public.shared_expenses (
   amount numeric(12, 2) not null check (amount >= 0),
   currency text not null default 'EUR' check (char_length(currency) = 3),
   paid_by text not null check (paid_by in ('Ines', 'Matteo')),
-  category text not null default 'Otros' check (category in ('Alquiler', 'Luz', 'Internet', 'Agua', 'Gas', 'Compra', 'Transporte', 'Ocio', 'Otros')),
+  category text not null default 'Otros' check (category in ('Hogar', 'Alimentación', 'Transporte', 'Viajes', 'Ocio', 'Compras', 'Salud', 'Otros', 'Alquiler', 'Luz', 'Internet', 'Agua', 'Gas', 'Compra')),
   expense_date date not null default current_date,
   source text not null default 'manual' check (source in ('manual', 'tricount', 'email')),
   source_reference text,
