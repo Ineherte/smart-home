@@ -1165,6 +1165,58 @@ async function saveImportedExpenses(rows) {
   localStorage.setItem(localExpensesKey, JSON.stringify([...rows, ...readFinanceLocal(localExpensesKey)]));
 }
 
+function normalizeSharedTricountData(payload) {
+  const tricount = payload?.tricount || {};
+  const members = Array.isArray(tricount.members) ? tricount.members : [];
+  const memberNames = Object.fromEntries(members.map((member) => [member.uuid, String(member.name || 'Ines')]));
+  const allowedCategories = ['Alquiler', 'Luz', 'Internet', 'Agua', 'Gas', 'Compra', 'Transporte', 'Ocio', 'Otros'];
+  return (Array.isArray(tricount.expenses) ? tricount.expenses : []).map((expense, index) => {
+    const payerName = memberNames[expense.payerUuid] || expense.payer || 'Ines';
+    const category = String(expense.category || 'Otros');
+    const amount = Number(String(expense.totalAmount || '').replace(',', '.').replace(/[^\d.-]/g, ''));
+    return {
+      description: String(expense.description || `Gasto Tricount ${index + 1}`).slice(0, 160),
+      amount,
+      currency: 'EUR',
+      paid_by: payerName.toLowerCase().includes('matteo') ? 'Matteo' : 'Ines',
+      category: allowedCategories.includes(category) ? category : 'Otros',
+      expense_date: String(expense.date || new Date().toISOString().slice(0, 10)).slice(0, 10),
+      source: 'tricount',
+      source_reference: `${payload.tricountId || 'shared'}:${expense.id || index}`
+    };
+  }).filter((expense) => Number.isFinite(expense.amount) && expense.amount >= 0);
+}
+
+document.querySelector('#financeShareForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const shareLink = form.shareLink.value.trim();
+  const button = form.querySelector('button');
+  button.disabled = true;
+  button.innerHTML = '<i data-lucide="loader-circle"></i> Cargando...';
+  lucide.createIcons();
+  try {
+    const token = await getSupabaseSessionToken();
+    if (!token) throw new Error('Abre la app con una sesión de Supabase activa para importar un enlace compartido');
+    const response = await fetch(`${supabaseConfig.url}/functions/v1/tricount-share-sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ shareLink }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'No se pudo cargar el Tricount compartido');
+    const rows = normalizeSharedTricountData(result);
+    if (!rows.length) throw new Error('El enlace no contiene gastos importables');
+    await saveImportedExpenses(rows);
+    await refreshFinance();
+    form.reset();
+    showToast(`${rows.length} gastos de Tricount añadidos`);
+  } catch (error) {
+    reportAppError(error);
+    showToast(error.message || 'No se pudo importar el Tricount');
+  } finally {
+    button.disabled = false;
+    button.innerHTML = '<i data-lucide="link-2"></i> Cargar Tricount';
+    lucide.createIcons();
+  }
+});
+
 document.querySelector('#expenseForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
