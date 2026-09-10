@@ -434,6 +434,15 @@ section { margin-bottom: 34px; }
 .finance-insight { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 14px; padding: 11px 12px; border-radius: 11px; background: #e5f0e8; color: var(--green); font-size: 10px; line-height: 1.4; }
 .finance-insight svg { width: 17px; min-width: 17px; }
 .finance-insight strong { font-size: 11px; }
+.settlement-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -7px 0 14px; }
+.settlement-actions > span { color: var(--muted); font-size: 10px; }
+.settlement-payment-button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); color: var(--green); font-size: 10px; font-weight: 700; }
+.settlement-payment-button svg { width: 14px; }
+.settlement-form { display: grid; gap: 7px; margin: -4px 0 15px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+.settlement-form[hidden] { display: none; }
+.settlement-form input, .settlement-form select { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); color: var(--ink); font-size: 10px; }
+.settlement-form > button { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px; border-radius: 9px; background: var(--green); color: var(--lime); font-size: 10px; font-weight: 700; }
+.settlement-form > button svg { width: 14px; }
 .finance-breakdown { margin-bottom: 17px; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--white); }
 .finance-subheading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 11px; }
 .finance-subheading span { color: var(--muted); font-size: 10px; }

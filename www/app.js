@@ -24,6 +24,7 @@ const localSharedNotesKey = 'umbral-shared-notes';
 const localPrivateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
 const localExpensesKey = 'umbral-shared-expenses';
 const localBillsKey = 'umbral-shared-bills';
+const localSettlementsKey = 'umbral-shared-settlements';
 const localFixedCostsKey = 'umbral-fixed-costs';
 const defaultFixedCosts = [
   { id: 'fixed-rent', description: 'Alquiler', amount: 800, category: 'Alquiler', paid_by: 'Ines', active: true },
@@ -883,11 +884,13 @@ async function getFinanceData() {
     ]);
     if (expensesError) throw expensesError;
     if (billsError) throw billsError;
-    const { data: fixedCosts, error: fixedError } = await supabaseClient.from('shared_fixed_costs').select('*').eq('active', true).order('created_at');
-    if (fixedError || !fixedCosts?.length) return { expenses: expenses || [], bills: bills || [], fixedCosts: fixedError ? getLocalFixedCosts() : defaultFixedCosts };
-    return { expenses: expenses || [], bills: bills || [], fixedCosts };
+    const [{ data: fixedCosts, error: fixedError }, { data: settlements, error: settlementsError }] = await Promise.all([
+      supabaseClient.from('shared_fixed_costs').select('*').eq('active', true).order('created_at'),
+      supabaseClient.from('shared_settlements').select('*').order('payment_date', { ascending: false })
+    ]);
+    return { expenses: expenses || [], bills: bills || [], fixedCosts: fixedError || !fixedCosts?.length ? fixedError ? getLocalFixedCosts() : defaultFixedCosts : fixedCosts, settlements: settlementsError ? readFinanceLocal(localSettlementsKey) : (settlements || []).map((payment) => ({ ...payment, from: payment.from_person, to: payment.to_person })) };
   }
-  return { expenses: readFinanceRecords(localExpensesKey), bills: readFinanceRecords(localBillsKey), fixedCosts: getLocalFixedCosts() };
+  return { expenses: readFinanceRecords(localExpensesKey), bills: readFinanceRecords(localBillsKey), fixedCosts: getLocalFixedCosts(), settlements: readFinanceRecords(localSettlementsKey) };
 }
 
 let financeCache = { expenses: [], bills: [] };
@@ -951,16 +954,21 @@ function filteredFinanceData(data) {
   return { expenses: safeData.expenses.filter(matches), bills: safeData.bills.filter(matches) };
 }
 
-function calculateFinanceSettlement(entries) {
-  const activeEntries = entries.filter((entry) => !entry.settled);
-  const total = activeEntries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+function calculateFinanceSettlement(entries, settlements = []) {
+  const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
   const fairShare = total / 2;
   const paid = { Ines: 0, Matteo: 0 };
-  activeEntries.forEach((entry) => { paid[entry.payer] = (paid[entry.payer] || 0) + Number(entry.amount || 0); });
+  entries.forEach((entry) => { paid[entry.payer] = (paid[entry.payer] || 0) + Number(entry.amount || 0); });
+  settlements.forEach((payment) => {
+    const amount = Number(payment.amount || 0);
+    paid[payment.from] = (paid[payment.from] || 0) + amount;
+    paid[payment.to] = (paid[payment.to] || 0) - amount;
+  });
   const balance = { Ines: paid.Ines - fairShare, Matteo: paid.Matteo - fairShare };
   const creditor = balance.Ines >= 0 ? 'Ines' : 'Matteo';
   const debtor = creditor === 'Ines' ? 'Matteo' : 'Ines';
-  return { total, fairShare, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor, settledTotal: entries.filter((entry) => entry.settled).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) };
+  const paymentsTotal = settlements.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  return { total, fairShare, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor, paymentsTotal };
 }
 
 function renderFinanceBreakdown(entries) {
@@ -985,14 +993,15 @@ function renderFinance(data) {
   data = {
     expenses: Array.isArray(data?.expenses) ? data.expenses : [],
     bills: Array.isArray(data?.bills) ? data.bills : [],
-    fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : []
+    fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : [],
+    settlements: Array.isArray(data?.settlements) ? data.settlements : []
   };
   const expenseList = document.querySelector('#expenseList');
   const billList = document.querySelector('#billList');
   const allEntries = financeEntries(data);
   const visible = filteredFinanceData(data);
   const visibleEntries = financeEntries(visible);
-  const settlement = calculateFinanceSettlement(allEntries);
+  const settlement = calculateFinanceSettlement(allEntries, data.settlements);
   const billTotal = data.bills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
   const sourceCount = new Set(allEntries.map((entry) => entry.source || 'manual')).size;
   document.querySelector('#financeTotal').textContent = financeMoney(settlement.total);
@@ -1002,11 +1011,12 @@ function renderFinance(data) {
   document.querySelector('#financeBillCount').textContent = data.bills.filter((bill) => bill.status !== 'paid').length;
   document.querySelector('#financeBillTotal').textContent = financeMoney(billTotal);
   document.querySelector('#financeSourceCount').textContent = sourceCount;
+  document.querySelector('#settlementPaymentTotal').textContent = `${financeMoney(settlement.paymentsTotal)} entregados`;
   renderFixedCosts(data.fixedCosts || []);
-  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />Los pagos pendientes están equilibrados.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.settledTotal ? `${financeMoney(settlement.settledTotal)} ya saldados · ` : ''}Reparto 50/50 pendiente.</span>`;
+  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya entregados · ` : ''}Compensación global 50/50.</span>`;
   renderFinanceBreakdown(allEntries);
   renderFinancePayerChart(settlement);
-  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => { const settled = Boolean(expense.settled); return `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-expense-settled="${expense.id}"><i data-lucide="${settled ? 'check-circle-2' : 'circle'}"></i><em class="finance-expense-status ${settled ? 'is-settled' : ''}">${settled ? 'Saldado' : 'Pendiente de saldar'}</em></button></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
+  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
   billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => { const isPaid = bill.status === 'paid'; return `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-bill-status="${bill.id}"><i data-lucide="${isPaid ? 'check-circle-2' : 'circle'}"></i><em class="finance-status-badge ${isPaid ? 'is-paid' : ''}">${isPaid ? 'Pagada' : 'Pendiente'}</em></button></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
   lucide.createIcons();
 }
@@ -1042,7 +1052,6 @@ function startFinanceEdit(kind, id) {
   if (kind === 'expense') {
     form.category.value = entry.category || 'Otros';
     form.date.value = entry.expense_date || '';
-    form.settled.checked = Boolean(entry.settled);
   }
   if (kind === 'bill') {
     form.provider.value = entry.provider || 'Otro';
@@ -1113,6 +1122,20 @@ async function deleteFinanceEntity(kind, id) {
   }
   await refreshFinance();
   showToast('Movimiento eliminado');
+}
+
+async function saveSettlementPayment(payment) {
+  const record = { ...payment, id: createLocalId() };
+  const payments = readFinanceRecords(localSettlementsKey);
+  payments.unshift(record);
+  localStorage.setItem(localSettlementsKey, JSON.stringify(payments));
+  financeCache.settlements = payments;
+  renderFinance(financeCache);
+  showToast('Pago registrado en la liquidación');
+  if (supabaseClient && authUserId) {
+    const { error } = await supabaseClient.from('shared_settlements').insert({ from_person: payment.from, to_person: payment.to, amount: payment.amount, payment_date: payment.payment_date, note: payment.note, created_by: authUserId });
+    if (error) console.warn('[Umbral] Pago guardado localmente; nube no disponible:', error.message);
+  }
 }
 
 async function toggleBillStatus(id) {
@@ -1372,6 +1395,22 @@ document.querySelectorAll('[data-finance-view]').forEach((tab) => tab.addEventLi
 }));
 ['#financeSearch', '#financeCategoryFilter', '#financePeriod'].forEach((selector) => document.querySelector(selector).addEventListener('input', () => renderFinance(financeCache)));
 document.querySelector('#closeFinance').addEventListener('click', () => history.back());
+document.querySelector('#openSettlementForm').addEventListener('click', () => {
+  const form = document.querySelector('#settlementForm');
+  form.hidden = !form.hidden;
+  if (!form.hidden) form.paymentDate.value = new Date().toISOString().slice(0, 10);
+});
+document.querySelector('#settlementForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const values = new FormData(event.currentTarget);
+  const from = values.get('from');
+  const to = values.get('to');
+  const amount = Number(values.get('amount'));
+  if (from === to || !Number.isFinite(amount) || amount <= 0) return showToast('Indica dos personas distintas y un importe válido');
+  await saveSettlementPayment({ from, to, amount, payment_date: values.get('paymentDate'), note: String(values.get('note') || '').trim() || null });
+  event.currentTarget.reset();
+  event.currentTarget.hidden = true;
+});
 document.querySelector('#expenseForm').date.value = new Date().toISOString().slice(0, 10);
 
 function showToast(message) {
