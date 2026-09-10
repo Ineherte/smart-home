@@ -1041,17 +1041,13 @@ async function saveFinanceEntity(kind, values) {
     financeEditing = null;
 
     if (supabaseClient && authUserId) {
-      try {
-        const query = savedRecord.id && index >= 0
-          ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
-          : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
-        const { error } = await query;
+      const query = savedRecord.id && index >= 0
+        ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
+        : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
+      query.then(({ error }) => {
         if (error) console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error.message);
-        return { localOnly: Boolean(error) };
-      } catch (error) {
-        console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error);
-        return { localOnly: true };
-      }
+      }).catch((error) => console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error));
+      return { localOnly: false };
     }
     return { localOnly: true };
   }
@@ -1186,7 +1182,8 @@ document.querySelector('#fixedCostForm').addEventListener('submit', async (event
     const result = await saveFinanceEntity('fixed', fixed);
     event.currentTarget.reset();
     event.currentTarget.hidden = true;
-    await refreshFinance();
+    financeCache.fixedCosts = getLocalFixedCosts();
+    renderFinance(financeCache);
     showToast(result?.localOnly ? 'Guardado en este dispositivo; falta configurar la tabla compartida' : 'Gasto fijo guardado');
   } catch (error) {
     document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> ${escapeHtml(error.message || 'No se pudo guardar el gasto fijo')}`;
