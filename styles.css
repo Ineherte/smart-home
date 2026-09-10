@@ -766,7 +766,8 @@ section { margin-bottom: 43px; }
 .orientation-status.is-offline svg { color: #b57c00; }
 .orientation-divider { width: 1px; height: 14px; background: #cbdacf; }
 .orientation-weather { margin-left: auto; color: var(--ink); font-weight: 700; }
-.attention-section { margin: 0 0 38px; }
+.attention-section { display: none; margin: 0 0 38px; }
+.attention-section.has-items { display: block; }
 .attention-section .section-heading { align-items: center; }
 .attention-section h2 { font-size: 28px; }
 .attention-count { color: var(--muted); font-size: 10px; font-weight: 700; }

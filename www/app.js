@@ -268,6 +268,7 @@ const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0 };
 function renderAttention(nextState = {}) {
   Object.assign(attentionState, nextState);
   const { urgentCount, pendingBills, settlementAmount } = attentionState;
+  const section = document.querySelector('.attention-section');
   const list = document.querySelector('#attentionList');
   const count = document.querySelector('#attentionCount');
   if (!list || !count) return;
@@ -275,6 +276,7 @@ function renderAttention(nextState = {}) {
   if (urgentCount) items.push({ icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Notas', action: 'notes' });
   if (pendingBills) items.push({ icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Casa financiera', action: 'finance' });
   if (settlementAmount > 0.009) items.push({ icon: 'arrow-right-left', title: `Liquidación pendiente · ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
+  section?.classList.toggle('has-items', items.length > 0);
   count.textContent = items.length ? `${items.length} pendiente${items.length === 1 ? '' : 's'}` : 'Todo en orden';
   list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
   lucide.createIcons();
