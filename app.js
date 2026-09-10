@@ -188,12 +188,15 @@ if (!supabaseClient && !supabaseConfigured) {
   }
 }
 
-document.querySelectorAll('[data-user]').forEach((option) => {
-  option.addEventListener('click', () => setUser(option.dataset.user));
-});
+if (!supabaseConfigured) {
+  document.querySelectorAll('[data-user]').forEach((option) => {
+    option.addEventListener('click', () => setUser(option.dataset.user));
+  });
+}
 
 document.querySelector('#userAvatar').addEventListener('click', () => {
-  document.querySelector('#identityModal').classList.add('visible');
+  if (supabaseConfigured) authModal.classList.add('visible');
+  else document.querySelector('#identityModal').classList.add('visible');
 });
 
 function readNotes(key) {

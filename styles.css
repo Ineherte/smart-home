@@ -255,7 +255,7 @@ section { margin-bottom: 34px; }
 .nav-item { display: grid; gap: 4px; justify-items: center; min-width: 63px; padding: 4px 9px; border-radius: 12px; background: transparent; color: #96a29c; font-size: 9px; }
 .nav-item svg { width: 18px; height: 18px; }
 .nav-item.active { background: var(--green); color: var(--lime); }
-.identity-modal { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center; padding: 22px; background: rgba(29, 41, 37, .35); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.identity-modal { display: none !important; }
 .auth-modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 22px; background: rgba(20, 35, 31, .46); backdrop-filter: blur(9px); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .auth-modal.visible { opacity: 1; pointer-events: auto; }
 .auth-panel { width: min(100%, 390px); padding: 28px 25px 23px; border: 1px solid rgba(255,255,255,.6); border-radius: 20px; background: var(--paper); box-shadow: 0 24px 70px rgba(12, 35, 27, .25); }
