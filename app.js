@@ -867,20 +867,75 @@ async function getFinanceData() {
   return { expenses: readFinanceLocal(localExpensesKey), bills: readFinanceLocal(localBillsKey) };
 }
 
+let financeCache = { expenses: [], bills: [] };
+
+function financeSourceLabel(source) {
+  return source === 'tricount' ? 'Tricount' : source === 'email' ? 'Correo' : 'Manual';
+}
+
+function financeEntries(data) {
+  return [
+    ...data.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description })),
+    ...data.bills.filter((entry) => Number(entry.amount) > 0).map((entry) => ({ ...entry, kind: 'bill', date: entry.due_date || entry.created_at, category: entry.provider || 'Otro', payer: entry.paid_by || 'Ines', label: `${entry.provider} · ${entry.description}` }))
+  ];
+}
+
+function filteredFinanceData(data) {
+  const query = document.querySelector('#financeSearch')?.value.trim().toLowerCase() || '';
+  const category = document.querySelector('#financeCategoryFilter')?.value || 'all';
+  const period = document.querySelector('#financePeriod')?.value || 'all';
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const matches = (entry) => {
+    const searchable = `${entry.description || ''} ${entry.provider || ''} ${entry.category || ''} ${entry.source || ''}`.toLowerCase();
+    return (!query || searchable.includes(query)) && (category === 'all' || entry.category === category || entry.provider === category) && (period !== 'current' || String(entry.date || '').slice(0, 7) === currentMonth);
+  };
+  return { expenses: data.expenses.filter(matches), bills: data.bills.filter(matches) };
+}
+
+function calculateFinanceSettlement(entries) {
+  const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const fairShare = total / 2;
+  const paid = { Ines: 0, Matteo: 0 };
+  entries.forEach((entry) => { paid[entry.payer] = (paid[entry.payer] || 0) + Number(entry.amount || 0); });
+  const balance = { Ines: paid.Ines - fairShare, Matteo: paid.Matteo - fairShare };
+  const creditor = balance.Ines >= 0 ? 'Ines' : 'Matteo';
+  const debtor = creditor === 'Ines' ? 'Matteo' : 'Ines';
+  return { total, fairShare, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor };
+}
+
+function renderFinanceBreakdown(entries) {
+  const totals = entries.reduce((result, entry) => { result[entry.category] = (result[entry.category] || 0) + Number(entry.amount || 0); return result; }, {});
+  const sorted = Object.entries(totals).sort(([, first], [, second]) => second - first);
+  const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  document.querySelector('#financeBreakdownTotal').textContent = financeMoney(total);
+  document.querySelector('#financeCategoryBreakdown').innerHTML = sorted.length ? sorted.map(([category, amount]) => `<div class="finance-category-row"><strong>${escapeHtml(category)}</strong><div class="finance-category-track"><span style="width:${total ? Math.max(4, amount / total * 100) : 0}%"></span></div><b>${financeMoney(amount)}</b></div>`).join('') : '<p class="empty-note">Aún no hay datos para analizar.</p>';
+}
+
 function renderFinance(data) {
   const expenseList = document.querySelector('#expenseList');
   const billList = document.querySelector('#billList');
-  const total = data.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-  const myShare = data.expenses.reduce((sum, expense) => sum + (expense.paid_by === currentUser ? Number(expense.amount || 0) / 2 : 0), 0);
-  document.querySelector('#financeTotal').textContent = financeMoney(total);
-  document.querySelector('#financeBalance').textContent = financeMoney(myShare);
-  expenseList.innerHTML = data.expenses.length ? data.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)}</strong><small>${escapeHtml(expense.category)} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by)}</small></span><b>${financeMoney(expense.amount)}</b></div>`).join('') : '<p class="empty-note">Todavía no hay gastos compartidos.</p>';
-  billList.innerHTML = data.bills.length ? data.bills.map((bill) => `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)}</strong><small>Vence ${financeDate(bill.due_date)} · ${bill.status === 'paid' ? 'Pagada' : 'Pendiente'}</small></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b></div>`).join('') : '<p class="empty-note">Añade aquí alquiler, luz e internet.</p>';
+  const allEntries = financeEntries(data);
+  const visible = filteredFinanceData(data);
+  const visibleEntries = financeEntries(visible);
+  const settlement = calculateFinanceSettlement(allEntries);
+  const billTotal = data.bills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+  const sourceCount = new Set(allEntries.map((entry) => entry.source || 'manual')).size;
+  document.querySelector('#financeTotal').textContent = financeMoney(settlement.total);
+  document.querySelector('#financeBalance').textContent = financeMoney(settlement.fairShare);
+  document.querySelector('#financeExpenseCount').textContent = data.expenses.length;
+  document.querySelector('#financeExpenseTotal').textContent = financeMoney(data.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0));
+  document.querySelector('#financeBillCount').textContent = data.bills.filter((bill) => bill.status !== 'paid').length;
+  document.querySelector('#financeBillTotal').textContent = financeMoney(billTotal);
+  document.querySelector('#financeSourceCount').textContent = sourceCount;
+  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />Los pagos están equilibrados entre Ines y Matteo.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />Cálculo 50/50 sobre ${financeMoney(settlement.total)} registrados.</span>`;
+  renderFinanceBreakdown(allEntries);
+  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(expense.category || 'Otros')} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
+  billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')} · ${bill.status === 'paid' ? 'Pagada' : 'Pendiente'}</small></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b></div>`).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
   lucide.createIcons();
 }
 
 async function refreshFinance() {
-  try { renderFinance(await getFinanceData()); } catch { document.querySelector('#financeStatus').innerHTML = '<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros.'; lucide.createIcons(); }
+  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeCache.expenses.length + financeCache.bills.length} movimientos guardados · reparto 50/50`; lucide.createIcons(); } catch { document.querySelector('#financeStatus').innerHTML = '<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros.'; lucide.createIcons(); }
 }
 
 function openFinance() {
@@ -967,7 +1022,7 @@ document.querySelector('#expenseForm').addEventListener('submit', async (event) 
 document.querySelector('#billForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
-  const bill = { provider: form.get('provider'), description: form.get('description').trim(), amount: Number(form.get('amount')), due_date: form.get('dueDate') || null, source: 'manual', status: 'pending' };
+  const bill = { provider: form.get('provider'), description: form.get('description').trim(), amount: Number(form.get('amount')), due_date: form.get('dueDate') || null, billing_period: form.get('billingPeriod')?.trim() || null, paid_by: form.get('paidBy'), source: 'manual', status: 'pending' };
   try {
     if (supabaseClient && authUserId) { const { error } = await supabaseClient.from('shared_bills').insert({ ...bill, created_by: authUserId }); if (error) throw error; } else localStorage.setItem(localBillsKey, JSON.stringify([bill, ...readFinanceLocal(localBillsKey)]));
     event.currentTarget.reset(); await refreshFinance(); showToast('Factura añadida');
@@ -992,16 +1047,26 @@ document.querySelector('#financeImport').addEventListener('change', async (event
 
 document.querySelector('#exportFinance').addEventListener('click', async () => {
   const data = await getFinanceData();
+  const entries = financeEntries(data);
+  const settlement = calculateFinanceSettlement(entries);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.expenses), 'Gastos');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data.bills), 'Facturas');
+  const expenseRows = data.expenses.map((expense) => ({ Fecha: expense.expense_date, Descripción: expense.description, Categoría: expense.category || 'Otros', Importe: Number(expense.amount || 0), 'Pagó': expense.paid_by || 'Ines', 'Parte de cada uno': Number(expense.amount || 0) / 2, Fuente: financeSourceLabel(expense.source) }));
+  const billRows = data.bills.map((bill) => ({ Proveedor: bill.provider, Periodo: bill.billing_period || '', Descripción: bill.description, 'Fecha de vencimiento': bill.due_date || '', Importe: Number(bill.amount || 0), 'Pagó': bill.paid_by || 'Ines', Estado: bill.status === 'paid' ? 'Pagada' : 'Pendiente', Fuente: financeSourceLabel(bill.source) }));
+  const categoryRows = Object.entries(entries.reduce((result, entry) => { result[entry.category] = (result[entry.category] || 0) + Number(entry.amount || 0); return result; }, {})).map(([category, amount]) => ({ Categoría: category, Total: amount, Porcentaje: settlement.total ? amount / settlement.total : 0 }));
+  const settlementRows = [{ Persona: 'Ines', 'Total pagado': settlement.paid.Ines, 'Parte justa': settlement.fairShare, Balance: settlement.balance.Ines, 'Resultado': settlement.balance.Ines >= 0 ? `Recibe ${financeMoney(settlement.balance.Ines)}` : `Paga ${financeMoney(Math.abs(settlement.balance.Ines))}` }, { Persona: 'Matteo', 'Total pagado': settlement.paid.Matteo, 'Parte justa': settlement.fairShare, Balance: settlement.balance.Matteo, 'Resultado': settlement.balance.Matteo >= 0 ? `Recibe ${financeMoney(settlement.balance.Matteo)}` : `Paga ${financeMoney(Math.abs(settlement.balance.Matteo))}` }];
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(expenseRows), 'Gastos');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(billRows), 'Facturas');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(categoryRows), 'Por categorías');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(settlementRows), 'Liquidación');
   XLSX.writeFile(workbook, `umbral-finanzas-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  showToast('Excel detallado exportado');
 });
 
 document.querySelectorAll('[data-finance-view]').forEach((tab) => tab.addEventListener('click', () => {
   document.querySelectorAll('[data-finance-view]').forEach((item) => item.classList.toggle('active', item === tab));
   document.querySelectorAll('.finance-view').forEach((view) => view.classList.toggle('active', view.id === `${tab.dataset.financeView}View`));
 }));
+['#financeSearch', '#financeCategoryFilter', '#financePeriod'].forEach((selector) => document.querySelector(selector).addEventListener('input', () => renderFinance(financeCache)));
 document.querySelector('#closeFinance').addEventListener('click', () => history.back());
 
 function showToast(message) {
