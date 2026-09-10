@@ -710,7 +710,7 @@ document.querySelector('#authModeSwitch').addEventListener('click', (event) => {
   document.querySelector('#authTitle').textContent = authSignUpMode ? 'Crea tu acceso.' : 'Tu casa, protegida.';
   const nameField = document.querySelector('.auth-name-field');
   nameField.hidden = !authSignUpMode;
-  nameField.querySelector('input').required = authSignUpMode;
+  nameField.querySelector('select').required = authSignUpMode;
   document.querySelector('.auth-submit').innerHTML = `<i data-lucide="${authSignUpMode ? 'user-plus' : 'log-in'}"></i> ${authSignUpMode ? 'Crear cuenta' : 'Entrar'}`;
   showAuthError('');
   lucide.createIcons();
