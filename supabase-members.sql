@@ -14,10 +14,15 @@ create table if not exists public.household_invites (
   created_at timestamptz not null default now()
 );
 
+alter table public.household_invites drop constraint if exists household_invites_role_check;
+alter table public.household_invites add constraint household_invites_role_check check (role in ('member', 'guest'));
+
 create index if not exists household_invites_household_idx on public.household_invites(household_id);
 create index if not exists household_invites_email_idx on public.household_invites(lower(invited_email));
 alter table public.household_invites enable row level security;
 
+drop policy if exists "Owners read household invites" on public.household_invites;
+drop policy if exists "Owners create household invites" on public.household_invites;
 create policy "Owners read household invites" on public.household_invites for select to authenticated using (
   exists (select 1 from public.household_members m where m.household_id = household_invites.household_id and m.user_id = auth.uid() and m.role = 'owner')
 );
