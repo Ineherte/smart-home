@@ -177,12 +177,14 @@ function setUser(name) {
 }
 
 const savedUser = localStorage.getItem(identityKey);
-if (requestedUser) {
-  setUser(requestedUser);
-} else if (savedUser) {
-  setUser(savedUser);
-} else {
-  document.querySelector('#identityModal').classList.add('visible');
+if (!supabaseClient) {
+  if (requestedUser) {
+    setUser(requestedUser);
+  } else if (savedUser) {
+    setUser(savedUser);
+  } else {
+    document.querySelector('#identityModal').classList.add('visible');
+  }
 }
 
 document.querySelectorAll('[data-user]').forEach((option) => {
