@@ -34,6 +34,7 @@ const defaultFixedCosts = [
 const supabaseConfig = window.SUPABASE_CONFIG || {};
 const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('TU-PROYECTO') && supabaseConfig.anonKey && !supabaseConfig.anonKey.includes('TU_CLAVE');
 const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
+const supabaseConfigured = Boolean(supabaseConfig.url && supabaseConfig.anonKey && !supabaseConfig.url.includes('TU-PROYECTO') && !supabaseConfig.anonKey.includes('TU_CLAVE'));
 let authUserId;
 let householdId;
 let householdRole = 'member';
@@ -177,7 +178,7 @@ function setUser(name) {
 }
 
 const savedUser = localStorage.getItem(identityKey);
-if (!supabaseClient) {
+if (!supabaseClient && !supabaseConfigured) {
   if (requestedUser) {
     setUser(requestedUser);
   } else if (savedUser) {
@@ -596,7 +597,12 @@ async function enableNotifications() {
 async function connectNotes() {
   const status = document.querySelector('#notesConnectionStatus');
   if (!supabaseClient) {
-    status.innerHTML = '<i data-lucide="hard-drive"></i> Modo local: configura Supabase para sincronizar';
+    if (supabaseConfigured) {
+      status.innerHTML = '<i data-lucide="circle-alert"></i> No se pudo cargar el cliente seguro de Supabase';
+      authModal.classList.add('visible');
+    } else {
+      status.innerHTML = '<i data-lucide="hard-drive"></i> Modo local: configura Supabase para sincronizar';
+    }
     lucide.createIcons();
     return;
   }
@@ -704,7 +710,7 @@ document.querySelector('#authModeSwitch').addEventListener('click', (event) => {
 
 document.querySelector('#authForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (!supabaseClient) return showAuthError('Configura Supabase para activar el acceso seguro.');
+  if (!supabaseClient) return showAuthError(supabaseConfigured ? 'No se pudo cargar la conexión segura. Recarga Umbral con conexión a internet.' : 'Configura Supabase para activar el acceso seguro.');
   const form = new FormData(event.currentTarget);
   const email = String(form.get('email')).trim();
   const password = String(form.get('password'));
