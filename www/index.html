@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
     <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
@@ -154,6 +154,19 @@
         <button class="nav-item" type="button"><i data-lucide="settings-2"></i><span>Ajustes</span></button>
       </footer>
     </main>
+    <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <form class="auth-panel" id="authForm">
+        <span class="modal-mark"><i data-lucide="shield-check"></i></span>
+        <p class="eyebrow muted">Acceso privado</p>
+        <h2 id="authTitle">Tu casa, protegida.</h2>
+        <p class="auth-copy">Inicia sesión para sincronizar Umbral entre tus dispositivos. Tus gastos, notas y agenda quedan ligados a tu cuenta.</p>
+        <label class="auth-field"><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required placeholder="tu@correo.com" /></label>
+        <label class="auth-field"><span>Contraseña</span><input name="password" type="password" minlength="8" autocomplete="current-password" required placeholder="Mínimo 8 caracteres" /></label>
+        <button class="auth-submit" type="submit"><i data-lucide="log-in"></i> Entrar</button>
+        <button class="auth-switch" id="authModeSwitch" type="button">Crear una cuenta nueva</button>
+        <p class="auth-error" id="authError" role="alert"></p>
+      </form>
+    </div>
     <div class="identity-modal" id="identityModal" role="dialog" aria-modal="true" aria-labelledby="identityTitle">
       <div class="identity-panel">
         <span class="modal-mark"><i data-lucide="user-round-check"></i></span>

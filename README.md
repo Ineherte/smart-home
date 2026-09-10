@@ -2,6 +2,20 @@
 
 Umbral es una app de hogar compartido para controlar luz, clima, agenda, notas y finanzas domésticas.
 
+## Seguridad y datos compartidos
+
+La base recomendada es autenticada y por hogar. Ejecuta `supabase-foundation.sql` después de los esquemas existentes para crear perfiles, hogares, membresías y políticas RLS por `household_id`. No asignes automáticamente filas antiguas creadas de forma anónima: revísalas y migra solo las que puedas atribuir con seguridad.
+
+La aplicación ya muestra acceso por correo y contraseña, crea el primer hogar para el usuario autenticado y añade el ámbito del hogar a las nuevas escrituras. El selector de nombre local no es un mecanismo de seguridad.
+
+Orden de puesta en producción:
+
+1. Ejecuta `supabase-foundation.sql` en el editor SQL.
+2. Crea una cuenta para cada persona desde Umbral.
+3. Añade el segundo usuario a `household_members` con el mismo `household_id` y rol `member`.
+4. Comprueba las tablas y políticas con usuarios reales antes de importar datos financieros.
+5. No pongas claves secretas, service role keys ni tokens de correo en el frontend.
+
 ## Arquitectura real para finanzas
 
 La parte de Tricount y facturas por correo no se puede conectar directamente desde el navegador a Gmail, Outlook o Tricount sin OAuth y backend.

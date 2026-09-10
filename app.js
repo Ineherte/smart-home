@@ -20,6 +20,7 @@ const notesModal = document.querySelector('#notesModal');
 const urgentModal = document.querySelector('#urgentModal');
 const weatherModal = document.querySelector('#weatherModal');
 const financeModal = document.querySelector('#financeModal');
+const authModal = document.querySelector('#authModal');
 const localSharedNotesKey = 'umbral-shared-notes';
 const localPrivateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
 const localExpensesKey = 'umbral-shared-expenses';
@@ -34,6 +35,7 @@ const supabaseConfig = window.SUPABASE_CONFIG || {};
 const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('TU-PROYECTO') && supabaseConfig.anonKey && !supabaseConfig.anonKey.includes('TU_CLAVE');
 const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
 let authUserId;
+let householdId;
 const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
 const weatherDetailUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&past_days=30&forecast_days=7&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Europe%2FRome';
 let toastTimer;
@@ -286,7 +288,7 @@ document.querySelectorAll('.note-form').forEach((form) => {
     const priority = urgentInput?.checked ? 'urgent' : 'normal';
 
     if (supabaseClient && authUserId) {
-      const { error } = await supabaseClient.from('notes').insert({ content, scope, priority, owner_id: authUserId });
+      const { error } = await supabaseClient.from('notes').insert({ content, scope, priority, owner_id: authUserId, household_id: householdId });
       if (error) return showToast('No se pudo guardar la nota');
     } else {
       const key = scope === 'shared' ? localSharedNotesKey : localPrivateNotesKey();
@@ -447,7 +449,7 @@ document.querySelector('#eventForm').addEventListener('submit', async (event) =>
   const form = event.currentTarget;
   const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value || null, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
   if (supabaseClient && authUserId) {
-    const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId });
+    const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId, household_id: householdId });
     if (error) return showToast('No se pudo guardar el evento');
   } else {
     const events = readEvents();
@@ -552,7 +554,7 @@ async function loadDrawing() {
 
 async function saveDrawing() {
   if (supabaseClient && authUserId) {
-    const { error } = await supabaseClient.from('shared_drawing').upsert({ id: 1, strokes: drawingStrokes, updated_by: authUserId, updated_at: new Date().toISOString() });
+    const { error } = await supabaseClient.from('shared_drawing').upsert({ id: 1, strokes: drawingStrokes, updated_by: authUserId, household_id: householdId, updated_at: new Date().toISOString() });
     if (error) showToast('No se pudo sincronizar la pizarra');
   } else {
     localStorage.setItem(drawingKey, JSON.stringify(drawingStrokes));
@@ -595,15 +597,21 @@ async function connectNotes() {
     lucide.createIcons();
     return;
   }
-  const { data, error } = await supabaseClient.auth.signInAnonymously();
-  if (error) {
-    status.innerHTML = '<i data-lucide="circle-alert"></i> No se pudo conectar con la nube';
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError || !sessionData.session) {
+    status.innerHTML = '<i data-lucide="lock-keyhole"></i> Inicia sesión para sincronizar tus datos';
+    authModal.classList.add('visible');
     lucide.createIcons();
     return;
   }
-  authUserId = data.user.id;
+  authUserId = sessionData.session.user.id;
+  householdId = await ensureHousehold();
+  if (!householdId) {
+    status.innerHTML = '<i data-lucide="circle-alert"></i> No se pudo preparar tu hogar compartido';
+    lucide.createIcons();
+    return;
+  }
   await supabaseClient.auth.updateUser({ data: { name: currentUser } });
-  await supabaseClient.auth.refreshSession();
   status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
   lucide.createIcons();
   renderNotes();
@@ -624,6 +632,47 @@ async function connectNotes() {
     if (calendarModal.classList.contains('visible')) renderCalendarData();
   }).subscribe();
 }
+
+async function ensureHousehold() {
+  const { data: memberships, error: membershipError } = await supabaseClient.from('household_members').select('household_id').eq('user_id', authUserId).limit(1);
+  if (membershipError) return null;
+  if (memberships?.[0]?.household_id) return memberships[0].household_id;
+  const { data: household, error: householdError } = await supabaseClient.from('households').insert({ name: 'Casa', created_by: authUserId }).select('id').single();
+  if (householdError) return null;
+  const { error: memberError } = await supabaseClient.from('household_members').insert({ household_id: household.id, user_id: authUserId, role: 'owner' });
+  return memberError ? null : household.id;
+}
+
+let authSignUpMode = false;
+function showAuthError(message) { document.querySelector('#authError').textContent = message; }
+
+document.querySelector('#authModeSwitch').addEventListener('click', (event) => {
+  authSignUpMode = !authSignUpMode;
+  event.currentTarget.textContent = authSignUpMode ? 'Ya tengo una cuenta' : 'Crear una cuenta nueva';
+  document.querySelector('#authTitle').textContent = authSignUpMode ? 'Crea tu acceso.' : 'Tu casa, protegida.';
+  document.querySelector('.auth-submit').innerHTML = `<i data-lucide="${authSignUpMode ? 'user-plus' : 'log-in'}"></i> ${authSignUpMode ? 'Crear cuenta' : 'Entrar'}`;
+  showAuthError('');
+  lucide.createIcons();
+});
+
+document.querySelector('#authForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!supabaseClient) return showAuthError('Configura Supabase para activar el acceso seguro.');
+  const form = new FormData(event.currentTarget);
+  const email = String(form.get('email')).trim();
+  const password = String(form.get('password'));
+  const submit = event.currentTarget.querySelector('.auth-submit');
+  submit.disabled = true;
+  showAuthError('');
+  const result = authSignUpMode
+    ? await supabaseClient.auth.signUp({ email, password, options: { data: { name: email.split('@')[0] } } })
+    : await supabaseClient.auth.signInWithPassword({ email, password });
+  submit.disabled = false;
+  if (result.error) return showAuthError(result.error.message);
+  if (authSignUpMode && !result.data.session) return showAuthError('Revisa tu correo para confirmar la cuenta y vuelve a entrar.');
+  authModal.classList.remove('visible');
+  await connectNotes();
+});
 
 function formatToday() {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
@@ -1094,7 +1143,7 @@ async function saveFinanceEntity(kind, values) {
     if (supabaseClient && authUserId) {
       const query = savedRecord.id && index >= 0
         ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
-        : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
+        : supabaseClient.from(table).insert({ ...record, household_id: householdId, created_by: authUserId });
       query.then(({ error }) => {
         if (error) console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error.message);
       }).catch((error) => console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error));
@@ -1115,7 +1164,7 @@ async function saveFinanceEntity(kind, values) {
 
   const query = index >= 0
     ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
-    : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
+    : supabaseClient.from(table).insert({ ...record, household_id: householdId, created_by: authUserId });
   query.then(({ error }) => {
     if (error) console.warn(`[Umbral] ${kind} guardado localmente; nube no disponible:`, error.message);
   }).catch((error) => console.warn(`[Umbral] ${kind} guardado localmente; nube no disponible:`, error));
@@ -1146,7 +1195,7 @@ async function saveSettlementPayment(payment) {
   renderFinance(financeCache);
   showToast('Pago registrado en la liquidación');
   if (supabaseClient && authUserId) {
-    const { error } = await supabaseClient.from('shared_settlements').insert({ from_person: payment.from, to_person: payment.to, amount: payment.amount, payment_date: payment.payment_date, note: payment.note, created_by: authUserId });
+    const { error } = await supabaseClient.from('shared_settlements').insert({ from_person: payment.from, to_person: payment.to, amount: payment.amount, payment_date: payment.payment_date, note: payment.note, household_id: householdId, created_by: authUserId });
     if (error) console.warn('[Umbral] Pago guardado localmente; nube no disponible:', error.message);
   }
 }

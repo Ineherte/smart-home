@@ -256,6 +256,18 @@ section { margin-bottom: 34px; }
 .nav-item svg { width: 18px; height: 18px; }
 .nav-item.active { background: var(--green); color: var(--lime); }
 .identity-modal { position: fixed; inset: 0; z-index: 4; display: grid; place-items: center; padding: 22px; background: rgba(29, 41, 37, .35); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.auth-modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 22px; background: rgba(20, 35, 31, .46); backdrop-filter: blur(9px); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.auth-modal.visible { opacity: 1; pointer-events: auto; }
+.auth-panel { width: min(100%, 390px); padding: 28px 25px 23px; border: 1px solid rgba(255,255,255,.6); border-radius: 20px; background: var(--paper); box-shadow: 0 24px 70px rgba(12, 35, 27, .25); }
+.auth-panel h2 { margin: 0; color: var(--ink); font-size: 29px; letter-spacing: -.06em; }
+.auth-copy { margin: 10px 0 20px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.auth-field { display: grid; gap: 6px; margin-top: 11px; color: var(--muted); font-size: 10px; font-weight: 700; }
+.auth-field input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; outline: none; background: var(--white); color: var(--ink); font-size: 12px; }
+.auth-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(34, 91, 73, .1); }
+.auth-submit { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 17px; padding: 12px; border-radius: 10px; background: var(--green); color: var(--lime); font-size: 12px; font-weight: 700; }
+.auth-submit svg { width: 15px; }
+.auth-switch { width: 100%; margin-top: 12px; padding: 5px; background: transparent; color: var(--green); font-size: 11px; font-weight: 700; }
+.auth-error { min-height: 16px; margin: 11px 0 0; color: #b4523b; font-size: 10px; line-height: 1.4; }
 .identity-modal.visible { opacity: 1; pointer-events: auto; }
 .identity-panel { width: min(100%, 360px); padding: 27px 24px 24px; border-radius: 19px; background: var(--paper); box-shadow: 0 20px 55px rgba(25, 46, 35, .2); }
 .modal-mark { display: grid; width: 42px; height: 42px; margin-bottom: 20px; place-items: center; border-radius: 13px; background: var(--green); color: var(--lime); }
