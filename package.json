@@ -5,7 +5,8 @@
   "description": "Umbral, centro compartido para casa y vida diaria",
   "scripts": {
     "web": "python3 -m http.server 8000",
-    "cap:sync": "cap sync",
+    "build:www": "node scripts/sync-www.js",
+    "cap:sync": "npm run build:www && cap sync",
     "cap:android": "cap open android",
     "cap:ios": "cap open ios"
   },

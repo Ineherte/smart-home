@@ -56,7 +56,7 @@ const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&long
 const weatherDetailUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&past_days=30&forecast_days=7&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Europe%2FRome';
 let toastTimer;
 let lightsOn = true;
-const smartHomeConfig = window.SMART_HOME_CONFIG || {
+const smartHomeConfig = window.SMART_LIGHTS_CONFIG || {
   devices: [
     { id: 'salon-demo', name: 'Salón', room: 'salón', powered: true },
     { id: 'cocina-demo', name: 'Cocina', room: 'cocina', powered: true }
@@ -67,7 +67,8 @@ const smartLights = smartHomeConfig.devices.map((device) => ({
   id: device.id,
   name: device.name,
   room: device.room,
-  powered: Boolean(device.powered)
+  powered: Boolean(device.powered),
+  code: device.code || 'switch_led'
 }));
 
 function createLocalId() {
@@ -80,15 +81,17 @@ async function callSmartHomeCommand(lightId, nextState) {
     return { ok: true, demo: true };
   }
 
-  const response = await fetch(`${supabaseConfig.url}/functions/v1/smart-home`, {
+  const light = smartLights.find((entry) => entry.id === lightId);
+
+  const response = await fetch(`${supabaseConfig.url}/functions/v1/tuya-lights`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${supabaseConfig.anonKey}`
     },
     body: JSON.stringify({
-      kind: 'light',
       deviceId: lightId,
+      deviceCode: light?.code || 'switch_led',
       action: nextState ? 'on' : 'off'
     })
   });
