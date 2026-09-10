@@ -1196,9 +1196,7 @@ document.querySelector('#financeShareForm').addEventListener('submit', async (ev
   button.innerHTML = '<i data-lucide="loader-circle"></i> Cargando...';
   lucide.createIcons();
   try {
-    const token = await getSupabaseSessionToken();
-    if (!token) throw new Error('Abre la app con una sesión de Supabase activa para importar un enlace compartido');
-    const response = await fetch(`${supabaseConfig.url}/functions/v1/tricount-share-sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ shareLink }) });
+    const response = await fetch(`${supabaseConfig.url}/functions/v1/tricount-share-sync`, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: supabaseConfig.anonKey, Authorization: `Bearer ${supabaseConfig.anonKey}` }, body: JSON.stringify({ shareLink }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'No se pudo cargar el Tricount compartido');
     const rows = normalizeSharedTricountData(result);
