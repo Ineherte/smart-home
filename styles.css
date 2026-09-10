@@ -717,3 +717,56 @@ section { margin-bottom: 43px; }
 .identity-panel, .urgent-panel { border-radius: 14px; }
 .note-row, .event-form input, .event-form select, #sharedCanvas { border-radius: 10px; }
 @media (max-width: 390px) { .app-shell { padding-right: 20px; padding-left: 20px; } .finance-panel, .notes-panel, .calendar-panel, .weather-panel { padding-right: 20px; padding-left: 20px; } }
+
+/* Final product composition: an orientation layer and a calm command centre. */
+.orientation-bar { display: flex; align-items: center; gap: 10px; margin: -19px 0 38px; padding: 10px 13px; border: 1px solid #d9e5dc; border-radius: 9px; background: #eef5ef; color: #6d7d75; font-size: 10px; }
+.orientation-status { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-weight: 700; }
+.orientation-status svg { width: 14px; color: #5a9d73; }
+.orientation-divider { width: 1px; height: 14px; background: #cbdacf; }
+.orientation-weather { margin-left: auto; color: var(--ink); font-weight: 700; }
+.home-summary .section-heading { align-items: center; }
+.home-summary .section-heading h2 { font-size: 28px; }
+.home-summary .summary-grid { grid-template-columns: minmax(0, 1.35fr) minmax(130px, .65fr); }
+.home-summary .climate-card { min-height: 164px; align-items: flex-end; padding: 18px; }
+.home-summary .climate-card .card-icon { position: absolute; top: 18px; left: 18px; width: 38px; height: 38px; border-radius: 12px; }
+.home-summary .climate-card > div:nth-child(2) { margin-top: auto; }
+.home-summary .climate-card strong { margin-top: 5px; font-size: 40px; letter-spacing: -.08em; }
+.home-summary .notes-card { min-height: 164px; align-items: flex-end; padding: 18px; }
+.home-summary .notes-card .card-icon { position: absolute; top: 18px; left: 18px; width: 38px; height: 38px; border-radius: 12px; }
+.home-summary .notes-card > div:nth-child(2) { margin-top: auto; }
+.home-summary .notes-card strong { margin-top: 5px; font-size: 18px; }
+.home-summary .weather-meta { margin-top: 15px; padding: 12px 0 0; }
+.actions-section { margin-top: 10px; }
+.actions-section .section-heading { align-items: center; }
+.action-list { grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--line); }
+.action-card { display: flex; min-height: 76px; padding: 14px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+.action-card:hover, .action-card:focus-visible { transform: none; box-shadow: none; background: rgba(232, 242, 235, .45); outline: none; }
+.action-icon { width: 40px; height: 40px; border-radius: 11px; }
+.action-copy { gap: 3px; }
+.action-copy strong { font-size: 15px; }
+.action-copy small { color: var(--muted); font-size: 10px; }
+.action-cta { margin-left: auto; background: transparent; color: var(--muted); }
+.action-count { border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 600; }
+.lights-panel-section { padding-top: 3px; }
+.lights-panel-section .lights-list { grid-template-columns: 1fr 1fr; gap: 8px; }
+.lights-panel-section .light-row { display: block; padding: 13px; }
+.lights-panel-section .light-row .light-meta { align-items: flex-start; }
+.lights-panel-section .light-toggle { display: block; width: 52px; height: 30px; margin: 12px 0 0 auto; }
+.lights-panel-section .light-toggle::after { width: 20px; height: 20px; top: 5px; left: 6px; }
+.lights-panel-section .light-row[data-powered="false"] .light-toggle::after { left: 26px; }
+.agenda-section .section-heading { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.agenda-item { padding: 12px 0; }
+.news-section { margin-top: 6px; }
+.news-section .news-lead { border-radius: 12px; }
+.notes-panel .modal-heading, .calendar-panel .modal-heading, .weather-panel .modal-heading, .finance-panel .modal-heading { padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.notes-panel .note-group, .calendar-panel .day-summary, .weather-panel .weather-chart-card, .finance-panel .finance-breakdown { box-shadow: none; }
+.notes-panel .note-row { border: 1px solid var(--line); box-shadow: none; }
+.calendar-panel .calendar-day.selected { box-shadow: 0 4px 10px rgba(34, 91, 73, .18); }
+.weather-panel .weather-detail-summary { background: #183d32; }
+.finance-panel .finance-insight { border-radius: 10px; }
+.finance-panel .settlement-form { border-color: var(--line); box-shadow: none; }
+.bottom-nav { background: #172b24; border-color: #172b24; }
+.nav-item { color: #98b0a4; }
+.nav-item.active { background: #dff486; color: #17382f; }
+.nav-item:hover { color: #e3f28d; }
+@media (max-width: 390px) { .orientation-bar { margin-top: -13px; margin-bottom: 30px; } .home-summary .summary-grid { grid-template-columns: 1fr 1fr; } .home-summary .climate-card, .home-summary .notes-card { min-height: 145px; } .home-summary .climate-card strong { font-size: 34px; } .lights-panel-section .lights-list { grid-template-columns: 1fr; } }

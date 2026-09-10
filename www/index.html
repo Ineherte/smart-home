@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=8" />
     <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
@@ -44,6 +44,13 @@
         <button class="space-tab" type="button" role="tab" aria-selected="false" data-space-target="personal"><i data-lucide="sparkles"></i><span>Mi espacio</span><small>Agenda e información</small></button>
       </div>
 
+      <div class="orientation-bar" aria-label="Estado rápido de Umbral">
+        <span class="orientation-status"><i data-lucide="circle-check"></i> Todo en orden</span>
+        <span class="orientation-divider"></span>
+        <span id="orientationDate">Hoy en casa</span>
+        <span class="orientation-weather" id="orientationWeather">--°</span>
+      </div>
+
       <section class="home-summary" data-space-shared aria-labelledby="home-title">
         <div class="section-heading">
           <div>
@@ -69,8 +76,8 @@
 
       <section class="actions-section" data-space="personal" aria-labelledby="actions-title">
         <div class="section-heading">
-          <div><p class="eyebrow muted">Atajos con sentido</p><h2 id="actions-title">¿Qué necesitas?</h2></div>
-          <span class="action-count">4 opciones</span>
+          <div><p class="eyebrow muted">Tu centro del día</p><h2 id="actions-title">Todo lo importante</h2></div>
+          <span class="action-count">4 accesos</span>
         </div>
         <div class="action-list">
           <button class="action-card calendar-action" type="button" data-action="calendar">

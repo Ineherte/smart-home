@@ -639,6 +639,8 @@ async function loadWeather() {
   const temperature = Math.round(current.temperature_2m);
   document.querySelector('#todayLabel').textContent = formatToday();
   document.querySelector('#headerWeather').textContent = `· ${temperature}° / ${description.toLowerCase()}`;
+  document.querySelector('#orientationWeather').textContent = `${temperature}° · ${description}`;
+  document.querySelector('#orientationDate').textContent = formatToday();
   document.querySelector('#weatherTemp').textContent = `${temperature}°`;
   document.querySelector('#weatherDescription').textContent = `${description} · Sensación ${Math.round(current.apparent_temperature)}°`;
   document.querySelector('#weatherDetails').textContent = `Humedad ${current.relative_humidity_2m}% · Máx. ${Math.round(daily.temperature_2m_max[0])}° / mín. ${Math.round(daily.temperature_2m_min[0])}°`;
