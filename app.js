@@ -1,4 +1,5 @@
-lucide.createIcons();
+if (!window.lucide) window.lucide = { createIcons() {} };
+window.lucide.createIcons();
 
 const toast = document.querySelector('.toast');
 const toastMessage = toast.querySelector('span');
@@ -39,6 +40,11 @@ const smartLights = smartHomeConfig.devices.map((device) => ({
   room: device.room,
   powered: Boolean(device.powered)
 }));
+
+function createLocalId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `umbral-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 async function callSmartHomeCommand(lightId, nextState) {
   if (smartHomeConfig.demoMode || !supabaseConfig.url || !supabaseConfig.anonKey) {
@@ -857,10 +863,6 @@ function financeDate(value) {
 
 function readFinanceLocal(key) {
   try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
-}
-
-function createLocalId() {
-  return globalThis.crypto?.randomUUID?.() || `umbral-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 async function getFinanceData() {
