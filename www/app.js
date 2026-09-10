@@ -33,7 +33,9 @@ const defaultFixedCosts = [
 ];
 const supabaseConfig = window.SUPABASE_CONFIG || {};
 const supabaseReady = window.supabase && supabaseConfig.url && !supabaseConfig.url.includes('TU-PROYECTO') && supabaseConfig.anonKey && !supabaseConfig.anonKey.includes('TU_CLAVE');
-const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey) : null;
+const supabaseClient = supabaseReady ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'umbral-auth-session' }
+}) : null;
 const supabaseConfigured = Boolean(supabaseConfig.url && supabaseConfig.anonKey && !supabaseConfig.url.includes('TU-PROYECTO') && !supabaseConfig.anonKey.includes('TU_CLAVE'));
 let authUserId;
 let householdId;
@@ -706,6 +708,9 @@ document.querySelector('#authModeSwitch').addEventListener('click', (event) => {
   authSignUpMode = !authSignUpMode;
   event.currentTarget.textContent = authSignUpMode ? 'Ya tengo una cuenta' : 'Crear una cuenta nueva';
   document.querySelector('#authTitle').textContent = authSignUpMode ? 'Crea tu acceso.' : 'Tu casa, protegida.';
+  const nameField = document.querySelector('.auth-name-field');
+  nameField.hidden = !authSignUpMode;
+  nameField.querySelector('input').required = authSignUpMode;
   document.querySelector('.auth-submit').innerHTML = `<i data-lucide="${authSignUpMode ? 'user-plus' : 'log-in'}"></i> ${authSignUpMode ? 'Crear cuenta' : 'Entrar'}`;
   showAuthError('');
   lucide.createIcons();
@@ -717,13 +722,14 @@ document.querySelector('#authForm').addEventListener('submit', async (event) => 
   const form = new FormData(event.currentTarget);
   const email = String(form.get('email')).trim();
   const password = String(form.get('password'));
+  const displayName = String(form.get('displayName') || '').trim();
   const submit = event.currentTarget.querySelector('.auth-submit');
   submit.disabled = true;
   showAuthError('');
   const pendingInvite = new URLSearchParams(window.location.search).get('invite');
   const emailRedirectTo = `${window.location.origin}${window.location.pathname}${pendingInvite ? `?invite=${encodeURIComponent(pendingInvite)}` : ''}`;
   const result = authSignUpMode
-    ? await supabaseClient.auth.signUp({ email, password, options: { data: { name: email.split('@')[0] }, emailRedirectTo } })
+    ? await supabaseClient.auth.signUp({ email, password, options: { data: { name: displayName || email.split('@')[0] }, emailRedirectTo } })
     : await supabaseClient.auth.signInWithPassword({ email, password });
   submit.disabled = false;
   if (result.error) return showAuthError(result.error.message);

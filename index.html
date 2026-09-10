@@ -160,6 +160,7 @@
         <p class="eyebrow muted">Acceso privado</p>
         <h2 id="authTitle">Tu casa, protegida.</h2>
         <p class="auth-copy">Inicia sesión para sincronizar Umbral entre tus dispositivos. Tus gastos, notas y agenda quedan ligados a tu cuenta.</p>
+        <label class="auth-field auth-name-field" hidden><span>Nombre en Umbral</span><input name="displayName" type="text" maxlength="60" autocomplete="name" placeholder="Ines, Matteo o tu nombre" /></label>
         <label class="auth-field"><span>Correo electrónico</span><input name="email" type="email" autocomplete="email" required placeholder="tu@correo.com" /></label>
         <label class="auth-field"><span>Contraseña</span><input name="password" type="password" minlength="8" autocomplete="current-password" required placeholder="Mínimo 8 caracteres" /></label>
         <button class="auth-submit" type="submit"><i data-lucide="log-in"></i> Entrar</button>
@@ -243,6 +244,6 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=23"></script>
   </body>
 </html>
