@@ -1017,7 +1017,16 @@ async function saveFinanceEntity(kind, values) {
   if (supabaseClient && authUserId) {
     const query = financeEditing?.kind === kind && financeEditing.id ? supabaseClient.from(table).update(record).eq('id', financeEditing.id) : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
     const { error } = await query;
-    if (error) throw error;
+    if (error) {
+      if (kind !== 'fixed') throw error;
+      const records = getLocalFixedCosts();
+      const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
+      if (index >= 0) records[index] = { ...records[index], ...record };
+      else records.unshift({ ...record, id: crypto.randomUUID() });
+      localStorage.setItem(localFixedCostsKey, JSON.stringify(records));
+      financeEditing = null;
+      return { localOnly: true, error };
+    }
   } else {
     const records = kind === 'fixed' ? getLocalFixedCosts() : readFinanceRecords(key);
     const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
@@ -1131,7 +1140,17 @@ document.querySelector('#fixedCostForm').addEventListener('submit', async (event
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const fixed = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), active: true };
-  try { await saveFinanceEntity('fixed', fixed); event.currentTarget.reset(); event.currentTarget.hidden = true; await refreshFinance(); showToast('Gasto fijo guardado'); } catch { showToast('No se pudo guardar el gasto fijo'); }
+  try {
+    const result = await saveFinanceEntity('fixed', fixed);
+    event.currentTarget.reset();
+    event.currentTarget.hidden = true;
+    await refreshFinance();
+    showToast(result?.localOnly ? 'Guardado en este dispositivo; falta configurar la tabla compartida' : 'Gasto fijo guardado');
+  } catch (error) {
+    document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> ${escapeHtml(error.message || 'No se pudo guardar el gasto fijo')}`;
+    lucide.createIcons();
+    showToast('No se pudo guardar el gasto fijo');
+  }
 });
 
 document.querySelector('#fixedCostList').addEventListener('click', (event) => {
