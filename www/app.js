@@ -910,14 +910,23 @@ function financeSourceLabel(source) {
 }
 
 function financeEntries(data) {
+  const safeData = {
+    expenses: Array.isArray(data?.expenses) ? data.expenses : [],
+    bills: Array.isArray(data?.bills) ? data.bills : [],
+    fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : []
+  };
   return [
-    ...data.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description })),
-    ...data.bills.filter((entry) => Number(entry.amount) > 0).map((entry) => ({ ...entry, kind: 'bill', date: entry.due_date || entry.created_at, category: entry.provider || 'Otro', payer: entry.paid_by || 'Ines', label: `${entry.provider} · ${entry.description}` })),
-    ...data.fixedCosts.filter((entry) => entry.active !== false).map((entry) => ({ ...entry, kind: 'fixed', date: new Date().toISOString().slice(0, 10), category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description, source: 'fixed' }))
+    ...safeData.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description })),
+    ...safeData.bills.filter((entry) => Number(entry.amount) > 0).map((entry) => ({ ...entry, kind: 'bill', date: entry.due_date || entry.created_at, category: entry.provider || 'Otro', payer: entry.paid_by || 'Ines', label: `${entry.provider} · ${entry.description}` })),
+    ...safeData.fixedCosts.filter((entry) => entry.active !== false).map((entry) => ({ ...entry, kind: 'fixed', date: new Date().toISOString().slice(0, 10), category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description, source: 'fixed' }))
   ];
 }
 
 function filteredFinanceData(data) {
+  const safeData = {
+    expenses: Array.isArray(data?.expenses) ? data.expenses : [],
+    bills: Array.isArray(data?.bills) ? data.bills : []
+  };
   const query = document.querySelector('#financeSearch')?.value.trim().toLowerCase() || '';
   const category = document.querySelector('#financeCategoryFilter')?.value || 'all';
   const period = document.querySelector('#financePeriod')?.value || 'all';
@@ -926,7 +935,7 @@ function filteredFinanceData(data) {
     const searchable = `${entry.description || ''} ${entry.provider || ''} ${entry.category || ''} ${entry.source || ''}`.toLowerCase();
     return (!query || searchable.includes(query)) && (category === 'all' || entry.category === category || entry.provider === category) && (period !== 'current' || String(entry.date || '').slice(0, 7) === currentMonth);
   };
-  return { expenses: data.expenses.filter(matches), bills: data.bills.filter(matches) };
+  return { expenses: safeData.expenses.filter(matches), bills: safeData.bills.filter(matches) };
 }
 
 function calculateFinanceSettlement(entries) {
@@ -959,6 +968,11 @@ function renderFixedCosts(fixedCosts) {
 }
 
 function renderFinance(data) {
+  data = {
+    expenses: Array.isArray(data?.expenses) ? data.expenses : [],
+    bills: Array.isArray(data?.bills) ? data.bills : [],
+    fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : []
+  };
   const expenseList = document.querySelector('#expenseList');
   const billList = document.querySelector('#billList');
   const allEntries = financeEntries(data);
@@ -1052,27 +1066,23 @@ async function saveFinanceEntity(kind, values) {
     return { localOnly: true };
   }
 
-  if (supabaseClient && authUserId) {
-    const query = financeEditing?.kind === kind && financeEditing.id ? supabaseClient.from(table).update(record).eq('id', financeEditing.id) : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
-    const { error } = await query;
-    if (error) {
-      if (kind !== 'fixed') throw error;
-      const records = getLocalFixedCosts();
-      const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
-      if (index >= 0) records[index] = { ...records[index], ...record };
-      else records.unshift({ ...record, id: createLocalId() });
-      localStorage.setItem(localFixedCostsKey, JSON.stringify(records));
-      financeEditing = null;
-      return { localOnly: true, error };
-    }
-  } else {
-    const records = kind === 'fixed' ? getLocalFixedCosts() : readFinanceRecords(key);
-    const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
-    if (index >= 0) records[index] = { ...records[index], ...record };
-    else records.unshift({ ...record, id: createLocalId() });
-    localStorage.setItem(key, JSON.stringify(records));
-  }
+  const records = readFinanceRecords(key);
+  const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
+  const savedRecord = index >= 0 ? { ...records[index], ...record } : { ...record, id: createLocalId() };
+  if (index >= 0) records[index] = savedRecord;
+  else records.unshift(savedRecord);
+  localStorage.setItem(key, JSON.stringify(records));
   financeEditing = null;
+
+  if (!supabaseClient || !authUserId) return { localOnly: true };
+
+  const query = index >= 0
+    ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
+    : supabaseClient.from(table).insert({ ...record, created_by: authUserId });
+  query.then(({ error }) => {
+    if (error) console.warn(`[Umbral] ${kind} guardado localmente; nube no disponible:`, error.message);
+  }).catch((error) => console.warn(`[Umbral] ${kind} guardado localmente; nube no disponible:`, error));
+  return { localOnly: false };
 }
 
 async function deleteFinanceEntity(kind, id) {
@@ -1159,14 +1169,14 @@ document.querySelector('#expenseForm').addEventListener('submit', async (event) 
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual' };
-  try { await saveFinanceEntity('expense', expense); event.currentTarget.reset(); event.currentTarget.date.value = new Date().toISOString().slice(0, 10); setFinanceFormButton(event.currentTarget, 'Añadir gasto', 'plus'); await refreshFinance(); showToast('Gasto guardado'); } catch { showToast('No se pudo guardar el gasto'); }
+  try { await saveFinanceEntity('expense', expense); event.currentTarget.reset(); event.currentTarget.date.value = new Date().toISOString().slice(0, 10); setFinanceFormButton(event.currentTarget, 'Añadir gasto', 'plus'); financeCache.expenses = readFinanceRecords(localExpensesKey); renderFinance(financeCache); showToast('Gasto guardado'); } catch (error) { reportAppError(error); showToast('No se pudo guardar el gasto'); }
 });
 
 document.querySelector('#billForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const bill = { provider: form.get('provider'), description: form.get('description').trim(), amount: Number(form.get('amount')), due_date: form.get('dueDate') || null, billing_period: form.get('billingPeriod')?.trim() || null, paid_by: form.get('paidBy'), source: 'manual', status: 'pending' };
-  try { await saveFinanceEntity('bill', bill); event.currentTarget.reset(); setFinanceFormButton(event.currentTarget, 'Añadir factura', 'plus'); await refreshFinance(); showToast('Factura guardada'); } catch { showToast('No se pudo guardar la factura'); }
+  try { await saveFinanceEntity('bill', bill); event.currentTarget.reset(); setFinanceFormButton(event.currentTarget, 'Añadir factura', 'plus'); financeCache.bills = readFinanceRecords(localBillsKey); renderFinance(financeCache); showToast('Factura guardada'); } catch (error) { reportAppError(error); showToast('No se pudo guardar la factura'); }
 });
 
 document.querySelector('#addFixedCost').addEventListener('click', () => {
