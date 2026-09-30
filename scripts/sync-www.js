@@ -5,17 +5,13 @@
 const fs = require('fs');
 const path = require('path');
 
+// Todos los .js de la raíz más la página, los estilos, el manifiesto y el icono.
 const FILES = [
   'index.html',
-  'app.js',
-  'scene.js',
   'styles.css',
-  'smart-lights-config.js',
-  'mobile-bridge.js',
-  'supabase-config.js',
-  'sw.js',
   'manifest.webmanifest',
-  'icon.svg'
+  'icon.svg',
+  ...fs.readdirSync(path.join(__dirname, '..')).filter((file) => file.endsWith('.js'))
 ];
 
 const root = path.join(__dirname, '..');

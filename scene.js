@@ -65,7 +65,7 @@
 
   // Habitaciones con ventana; una luz de una habitación sin ventana ilumina el salón.
   const WINDOW_ROOMS = ['salon', 'cocina', 'dormitorio', 'bano', 'estudio'];
-  const normalizeRoom = (value) => String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const normalizeRoom = (value) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
   function conditionFor(code) {
     if ([95, 96, 99].includes(code)) return 'storm';

@@ -10,7 +10,7 @@ La aplicación ya muestra acceso por correo y contraseña, crea el primer hogar 
 
 Orden de puesta en producción:
 
-1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql` y `supabase/sql/household-scoping.sql` en el editor SQL (en ese orden).
+1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/schema-sync.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql`, `supabase/sql/household-scoping.sql` y `supabase/sql/shopping-and-tasks.sql` en el editor SQL (en ese orden).
 2. Crea una cuenta para cada persona desde Umbral.
 3. Añade el segundo usuario a `household_members` con el mismo `household_id` y rol `member`.
 4. Comprueba las tablas y políticas con usuarios reales antes de importar datos financieros.

@@ -291,31 +291,31 @@ function showUrgentNotes(notes) {
   lucide.createIcons();
 }
 
-const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0 };
+const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0, overdueTasks: 0 };
 
 function renderAttention(nextState = {}) {
   Object.assign(attentionState, nextState);
-  const { urgentCount, pendingBills, settlementAmount } = attentionState;
+  const { urgentCount, pendingBills, settlementAmount, overdueTasks } = attentionState;
   window.umbralScene?.update({ pendingBills, urgentNotes: urgentCount });
   const section = document.querySelector('.attention-section');
   const list = document.querySelector('#attentionList');
   if (!list) return;
   const items = [];
   if (urgentCount) items.push({ icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Notas', action: 'notes' });
+  if (overdueTasks) items.push({ icon: 'alarm-clock', title: `${overdueTasks} tarea${overdueTasks === 1 ? '' : 's'} atrasada${overdueTasks === 1 ? '' : 's'}`, detail: 'Revisar en Tareas', action: 'tasks' });
   if (pendingBills) items.push({ icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Cuentas de casa', action: 'finance' });
   if (settlementAmount > 0.009) items.push({ icon: 'arrow-right-left', title: `Falta saldar ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
   section?.classList.toggle('has-items', items.length > 0);
   list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
-  updateHomeStatusMessage(urgentCount, pendingBills, settlementAmount);
+  updateHomeStatusMessage(items.length);
   lucide.createIcons();
 }
 
-function updateHomeStatusMessage(urgentCount, pendingBills, settlementAmount) {
+function updateHomeStatusMessage(pending) {
   const title = document.querySelector('#home-title');
   const eyebrow = document.querySelector('#home-title')?.closest('.section-heading')?.querySelector('.eyebrow');
   if (!title || !eyebrow) return;
   // Con asuntos pendientes, el título los resume y la lista de debajo da el detalle.
-  const pending = [urgentCount, pendingBills, settlementAmount > 0.009 ? 1 : 0].filter(Boolean).length;
   if (pending) {
     eyebrow.textContent = 'Necesita tu atención';
     title.innerHTML = `${pending} ${pending === 1 ? 'cosa' : 'cosas'} por resolver <span class="wave">✦</span>`;
@@ -330,7 +330,32 @@ document.querySelector('#attentionList').addEventListener('click', (event) => {
   if (!action) return;
   if (action === 'notes') openNotes();
   if (action === 'finance') openFinance();
+  if (action === 'tasks') showView('tareas');
 });
+
+// Resumen del día bajo el saludo: tareas, compra y eventos de hoy.
+const daySummaryState = { tasks: null, shopping: null, events: null };
+
+function updateDaySummary(partial) {
+  Object.assign(daySummaryState, partial);
+  const summary = document.querySelector('#daySummary');
+  if (!summary) return;
+  const { tasks, shopping, events } = daySummaryState;
+  if ([tasks, shopping, events].every((value) => value === null)) return;
+  const parts = [];
+  if (tasks) parts.push(`<b>${tasks} tarea${tasks === 1 ? '' : 's'}</b>`);
+  if (events) parts.push(`<b>${events} evento${events === 1 ? '' : 's'}</b>`);
+  if (shopping) parts.push(`<b>${shopping} ${shopping === 1 ? 'cosa' : 'cosas'}</b> en la compra`);
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}` : parts[0];
+  summary.innerHTML = parts.length ? `Hoy tienes ${list}.` : 'Hoy no tienes nada pendiente. Disfrutad del día.';
+}
+
+function setNavBadge(view, count) {
+  const badge = document.querySelector(`.nav-item[data-view-target="${view}"] .nav-badge`);
+  if (!badge) return;
+  badge.textContent = count > 9 ? '9+' : String(count);
+  badge.hidden = !count;
+}
 
 function openNotes() {
   renderNotes();
@@ -521,6 +546,7 @@ async function renderCalendarData() {
   document.querySelector('#agendaTileValue').textContent = count ? `${count} evento${count === 1 ? '' : 's'}` : 'Día libre';
   document.querySelector('#calendarPreview').textContent = nextEvent ? `${(nextEvent.event_time || '').slice(0, 5)} · ${nextEvent.title}` : count ? 'Nada más por hoy' : 'Toca para añadir un evento';
   renderAgendaPreview(todayEvents);
+  updateDaySummary({ events: count });
   document.querySelector('#eventsConnectionStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${cachedEvents.length} eventos cargados · Smart Home e iPhone`;
   lucide.createIcons();
 }
@@ -696,6 +722,7 @@ async function connectNotes() {
     } else {
       status.innerHTML = '<i data-lucide="hard-drive"></i> Modo local: configura Supabase para sincronizar';
       renderCalendarData();
+      document.dispatchEvent(new CustomEvent('umbral:ready'));
     }
     lucide.createIcons();
     return;
@@ -742,6 +769,7 @@ async function connectNotes() {
   renderNotes();
   renderCalendarData();
   loadLightStates();
+  document.dispatchEvent(new CustomEvent('umbral:ready'));
   await enableNotifications();
   supabaseClient.channel('notes-live').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload) => {
     if (payload.eventType === 'UPDATE' && payload.new.completed && payload.new.owner_id !== authUserId && payload.new.scope === 'shared') {
@@ -844,12 +872,13 @@ document.querySelector('#authForm').addEventListener('submit', async (event) => 
 });
 
 document.querySelector('#userAvatar').addEventListener('click', () => {
-  if (supabaseClient && authUserId) {
-    document.querySelector('#accountModal').classList.add('visible');
-    lucide.createIcons();
-  } else if (supabaseConfigured) {
+  // Sin sesión (con Supabase configurado) toca iniciar sesión; si no, se abren los ajustes.
+  if (supabaseConfigured && !(supabaseClient && authUserId)) {
     authModal.classList.add('visible');
+    return;
   }
+  document.querySelector('#accountModal').classList.add('visible');
+  lucide.createIcons();
 });
 document.querySelector('#closeAccount').addEventListener('click', () => document.querySelector('#accountModal').classList.remove('visible'));
 document.querySelector('#signOutButton').addEventListener('click', async () => {
@@ -877,10 +906,26 @@ function formatToday() {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 }
 
+const weatherCacheKey = 'umbral-weather';
+
 async function loadWeather() {
-  const response = await fetch(weatherUrl);
+  const response = await fetch(weatherUrl, { signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error('No se pudo consultar el tiempo');
   const data = await response.json();
+  renderWeather(data);
+  try { localStorage.setItem(weatherCacheKey, JSON.stringify({ savedAt: Date.now(), data })); } catch {}
+  return true;
+}
+
+// Al abrir la app se muestra el último tiempo guardado (hasta 6 h) mientras llega el nuevo.
+function renderCachedWeather() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(weatherCacheKey) || 'null');
+    if (cached && Date.now() - cached.savedAt < 6 * 3600 * 1000) renderWeather(cached.data);
+  } catch {}
+}
+
+function renderWeather(data) {
   const current = data.current;
   const daily = data.daily;
   const [description, icon] = weatherDescriptions[current.weather_code] || ['Tiempo variable', 'cloud-sun'];
@@ -892,7 +937,6 @@ async function loadWeather() {
   window.umbralScene?.update({ weatherCode: current.weather_code, temperature: current.temperature_2m, windSpeed: current.wind_speed_10m, sunrise: new Date(daily.sunrise[0]), sunset: new Date(daily.sunset[0]) });
   renderWeatherForecastStrip(data.hourly);
   lucide.createIcons();
-  return true;
 }
 
 function renderWeatherForecastStrip(hourly) {
@@ -906,9 +950,11 @@ function renderWeatherForecastStrip(hourly) {
 
 function updateWeather() {
   return loadWeather().catch(() => {
-    document.querySelector('#weatherDescription').textContent = 'Sin datos';
-    document.querySelector('#weatherDetails').textContent = 'No se pudo actualizar el tiempo';
-    showToast('No se pudo actualizar el tiempo ahora');
+    // Si ya se ve un tiempo guardado, se mantiene; solo se avisa si no hay nada que enseñar.
+    if (document.querySelector('#weatherTemp').textContent === '--°') {
+      document.querySelector('#weatherDescription').textContent = 'Sin conexión';
+      document.querySelector('#weatherDetails').textContent = 'No se pudo consultar el tiempo. Se reintentará en un rato.';
+    }
     return false;
   });
 }
@@ -980,11 +1026,12 @@ function renderWeatherAdvice(days) {
 async function loadWeatherDetails() {
   const updated = document.querySelector('#weatherUpdated');
   try {
-    const response = await fetch(weatherDetailUrl);
+    const response = await fetch(weatherDetailUrl, { signal: AbortSignal.timeout(12000) });
     if (!response.ok) throw new Error('No se pudo cargar el detalle meteorológico');
     const data = await response.json();
     const daily = dailyWeatherData(data);
-    renderWeatherChart('temperatureChart', daily.slice(0, -7).map((day) => day.temperature), '#275b49', 'temperatura');
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#1f5a48';
+    renderWeatherChart('temperatureChart', daily.slice(0, -7).map((day) => day.temperature), accent, 'temperatura');
     renderWeatherChart('humidityChart', daily.slice(0, -7).map((day) => day.humidity), '#7b9bb5', 'humedad');
     renderForecast(data.daily.time, data);
     renderWeatherAdvice(daily);
@@ -1709,6 +1756,18 @@ document.querySelectorAll('[data-action]').forEach((action) => {
       openFinance();
     }
 
+    if (type === 'shopping' || type === 'quick-shopping') focusShoppingInput();
+    if (type === 'tasks') showView('tareas');
+    if (type === 'quick-task') focusNewTask();
+    if (type === 'quick-note') {
+      openNotes();
+      setTimeout(() => document.querySelector('.note-form[data-note-type="shared"] input[type="text"]')?.focus(), 250);
+    }
+    if (type === 'quick-expense') {
+      openFinance();
+      setTimeout(() => document.querySelector('#expenseForm [name="description"]')?.focus(), 350);
+    }
+
     if (type === 'lights') {
       setWorkspace('casa');
       document.querySelector('#smartLightsTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1727,11 +1786,33 @@ document.querySelector('#toggleAllLightsButton').addEventListener('click', async
   showToast(shouldTurnOn ? 'Todas las luces encendidas' : 'Todas las luces apagadas');
 });
 
+async function runLightRoutine(targets, poweredOn, message) {
+  const results = await Promise.allSettled(targets.map(async (light) => {
+    await callSmartHomeCommand(light.id, poweredOn);
+    setSmartLightState(light.id, poweredOn);
+  }));
+  const failed = results.find((result) => result.status === 'rejected');
+  showToast(failed ? failed.reason?.message || 'Alguna luz no respondió' : message);
+}
+
+document.querySelector('#routineNight').addEventListener('click', () => runLightRoutine(smartLights, false, 'Buenas noches: todas las luces apagadas'));
+document.querySelector('#routineArrive').addEventListener('click', () => {
+  const living = smartLights.filter((light) => /sal[oó]n|cocina/i.test(`${light.room} ${light.name}`));
+  runLightRoutine(living.length ? living : smartLights.slice(0, 1), true, '¡Bienvenidos a casa! Luces encendidas');
+});
+
 document.querySelector('#smartLightsList').addEventListener('click', (event) => {
   const toggle = event.target.closest('[data-light-toggle]');
   if (!toggle) return;
   toggleSmartLight(toggle.dataset.lightToggle);
 });
+
+// Muestra un espacio: en el móvil cambia de pestaña; en escritorio, donde se ven
+// todos, lleva hasta él.
+function showView(view) {
+  setWorkspace(view);
+  document.querySelector(`[data-space="${view}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 function setWorkspace(view) {
   document.querySelectorAll('[data-space]').forEach((section) => {
@@ -1750,11 +1831,6 @@ document.querySelectorAll('.nav-item').forEach((item) => {
       setWorkspace(item.dataset.viewTarget);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
-    }
-    if ('navSettings' in item.dataset) {
-      if (supabaseClient && authUserId) document.querySelector('#accountModal').classList.add('visible');
-      else if (supabaseConfigured) authModal.classList.add('visible');
-      lucide.createIcons();
     }
   });
 });
@@ -1777,15 +1853,32 @@ document.querySelector('.brand').addEventListener('click', (event) => {
   }
 });
 
+function applyTheme(choice) {
+  const theme = ['light', 'dark'].includes(choice) ? choice : 'auto';
+  if (theme === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  document.querySelectorAll('[data-theme-choice]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme)));
+  const dark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0f1613' : '#f5f4ef');
+}
+
+document.querySelectorAll('[data-theme-choice]').forEach((button) => button.addEventListener('click', () => {
+  try { localStorage.setItem('umbral-theme', button.dataset.themeChoice); } catch {}
+  applyTheme(button.dataset.themeChoice);
+}));
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(localStorage.getItem('umbral-theme')));
+
 function renderGreeting() {
   const hour = new Date().getHours();
   document.querySelector('#greetingWord').textContent = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 21 ? 'Buenas tardes' : 'Buenas noches';
   document.querySelector('#todayLabel').textContent = formatToday();
 }
 
+applyTheme((() => { try { return localStorage.getItem('umbral-theme'); } catch { return null; } })());
 window.umbralScene?.mount(document.querySelector('#homeStateVisual'));
 setWorkspace('home');
 renderGreeting();
+renderCachedWeather();
 updateWeather();
 setInterval(() => { renderGreeting(); updateWeather(); }, 30 * 60 * 1000);
 connectNotes();

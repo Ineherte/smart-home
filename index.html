@@ -12,7 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=23" />
+    <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
+    <link rel="stylesheet" href="styles.css?v=24" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -31,17 +32,25 @@
       <section class="greeting" id="top">
         <p class="greeting-date" id="todayLabel">Hoy</p>
         <h1><span id="greetingWord">Hola</span>, <span id="userName">Ines</span><span class="accent-dot">.</span></h1>
+        <p class="greeting-summary" id="daySummary">Preparando tu día…</p>
       </section>
 
       <div class="views">
         <div class="view view-home" data-space="home">
+          <div class="quick-actions" aria-label="Añadir rápido">
+            <button type="button" class="quick-action is-shopping" data-action="quick-shopping"><span><i data-lucide="shopping-basket"></i></span>Compra</button>
+            <button type="button" class="quick-action is-task" data-action="quick-task"><span><i data-lucide="list-checks"></i></span>Tarea</button>
+            <button type="button" class="quick-action is-note" data-action="quick-note"><span><i data-lucide="notebook-pen"></i></span>Nota</button>
+            <button type="button" class="quick-action is-expense" data-action="quick-expense"><span><i data-lucide="receipt-euro"></i></span>Gasto</button>
+          </div>
+
           <section class="attention-section" aria-labelledby="home-title">
             <div class="section-heading">
               <div>
                 <p class="eyebrow">Tu casa ahora</p>
                 <h2 id="home-title">Todo tranquilo <span class="wave">✦</span></h2>
               </div>
-                          </div>
+            </div>
             <p class="status-note">Sin notas urgentes, facturas ni pagos pendientes.</p>
             <div class="attention-list" id="attentionList"></div>
           </section>
@@ -65,6 +74,18 @@
           </article>
 
           <div class="tile-grid">
+            <button class="tile tile-tasks" type="button" data-action="tasks">
+              <span class="tile-icon"><i data-lucide="list-checks"></i></span>
+              <span class="tile-label">Tareas</span>
+              <strong class="tile-value" id="tasksTileValue">—</strong>
+              <small class="tile-detail" id="tasksTileDetail">Cargando…</small>
+            </button>
+            <button class="tile tile-shopping" type="button" data-action="shopping">
+              <span class="tile-icon"><i data-lucide="shopping-basket"></i></span>
+              <span class="tile-label">Compra</span>
+              <strong class="tile-value" id="shoppingTileValue">—</strong>
+              <small class="tile-detail" id="shoppingTileDetail">Cargando…</small>
+            </button>
             <button class="tile tile-agenda" type="button" data-action="calendar">
               <span class="tile-icon"><i data-lucide="calendar-days"></i></span>
               <span class="tile-label">Agenda de hoy</span>
@@ -93,46 +114,132 @@
           </div>
         </div>
 
-        <div class="view view-casa" data-space="casa">
-          <section class="panel lights-panel-section" aria-labelledby="smartLightsTitle">
-            <div class="section-heading">
-              <div><p class="eyebrow">Casa</p><h2 id="smartLightsTitle">Luces</h2></div>
-              <button class="pill-button" type="button" id="toggleAllLightsButton"><i data-lucide="power"></i> Todas</button>
-            </div>
-            <div class="lights-list" id="smartLightsList"></div>
-          </section>
+        <div class="view-column is-a">
+          <div class="view view-compra" data-space="compra" id="shoppingView">
+            <section class="panel shopping-panel" aria-labelledby="shoppingTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Compartida</p><h2 id="shoppingTitle">Lista de la compra</h2></div>
+                <span class="count-pill" id="shoppingCount">—</span>
+              </div>
+              <form class="composer" id="shoppingForm" autocomplete="off">
+                <input id="shoppingInput" type="text" maxlength="200" placeholder="Leche, pan y 6 huevos…" aria-label="Añadir a la compra" enterkeyhint="done" />
+                <button type="submit" aria-label="Añadir a la compra"><i data-lucide="plus"></i></button>
+              </form>
+              <div class="suggestions" id="shoppingSuggestionsBlock" hidden>
+                <p class="suggestions-label" id="shoppingSuggestionsLabel">Lo de siempre</p>
+                <div class="suggestion-row" id="shoppingSuggestions"></div>
+              </div>
+              <div id="shoppingList"></div>
+              <div class="cart" id="shoppingCart" hidden>
+                <div class="cart-heading">
+                  <p class="list-group-title"><i data-lucide="shopping-cart"></i>En el carro<span id="shoppingCartCount">0</span></p>
+                  <button type="button" class="pill-button" id="shoppingFinishButton"><i data-lucide="flag"></i> Terminar compra</button>
+                </div>
+                <form class="finish-form" id="shoppingFinishForm" hidden>
+                  <p>¿Registramos el gasto en Cuentas de casa?</p>
+                  <div class="finish-form-row">
+                    <input name="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Importe (€)" aria-label="Importe de la compra" />
+                    <select name="paidBy" aria-label="Quién pagó"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select>
+                  </div>
+                  <div class="finish-form-actions">
+                    <button type="submit" class="primary-button"><i data-lucide="check"></i> Guardar y vaciar el carro</button>
+                    <button type="button" class="link-button" id="shoppingFinishWithoutExpense">Vaciar sin registrar gasto</button>
+                  </div>
+                </form>
+                <div id="shoppingCartList"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="view view-casa" data-space="casa">
+            <section class="panel routines-panel" aria-labelledby="routinesTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Con un toque</p><h2 id="routinesTitle">Rutinas</h2></div>
+              </div>
+              <div class="routine-grid">
+                <button type="button" class="routine is-arrive" id="routineArrive"><span><i data-lucide="door-open"></i></span><strong>Llegamos a casa</strong><small>Enciende salón y cocina</small></button>
+                <button type="button" class="routine is-night" id="routineNight"><span><i data-lucide="moon-star"></i></span><strong>Buenas noches</strong><small>Apaga todas las luces</small></button>
+              </div>
+            </section>
+            <section class="panel lights-panel-section" aria-labelledby="smartLightsTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Casa</p><h2 id="smartLightsTitle">Luces</h2></div>
+                <button class="pill-button" type="button" id="toggleAllLightsButton"><i data-lucide="power"></i> Todas</button>
+              </div>
+              <div class="lights-list" id="smartLightsList"></div>
+            </section>
+          </div>
         </div>
 
-        <div class="view view-vida" data-space="personal">
-          <section class="panel agenda-section" aria-labelledby="agenda-title">
-            <div class="section-heading">
-              <div><p class="eyebrow">Hoy</p><h2 id="agenda-title">Tu agenda</h2></div>
-              <button class="pill-button" type="button" data-action="calendar"><i data-lucide="calendar-days"></i> Calendario</button>
-            </div>
-            <div id="agendaList"><p class="empty-note">Cargando agenda…</p></div>
-          </section>
+        <div class="view-column is-b">
+          <div class="view view-tareas" data-space="tareas" id="tasksView">
+            <section class="panel tasks-panel" aria-labelledby="tasksTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Entre los dos</p><h2 id="tasksTitle">Tareas de casa</h2></div>
+                <button type="button" class="pill-button" id="newTaskButton"><i data-lucide="plus"></i> Nueva</button>
+              </div>
+              <div class="segmented" role="group" aria-label="Qué tareas ver">
+                <button type="button" data-task-filter="all" aria-pressed="true">Todas</button>
+                <button type="button" data-task-filter="mine" aria-pressed="false">Las mías</button>
+                <span class="count-pill" id="tasksCount">—</span>
+              </div>
+              <form class="task-form" id="taskForm" hidden autocomplete="off">
+                <input name="title" type="text" maxlength="80" placeholder="¿Qué hay que hacer?" aria-label="Tarea" required />
+                <div class="task-form-row">
+                  <label><span>Se repite</span><select name="recurrence"><option value="none">Una vez</option><option value="daily">Cada día</option><option value="weekly">Cada semana</option><option value="biweekly">Cada 2 semanas</option><option value="monthly">Cada mes</option><option value="yearly">Cada año</option></select></label>
+                  <label><span>Primera vez</span><input name="dueDate" type="date" /></label>
+                </div>
+                <label><span>Quién</span><select name="assignee"><option value="both">Los dos</option><option value="rotate">Por turnos (alternando)</option><option value="Ines">Ines</option><option value="Matteo">Matteo</option></select></label>
+                <button type="submit" class="primary-button"><i data-lucide="check"></i> Guardar tarea</button>
+              </form>
+              <div class="suggestions" id="taskPresetsBlock" hidden>
+                <p class="suggestions-label">Añadir con un toque</p>
+                <div class="suggestion-row" id="taskPresets"></div>
+              </div>
+              <div id="tasksList"></div>
+            </section>
+            <section class="panel balance-panel" id="taskBalance" hidden>
+              <div class="section-heading">
+                <div><p class="eyebrow">Últimos 30 días</p><h2>Quién hace qué</h2></div>
+              </div>
+              <div class="balance-bar" id="taskBalanceBar"></div>
+              <div class="balance-legend" id="taskBalanceLegend"></div>
+            </section>
+          </div>
 
-          <section class="panel news-section" aria-labelledby="news-title">
-            <div class="section-heading">
-              <div><p class="eyebrow">La mirada del día</p><h2 id="news-title">Noticias</h2></div>
-              <button class="icon-button small" type="button" id="refreshNews" aria-label="Actualizar noticias" title="Actualizar noticias"><i data-lucide="rotate-cw"></i></button>
-            </div>
-            <div class="news-tabs" role="tablist" aria-label="País de las noticias">
-          <button class="news-tab active" type="button" role="tab" aria-selected="true" aria-controls="italyNews" data-news-country="italy">Italia <span>IT</span></button>
-          <button class="news-tab" type="button" role="tab" aria-selected="false" aria-controls="spainNews" data-news-country="spain">España <span>ES</span></button>
+          <div class="view view-vida" data-space="personal">
+            <section class="panel agenda-section" aria-labelledby="agenda-title">
+              <div class="section-heading">
+                <div><p class="eyebrow">Hoy</p><h2 id="agenda-title">Tu agenda</h2></div>
+                <button class="pill-button" type="button" data-action="calendar"><i data-lucide="calendar-days"></i> Calendario</button>
+              </div>
+              <div id="agendaList"><p class="empty-note">Cargando agenda…</p></div>
+            </section>
+
+            <section class="panel news-section" aria-labelledby="news-title">
+              <div class="section-heading">
+                <div><p class="eyebrow">La mirada del día</p><h2 id="news-title">Noticias</h2></div>
+                <button class="icon-button small" type="button" id="refreshNews" aria-label="Actualizar noticias" title="Actualizar noticias"><i data-lucide="rotate-cw"></i></button>
+              </div>
+              <div class="news-tabs" role="tablist" aria-label="País de las noticias">
+            <button class="news-tab active" type="button" role="tab" aria-selected="true" aria-controls="italyNews" data-news-country="italy">Italia <span>IT</span></button>
+            <button class="news-tab" type="button" role="tab" aria-selected="false" aria-controls="spainNews" data-news-country="spain">España <span>ES</span></button>
+          </div>
+          <p class="news-insight" id="newsInsight">Preparando una lectura rápida del día...</p>
+          <div class="news-feed" id="italyNews" role="tabpanel" aria-live="polite"></div>
+          <p class="news-updated" id="newsUpdated"><i data-lucide="clock-3"></i> Preparando el resumen...</p>
+            </section>
+          </div>
         </div>
-        <p class="news-insight" id="newsInsight">Preparando una lectura rápida del día...</p>
-        <div class="news-feed" id="italyNews" role="tabpanel" aria-live="polite"></div>
-        <p class="news-updated" id="newsUpdated"><i data-lucide="clock-3"></i> Preparando el resumen...</p>
-          </section>
-        </div>
+
       </div>
 
       <nav class="bottom-nav" aria-label="Navegación principal">
         <button class="nav-item active" type="button" data-view-target="home"><i data-lucide="sun-medium"></i><span>Hoy</span></button>
+        <button class="nav-item" type="button" data-view-target="compra"><i data-lucide="shopping-basket"></i><span>Compra</span><b class="nav-badge" hidden></b></button>
+        <button class="nav-item" type="button" data-view-target="tareas"><i data-lucide="list-checks"></i><span>Tareas</span><b class="nav-badge" hidden></b></button>
         <button class="nav-item" type="button" data-view-target="casa"><i data-lucide="house"></i><span>Casa</span></button>
         <button class="nav-item" type="button" data-view-target="personal"><i data-lucide="layers-3"></i><span>Vida</span></button>
-        <button class="nav-item" type="button" data-nav-settings><i data-lucide="settings-2"></i><span>Ajustes</span></button>
       </nav>
     </main>
     <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
@@ -154,6 +261,14 @@
         <div class="modal-heading"><div><p class="eyebrow muted">Cuenta y hogar</p><h2 id="accountTitle">Tu cuenta</h2></div><button class="icon-button small" type="button" id="closeAccount" aria-label="Cerrar cuenta"><i data-lucide="x"></i></button></div>
         <div class="account-identity"><span class="account-avatar" id="accountAvatar">IN</span><div><strong id="accountDisplayName">Ines</strong><small id="accountEmail">Cuenta autenticada</small></div></div>
         <div class="account-status"><i data-lucide="shield-check"></i><span><strong>Acceso protegido</strong><small>Tu sesión se conserva en este dispositivo.</small></span></div>
+        <div class="settings-block">
+          <p class="settings-label"><i data-lucide="palette"></i> Apariencia</p>
+          <div class="segmented is-wide" role="group" aria-label="Tema">
+            <button type="button" data-theme-choice="auto" aria-pressed="true"><i data-lucide="sun-moon"></i> Automático</button>
+            <button type="button" data-theme-choice="light" aria-pressed="false"><i data-lucide="sun"></i> Claro</button>
+            <button type="button" data-theme-choice="dark" aria-pressed="false"><i data-lucide="moon"></i> Oscuro</button>
+          </div>
+        </div>
         <div id="accountMembersMount"></div>
         <button class="account-signout" type="button" id="signOutButton"><i data-lucide="log-out"></i> Cerrar sesión</button>
       </div>
@@ -235,7 +350,10 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="scene.js?v=1"></script>
-    <script src="app.js?v=33"></script>
+    <script src="scene.js?v=2"></script>
+    <script src="store.js?v=1"></script>
+    <script src="shopping.js?v=1"></script>
+    <script src="tasks.js?v=1"></script>
+    <script src="app.js?v=34"></script>
   </body>
 </html>
