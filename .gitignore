@@ -1,0 +1,12 @@
+# Dependencias
+node_modules/
+
+# Copia generada por `npm run build:www` para Capacitor (la fuente está en la raíz)
+www/
+
+# Estado local de la CLI de Supabase
+supabase/.temp/
+
+# Sistema / editor
+.DS_Store
+*.log
