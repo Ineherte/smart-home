@@ -4,13 +4,13 @@ Umbral es una app de hogar compartido para controlar luz, clima, agenda, notas y
 
 ## Seguridad y datos compartidos
 
-La base recomendada es autenticada y por hogar. Ejecuta `supabase-foundation.sql` después de los esquemas existentes para crear perfiles, hogares, membresías y políticas RLS por `household_id`. No asignes automáticamente filas antiguas creadas de forma anónima: revísalas y migra solo las que puedas atribuir con seguridad.
+La base recomendada es autenticada y por hogar. Ejecuta `supabase/sql/supabase-foundation.sql` después de los esquemas existentes para crear perfiles, hogares, membresías y políticas RLS por `household_id`. No asignes automáticamente filas antiguas creadas de forma anónima: revísalas y migra solo las que puedas atribuir con seguridad.
 
 La aplicación ya muestra acceso por correo y contraseña, crea el primer hogar para el usuario autenticado y añade el ámbito del hogar a las nuevas escrituras. El selector de nombre local no es un mecanismo de seguridad.
 
 Orden de puesta en producción:
 
-1. Ejecuta `supabase-foundation.sql` en el editor SQL.
+1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql` y `supabase/sql/household-scoping.sql` en el editor SQL (en ese orden).
 2. Crea una cuenta para cada persona desde Umbral.
 3. Añade el segundo usuario a `household_members` con el mismo `household_id` y rol `member`.
 4. Comprueba las tablas y políticas con usuarios reales antes de importar datos financieros.
@@ -35,9 +35,9 @@ Estas funciones:
 ## Configuración
 
 1. Crea tu proyecto en Supabase.
-2. Ejecuta el SQL de `finance-schema.sql`.
-3. Si ya habías ejecutado una versión anterior del esquema, ejecuta también `finance-settlement.sql` para añadir quién pagó cada factura.
-4. Ejecuta `finance-fixed-costs.sql` para crear y compartir alquiler e internet como gastos fijos mensuales.
+2. Ejecuta el SQL de `supabase/sql/finance-schema.sql`.
+3. Si ya habías ejecutado una versión anterior del esquema, ejecuta también `supabase/sql/finance-settlement.sql` para añadir quién pagó cada factura.
+4. Ejecuta `supabase/sql/finance-fixed-costs.sql` para crear y compartir alquiler e internet como gastos fijos mensuales.
 5. Añade estas variables de entorno en Supabase Edge Functions:
 
    - `SUPABASE_URL`
@@ -47,6 +47,8 @@ Estas funciones:
 
    - `supabase functions deploy tricount-sync`
    - `supabase functions deploy invoice-ingest`
+   - `supabase functions deploy sync-iphone-calendar` (necesita `SYNC_TOKEN` e `IPHONE_OWNER_IDS`, un JSON como `{"Ines":"<user_id>","Matteo":"<user_id>"}` con los id de Authentication → Users)
+   - `supabase functions deploy tuya-lights` (necesita `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET` y, opcionalmente, `TUYA_DEVICE_IDS` con los IDs permitidos separados por comas)
 
 7. Conecta tu flujo de automatización (n8n, Make, Zapier, OAuth con Gmail / Outlook, o una app de backend) para llamar a estas endpoints y autenticar con el usuario real.
 
@@ -56,7 +58,17 @@ Estas funciones:
 - Octopus / TIM: usa Gmail o Outlook con OAuth para detectar el correo, extraer importe y mandar el payload a `invoice-ingest`.
 - El navegador nunca debe leer directamente tu bandeja de entrada ni tus credenciales de terceros.
 - La vista financiera calcula el reparto 50/50, muestra quién debe a quién y permite exportar cuatro hojas Excel: gastos, facturas, categorías y liquidación.
+- Con sesión iniciada, Supabase es la única fuente de verdad de las finanzas: si algo no se puede guardar, la app lo avisa en vez de guardarlo solo en el teléfono. `localStorage` solo se usa en modo local (sin Supabase configurado).
+- Las importaciones (enlace de Tricount o archivo CSV/Excel) no duplican gastos: cada fila lleva una `source_reference` única.
 - Los gastos fijos se guardan aparte de las facturas variables para no confundir alquiler e internet con importaciones mensuales.
+
+## Estructura
+
+- Raíz (`index.html`, `app.js`, `styles.css`, …): la app web. Es la única fuente de verdad.
+- `www/`: copia generada con `npm run build:www` para Capacitor. No se versiona; no la edites.
+- `supabase/sql/`: esquemas y migraciones SQL.
+- `supabase/functions/`: Edge Functions.
+- `android/`: proyecto nativo de Capacitor.
 
 ## Ejecutar la app
 

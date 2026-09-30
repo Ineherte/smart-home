@@ -72,7 +72,8 @@ Deno.serve(async (request) => {
     return json({ error: 'Configura SUPABASE_URL y SUPABASE_ANON_KEY' }, 500);
   }
 
-  const supabase = createClient(url, anonKey);
+  // Las consultas se hacen como el usuario que llama, para que se apliquen sus políticas RLS.
+  const supabase = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } });
   const token = authHeader.replace('Bearer ', '').trim();
   const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
@@ -90,7 +91,13 @@ Deno.serve(async (request) => {
       return json({ error: 'No hay facturas válidas para importar' }, 400);
     }
 
-    const { error: insertError } = await supabase.from('shared_bills').insert(normalized as Record<string, unknown>[]);
+    const { data: membership } = await supabase.from('household_members').select('household_id').eq('user_id', user.id).in('role', ['owner', 'member']).limit(1).maybeSingle();
+    if (!membership?.household_id) {
+      return json({ error: 'El usuario no pertenece a ningún hogar' }, 403);
+    }
+    const scoped = normalized.map((row) => ({ ...(row as Record<string, unknown>), household_id: membership.household_id }));
+
+    const { error: insertError } = await supabase.from('shared_bills').insert(scoped);
     if (insertError) {
       return json({ error: insertError.message }, 500);
     }

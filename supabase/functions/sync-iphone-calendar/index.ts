@@ -15,16 +15,21 @@ Deno.serve(async (request) => {
   }
 
   try {
+    // IPHONE_OWNER_IDS asocia el nombre que envía cada Atajo con su user_id de Supabase,
+    // por ejemplo {"Ines":"<uuid>","Matteo":"<uuid>"}. La app filtra los eventos por ese id.
+    const ownerIds = JSON.parse(Deno.env.get('IPHONE_OWNER_IDS') || '{}') as Record<string, string>;
     const body = await request.json();
     const owner = body.owner;
     const events = body.events;
-    if (!['Ines', 'Matteo'].includes(owner) || !Array.isArray(events)) {
-      return json({ error: 'El cuerpo debe incluir owner y events' }, 400);
+    const ownerId = ownerIds[owner];
+    if (!ownerId || !Array.isArray(events)) {
+      return json({ error: 'El cuerpo debe incluir events y un owner configurado en IPHONE_OWNER_IDS' }, 400);
     }
 
     const rows = events.map((event) => ({
       external_id: String(event.external_id),
       owner,
+      owner_id: ownerId,
       title: String(event.title || 'Evento sin título').slice(0, 80),
       event_date: event.event_date,
       event_time: event.event_time || null,

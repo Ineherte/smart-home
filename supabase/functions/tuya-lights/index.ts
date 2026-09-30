@@ -104,6 +104,18 @@ Deno.serve(async (request) => {
   }
 
   try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Solo usuarios con sesión real pueden controlar dispositivos.
+    const jwt = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const { data: userData, error: userError } = jwt ? await supabase.auth.getUser(jwt) : { data: null, error: true };
+    if (userError || !userData?.user) {
+      return jsonBody(401, { error: 'Inicia sesión para controlar las luces' });
+    }
+
     const body = (await request.json()) as TuyaRequestBody;
     const deviceId = body.deviceId;
     const action = body.action;
@@ -113,14 +125,15 @@ Deno.serve(async (request) => {
       return jsonBody(400, { error: 'Faltan deviceId y action (on/off)' });
     }
 
+    // TUYA_DEVICE_IDS (opcional): lista separada por comas de dispositivos permitidos.
+    const allowedDevices = (Deno.env.get('TUYA_DEVICE_IDS') || '').split(',').map((id) => id.trim()).filter(Boolean);
+    if (allowedDevices.length && !allowedDevices.includes(deviceId)) {
+      return jsonBody(403, { error: 'Dispositivo no permitido' });
+    }
+
     const validAction: TuyaAction = action;
     const accessToken = await getTuyaToken();
     await sendTuyaCommand(accessToken.access_token, deviceId, validAction, deviceCode);
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
 
     await supabase.from('device_state').upsert({
       device_id: deviceId,
