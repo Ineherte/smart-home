@@ -8,6 +8,7 @@ const path = require('path');
 const FILES = [
   'index.html',
   'app.js',
+  'scene.js',
   'styles.css',
   'smart-lights-config.js',
   'mobile-bridge.js',

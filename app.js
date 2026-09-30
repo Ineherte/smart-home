@@ -12,11 +12,11 @@ window.addEventListener('error', (event) => reportAppError(event.error || event.
 window.addEventListener('unhandledrejection', (event) => reportAppError(event.reason));
 
 function updateConnectionState() {
-  const status = document.querySelector('.orientation-status');
+  const status = document.querySelector('#syncStatus');
   if (!status) return;
   status.innerHTML = navigator.onLine
-    ? '<i data-lucide="circle-check"></i> Sincronización activa'
-    : '<i data-lucide="cloud-off"></i> Sin conexión · última copia local';
+    ? '<i data-lucide="circle-check"></i><span>Sincronizado</span>'
+    : '<i data-lucide="cloud-off"></i><span>Sin conexión</span>';
   status.classList.toggle('is-offline', !navigator.onLine);
   lucide.createIcons();
 }
@@ -52,10 +52,9 @@ const supabaseConfigured = Boolean(supabaseConfig.url && supabaseConfig.anonKey 
 let authUserId;
 let householdId;
 let householdRole = 'member';
-const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe%2FRome';
+const weatherUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe%2FRome';
 const weatherDetailUrl = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&past_days=30&forecast_days=7&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Europe%2FRome';
 let toastTimer;
-let lightsOn = true;
 const smartHomeConfig = window.SMART_LIGHTS_CONFIG || {
   devices: [
     { id: 'salon-demo', name: 'Salón', room: 'salón', powered: true },
@@ -82,12 +81,15 @@ async function callSmartHomeCommand(lightId, nextState) {
   }
 
   const light = smartLights.find((entry) => entry.id === lightId);
+  const sessionToken = await getSupabaseSessionToken();
+  if (!sessionToken) throw new Error('Inicia sesión para controlar las luces');
 
   const response = await fetch(`${supabaseConfig.url}/functions/v1/tuya-lights`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${supabaseConfig.anonKey}`
+      apikey: supabaseConfig.anonKey,
+      Authorization: `Bearer ${sessionToken}`
     },
     body: JSON.stringify({
       deviceId: lightId,
@@ -125,13 +127,12 @@ function renderSmartLights() {
 }
 
 function updateLightStatusText() {
-  const activeLights = smartLights.filter((light) => light.powered).length;
-  const lightsStatus = document.querySelector('#lightsStatus');
+  const poweredLights = smartLights.filter((light) => light.powered);
   const lightsOnCount = document.querySelector('#lightsOnCount');
-  if (lightsOnCount) lightsOnCount.textContent = activeLights;
-  if (!lightsStatus) return;
-
-  lightsStatus.textContent = activeLights === 0 ? 'todas apagadas' : `encendida${activeLights === 1 ? '' : 's'} · ${smartLights.filter((light) => light.powered).map((light) => light.room).join(' y ')}`;
+  const lightsStatus = document.querySelector('#lightsStatus');
+  if (lightsOnCount) lightsOnCount.textContent = poweredLights.length ? `${poweredLights.length} encendida${poweredLights.length === 1 ? '' : 's'}` : 'Apagadas';
+  window.umbralScene?.update({ lights: poweredLights.map((light) => light.room || light.name) });
+  if (lightsStatus) lightsStatus.textContent = poweredLights.length ? poweredLights.map((light) => light.name).join(', ') : `${smartLights.length} luz${smartLights.length === 1 ? '' : 'es'} en casa`;
 }
 
 function setSmartLightState(lightId, powered) {
@@ -145,6 +146,14 @@ function setSmartLightState(lightId, powered) {
   row.dataset.powered = String(powered);
   row.querySelector('small').textContent = `${powered ? 'Encendida' : 'Apagada'} · ${light.room}`;
   updateLightStatusText();
+}
+
+// device_state guarda el último estado que envió tuya-lights; no detecta cambios hechos desde el interruptor.
+async function loadLightStates() {
+  if (!supabaseClient || !authUserId || smartHomeConfig.demoMode) return;
+  const { data, error } = await supabaseClient.from('device_state').select('device_id, status').in('device_id', smartLights.map((light) => light.id));
+  if (error) return;
+  data.forEach((row) => setSmartLightState(row.device_id, row.status === 'on'));
 }
 
 async function toggleSmartLight(lightId) {
@@ -215,7 +224,8 @@ if (!supabaseConfigured) {
 
 function readNotes(key) {
   try {
-    return JSON.parse(localStorage.getItem(key) || '[]');
+    // Las notas antiguas se guardaban como texto plano.
+    return JSON.parse(localStorage.getItem(key) || '[]').map((entry) => typeof entry === 'string' ? { content: entry, completed: false } : entry);
   } catch {
     return [];
   }
@@ -224,6 +234,18 @@ function readNotes(key) {
 function renderNoteList(elementId, notes, emptyText) {
   const list = document.querySelector(`#${elementId}`);
   list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row ${note.completed ? 'completed' : ''} ${note.priority === 'urgent' ? 'urgent' : ''}"><button type="button" class="complete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="${note.completed ? 'Reabrir nota' : 'Marcar como hecha'}" title="${note.completed ? 'Reabrir nota' : 'Marcar como hecha'}"><i data-lucide="${note.completed ? 'check-circle-2' : 'circle'}"></i></button><span>${escapeHtml(note.content || note)}</span>${note.priority === 'urgent' && !note.completed ? '<b class="urgent-badge">Urgente</b>' : ''}<button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
+}
+
+function showSupabaseError(action, error) {
+  console.error(`[Umbral] ${action}:`, error);
+  showToast(`${action}: ${error?.message || 'error desconocido'}`);
+}
+
+// Con sesión iniciada, todo lo compartido necesita el hogar; mientras se carga no se guarda nada.
+function householdReady() {
+  if (householdId) return true;
+  showToast('Tu hogar aún se está conectando. Espera un momento y vuelve a intentarlo.');
+  return false;
 }
 
 function escapeHtml(value) {
@@ -251,9 +273,10 @@ async function renderNotes() {
   const privateNotes = notes.private;
   renderNoteList('sharedNotes', sharedNotes, 'No hay notas compartidas.');
   renderNoteList('privateNotes', privateNotes, 'Tus notas privadas aparecerán aquí.');
-  const totalNotes = sharedNotes.length + privateNotes.length;
-  document.querySelector('#notesCount').textContent = `${totalNotes} ${totalNotes === 1 ? 'nota' : 'notas'}`;
-  document.querySelector('#notesPreview').textContent = sharedNotes[0]?.content || sharedNotes[0] || 'Nada pendiente';
+  const pendingNotes = [...sharedNotes, ...privateNotes].filter((note) => !note.completed);
+  const urgentFirst = pendingNotes.find((note) => note.priority === 'urgent') || pendingNotes[0];
+  document.querySelector('#notesCount').textContent = pendingNotes.length ? `${pendingNotes.length} pendiente${pendingNotes.length === 1 ? '' : 's'}` : 'Todo hecho';
+  document.querySelector('#notesPreview').textContent = urgentFirst?.content || 'No hay nada pendiente';
   renderAttention({ urgentCount: [...sharedNotes, ...privateNotes].filter((note) => note.priority === 'urgent' && !note.completed).length });
   showUrgentNotes([...sharedNotes, ...privateNotes]);
   lucide.createIcons();
@@ -273,16 +296,15 @@ const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0 };
 function renderAttention(nextState = {}) {
   Object.assign(attentionState, nextState);
   const { urgentCount, pendingBills, settlementAmount } = attentionState;
+  window.umbralScene?.update({ pendingBills, urgentNotes: urgentCount });
   const section = document.querySelector('.attention-section');
   const list = document.querySelector('#attentionList');
-  const count = document.querySelector('#attentionCount');
-  if (!list || !count) return;
+  if (!list) return;
   const items = [];
   if (urgentCount) items.push({ icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Notas', action: 'notes' });
-  if (pendingBills) items.push({ icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Casa financiera', action: 'finance' });
-  if (settlementAmount > 0.009) items.push({ icon: 'arrow-right-left', title: `Liquidación pendiente · ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
+  if (pendingBills) items.push({ icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Cuentas de casa', action: 'finance' });
+  if (settlementAmount > 0.009) items.push({ icon: 'arrow-right-left', title: `Falta saldar ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
   section?.classList.toggle('has-items', items.length > 0);
-  count.textContent = items.length ? `${items.length} pendiente${items.length === 1 ? '' : 's'}` : 'Todo en orden';
   list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
   updateHomeStatusMessage(urgentCount, pendingBills, settlementAmount);
   lucide.createIcons();
@@ -292,15 +314,11 @@ function updateHomeStatusMessage(urgentCount, pendingBills, settlementAmount) {
   const title = document.querySelector('#home-title');
   const eyebrow = document.querySelector('#home-title')?.closest('.section-heading')?.querySelector('.eyebrow');
   if (!title || !eyebrow) return;
-  if (urgentCount) {
+  // Con asuntos pendientes, el título los resume y la lista de debajo da el detalle.
+  const pending = [urgentCount, pendingBills, settlementAmount > 0.009 ? 1 : 0].filter(Boolean).length;
+  if (pending) {
     eyebrow.textContent = 'Necesita tu atención';
-    title.innerHTML = `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'} <span class="wave">!</span>`;
-  } else if (pendingBills) {
-    eyebrow.textContent = 'Casa financiera';
-    title.innerHTML = `${pendingBills} factura${pendingBills === 1 ? '' : 's'} por pagar <span class="wave">·</span>`;
-  } else if (settlementAmount > 0.009) {
-    eyebrow.textContent = 'Entre los dos';
-    title.innerHTML = `Falta saldar ${financeMoney(settlementAmount)} <span class="wave">↔</span>`;
+    title.innerHTML = `${pending} ${pending === 1 ? 'cosa' : 'cosas'} por resolver <span class="wave">✦</span>`;
   } else {
     eyebrow.textContent = 'Tu casa ahora';
     title.innerHTML = 'Todo tranquilo <span class="wave">✦</span>';
@@ -321,13 +339,8 @@ function openNotes() {
   initDrawing();
 }
 
-document.querySelector('.notes-card[data-action="notes"]').addEventListener('click', openNotes);
 document.querySelector('.notes-card[data-action="notes"]').addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' || event.key === ' ') openNotes();
-});
-document.querySelector('.notes-card .card-quick-action').addEventListener('click', (event) => {
-  event.stopPropagation();
-  openNotes();
+  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) openNotes();
 });
 document.querySelector('#closeNotes').addEventListener('click', () => history.back());
 document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openNotes(); });
@@ -360,12 +373,13 @@ document.querySelectorAll('.note-form').forEach((form) => {
     const priority = urgentInput?.checked ? 'urgent' : 'normal';
 
     if (supabaseClient && authUserId) {
+      if (!householdReady()) return;
       const { error } = await supabaseClient.from('notes').insert({ content, scope, priority, owner_id: authUserId, household_id: householdId });
-      if (error) return showToast('No se pudo guardar la nota');
+      if (error) return showSupabaseError('No se pudo guardar la nota', error);
     } else {
       const key = scope === 'shared' ? localSharedNotesKey : localPrivateNotesKey();
       const notes = readNotes(key);
-      notes.unshift(content);
+      notes.unshift({ id: createLocalId(), content, priority, completed: false });
       localStorage.setItem(key, JSON.stringify(notes));
     }
 
@@ -382,7 +396,7 @@ document.querySelector('#notesModal').addEventListener('click', async (event) =>
       const notes = await getNotes();
       const note = [...notes.shared, ...notes.private].find((item) => item.id === completeButton.dataset.noteId);
       const { error } = await supabaseClient.from('notes').update({ completed: !note.completed }).eq('id', note.id);
-      if (error) return showToast('No se pudo actualizar la nota');
+      if (error) return showSupabaseError('No se pudo actualizar la nota', error);
       if (!note.completed && note.scope === 'shared') notifyOtherUser('Nota completada', `${currentUser} ha completado: ${note.content}`);
     } else {
       const key = completeButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
@@ -397,7 +411,7 @@ document.querySelector('#notesModal').addEventListener('click', async (event) =>
   if (!deleteButton) return;
   if (supabaseClient && authUserId && deleteButton.dataset.noteId) {
     const { error } = await supabaseClient.from('notes').delete().eq('id', deleteButton.dataset.noteId);
-    if (error) return showToast('No se pudo eliminar la nota');
+    if (error) return showSupabaseError('No se pudo eliminar la nota', error);
   } else {
     const key = deleteButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
     const notes = readNotes(key);
@@ -500,10 +514,21 @@ async function renderCalendarData() {
   }
   renderCalendar();
   renderSelectedDay();
-  const count = cachedEvents.filter((event) => normalizeEventDate(event.event_date) === dateToISO(new Date())).length;
-  document.querySelector('#calendarPreview').innerHTML = count ? `<b>${count} ${count === 1 ? 'evento' : 'eventos'}</b> · ver agenda` : 'Sin eventos para hoy · añadir uno';
+  const todayEvents = cachedEvents.filter((event) => normalizeEventDate(event.event_date) === dateToISO(new Date())).sort((first, second) => (first.event_time || '00:00').localeCompare(second.event_time || '00:00'));
+  const count = todayEvents.length;
+  const nowTime = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+  const nextEvent = todayEvents.find((event) => (event.event_time || '00:00').slice(0, 5) >= nowTime);
+  document.querySelector('#agendaTileValue').textContent = count ? `${count} evento${count === 1 ? '' : 's'}` : 'Día libre';
+  document.querySelector('#calendarPreview').textContent = nextEvent ? `${(nextEvent.event_time || '').slice(0, 5)} · ${nextEvent.title}` : count ? 'Nada más por hoy' : 'Toca para añadir un evento';
+  renderAgendaPreview(todayEvents);
   document.querySelector('#eventsConnectionStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${cachedEvents.length} eventos cargados · Smart Home e iPhone`;
   lucide.createIcons();
+}
+
+function renderAgendaPreview(todayEvents) {
+  const list = document.querySelector('#agendaList');
+  if (!list) return;
+  list.innerHTML = todayEvents.length ? todayEvents.slice(0, 3).map((event, index) => `<div class="agenda-item ${index ? 'secondary-event' : ''}"><div class="time-block"><strong>${escapeHtml((event.event_time || '--:--').slice(0, 5))}</strong><span>${escapeHtml(event.duration || '')}</span></div><div class="event-line"></div><div class="event-copy"><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.location || (event.scope === 'shared' ? 'Casa · Compartido' : 'Personal'))}</span></div><i class="event-arrow" data-lucide="chevron-right"></i></div>`).join('') : '<p class="empty-note">No tienes nada más hoy.</p>';
 }
 
 async function openCalendar() {
@@ -512,7 +537,6 @@ async function openCalendar() {
   await renderCalendarData();
 }
 
-document.querySelector('[data-action="calendar"]').addEventListener('click', openCalendar);
 document.querySelector('#previousMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); renderCalendar(); });
 document.querySelector('#nextMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); renderCalendar(); });
 document.querySelector('#closeCalendar').addEventListener('click', () => history.back());
@@ -521,8 +545,9 @@ document.querySelector('#eventForm').addEventListener('submit', async (event) =>
   const form = event.currentTarget;
   const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value || null, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
   if (supabaseClient && authUserId) {
+    if (!householdReady()) return;
     const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId, household_id: householdId });
-    if (error) return showToast('No se pudo guardar el evento');
+    if (error) return showSupabaseError('No se pudo guardar el evento', error);
   } else {
     const events = readEvents();
     events.push({ ...eventData, id: createLocalId() });
@@ -547,7 +572,7 @@ document.querySelector('#calendarEvents').addEventListener('click', async (event
   if (!deleteButton) return;
   if (supabaseClient && authUserId && deleteButton.dataset.eventId) {
     const { error } = await supabaseClient.from('events').delete().eq('id', deleteButton.dataset.eventId);
-    if (error) return showToast('No se pudo eliminar el evento');
+    if (error) return showSupabaseError('No se pudo eliminar el evento', error);
   } else {
     const events = readEvents();
     events.splice(Number(deleteButton.dataset.eventIndex), 1);
@@ -615,7 +640,7 @@ function drawStrokes() {
 
 async function loadDrawing() {
   if (supabaseClient && authUserId) {
-    const { data, error } = await supabaseClient.from('shared_drawing').select('strokes').eq('id', 1).maybeSingle();
+    const { data, error } = await supabaseClient.from('household_drawings').select('strokes').eq('household_id', householdId).maybeSingle();
     if (error) throw error;
     drawingStrokes = data?.strokes || [];
   } else {
@@ -626,7 +651,7 @@ async function loadDrawing() {
 
 async function saveDrawing() {
   if (supabaseClient && authUserId) {
-    const { error } = await supabaseClient.from('shared_drawing').upsert({ id: 1, strokes: drawingStrokes, updated_by: authUserId, household_id: householdId, updated_at: new Date().toISOString() });
+    const { error } = await supabaseClient.from('household_drawings').upsert({ household_id: householdId, strokes: drawingStrokes, updated_by: authUserId, updated_at: new Date().toISOString() });
     if (error) showToast('No se pudo sincronizar la pizarra');
   } else {
     localStorage.setItem(drawingKey, JSON.stringify(drawingStrokes));
@@ -670,6 +695,7 @@ async function connectNotes() {
       authModal.classList.add('visible');
     } else {
       status.innerHTML = '<i data-lucide="hard-drive"></i> Modo local: configura Supabase para sincronizar';
+      renderCalendarData();
     }
     lucide.createIcons();
     return;
@@ -694,6 +720,7 @@ async function connectNotes() {
   if (!householdId) {
     status.innerHTML = '<i data-lucide="circle-alert"></i> No se pudo preparar tu hogar compartido';
     lucide.createIcons();
+    showToast('No se pudo conectar con tu hogar. Cierra sesión y vuelve a entrar.');
     return;
   }
   const { data: profile } = await supabaseClient.from('profiles').select('display_name').eq('id', authUserId).maybeSingle();
@@ -713,6 +740,8 @@ async function connectNotes() {
   status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
   lucide.createIcons();
   renderNotes();
+  renderCalendarData();
+  loadLightStates();
   await enableNotifications();
   supabaseClient.channel('notes-live').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload) => {
     if (payload.eventType === 'UPDATE' && payload.new.completed && payload.new.owner_id !== authUserId && payload.new.scope === 'shared') {
@@ -720,15 +749,23 @@ async function connectNotes() {
     }
     renderNotes();
   }).subscribe();
-  supabaseClient.channel('drawing-live').on('postgres_changes', { event: '*', schema: 'public', table: 'shared_drawing' }, (payload) => {
+  supabaseClient.channel('drawing-live').on('postgres_changes', { event: '*', schema: 'public', table: 'household_drawings', filter: `household_id=eq.${householdId}` }, (payload) => {
     if (payload.new?.updated_by !== authUserId) {
       drawingStrokes = payload.new?.strokes || [];
       drawStrokes();
     }
   }).subscribe();
   supabaseClient.channel('events-live').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
-    if (calendarModal.classList.contains('visible')) renderCalendarData();
+    renderCalendarData();
   }).subscribe();
+  if (householdRole !== 'guest') {
+    refreshFinance();
+    const financeChannel = supabaseClient.channel('finance-live');
+    ['shared_expenses', 'shared_bills', 'shared_fixed_costs', 'shared_settlements'].forEach((table) => {
+      financeChannel.on('postgres_changes', { event: '*', schema: 'public', table }, () => refreshFinance());
+    });
+    financeChannel.subscribe();
+  }
 }
 
 async function ensureHousehold() {
@@ -836,21 +873,6 @@ document.querySelector('#inviteForm').addEventListener('submit', async (event) =
   event.currentTarget.reset();
 });
 
-function weatherSceneState(code, isDay) {
-  if ([95, 96, 99].includes(code)) return 'storm';
-  if ([71, 73, 75].includes(code)) return 'snow';
-  if ([45, 48].includes(code)) return 'fog';
-  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return 'rain';
-  if (code === 2) return isDay ? 'partly-cloudy' : 'night-cloudy';
-  if (code === 3) return isDay ? 'cloudy' : 'night-cloudy';
-  return isDay ? 'sun' : 'night';
-}
-
-function setHomeStateVisual(code, isDay) {
-  const visual = document.querySelector('#homeStateVisual');
-  if (visual) visual.dataset.weatherState = weatherSceneState(code, isDay);
-}
-
 function formatToday() {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 }
@@ -863,17 +885,11 @@ async function loadWeather() {
   const daily = data.daily;
   const [description, icon] = weatherDescriptions[current.weather_code] || ['Tiempo variable', 'cloud-sun'];
   const temperature = Math.round(current.temperature_2m);
-  document.querySelector('#todayLabel').textContent = formatToday();
-  document.querySelector('#headerWeather').textContent = `· ${temperature}° / ${description.toLowerCase()}`;
-  document.querySelector('#orientationWeather').textContent = `${temperature}° · ${description}`;
-  document.querySelector('#orientationDate').textContent = formatToday();
   document.querySelector('#weatherTemp').textContent = `${temperature}°`;
-  document.querySelector('#weatherDescription').textContent = `${description} · Sensación ${Math.round(current.apparent_temperature)}°`;
-  document.querySelector('#weatherDetails').textContent = `Humedad ${current.relative_humidity_2m}% · Máx. ${Math.round(daily.temperature_2m_max[0])}° / mín. ${Math.round(daily.temperature_2m_min[0])}°`;
-  const weatherIcon = document.querySelector('.climate-card .card-icon svg');
-  weatherIcon.setAttribute('data-lucide', icon);
-  weatherIcon.outerHTML = `<i data-lucide="${icon}"></i>`;
-  setHomeStateVisual(current.weather_code, current.is_day !== 0);
+  document.querySelector('#weatherDescription').textContent = description;
+  document.querySelector('#weatherDetails').textContent = `Sensación ${Math.round(current.apparent_temperature)}° · Humedad ${current.relative_humidity_2m}% · Máx. ${Math.round(daily.temperature_2m_max[0])}° / mín. ${Math.round(daily.temperature_2m_min[0])}°`;
+  document.querySelector('#weatherIcon').innerHTML = `<i data-lucide="${icon}"></i>`;
+  window.umbralScene?.update({ weatherCode: current.weather_code, temperature: current.temperature_2m, windSpeed: current.wind_speed_10m, sunrise: new Date(daily.sunrise[0]), sunset: new Date(daily.sunset[0]) });
   renderWeatherForecastStrip(data.hourly);
   lucide.createIcons();
   return true;
@@ -890,8 +906,8 @@ function renderWeatherForecastStrip(hourly) {
 
 function updateWeather() {
   return loadWeather().catch(() => {
-    document.querySelector('#headerWeather').textContent = '· Tiempo no disponible';
-    document.querySelector('#weatherDescription').textContent = 'No se pudo actualizar';
+    document.querySelector('#weatherDescription').textContent = 'Sin datos';
+    document.querySelector('#weatherDetails').textContent = 'No se pudo actualizar el tiempo';
     showToast('No se pudo actualizar el tiempo ahora');
     return false;
   });
@@ -937,13 +953,13 @@ function renderWeatherChart(elementId, values, color, unit) {
 
 function renderForecast(days, data) {
   const list = document.querySelector('#forecastList');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dateToISO(new Date());
   const firstFutureDay = Math.max(days.findIndex((day) => day >= today), 0);
   list.innerHTML = days.slice(firstFutureDay, firstFutureDay + 7).map((day, offset) => {
     const index = firstFutureDay + offset;
     const weatherCode = data.daily.weather_code[index] ?? 3;
     const [description, icon] = weatherDescriptions[weatherCode] || ['Variable', 'cloud-sun'];
-    const label = index === 0 ? 'Hoy' : new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(new Date(`${day}T12:00:00`));
+    const label = day === today ? 'Hoy' : new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(new Date(`${day}T12:00:00`));
     return `<div class="forecast-row"><strong>${label}</strong><i data-lucide="${icon}"></i><span>${description}</span><b>${Math.round(data.daily.temperature_2m_max[index])}° <em>${Math.round(data.daily.temperature_2m_min[index])}°</em></b></div>`;
   }).join('');
   lucide.createIcons();
@@ -972,7 +988,7 @@ async function loadWeatherDetails() {
     renderWeatherChart('humidityChart', daily.slice(0, -7).map((day) => day.humidity), '#7b9bb5', 'humedad');
     renderForecast(data.daily.time, data);
     renderWeatherAdvice(daily);
-    const currentIndex = Math.max(data.hourly.time.findIndex((time) => time >= new Date().toISOString().slice(0, 13)), 0);
+    const currentIndex = Math.max(data.hourly.time.findIndex((time) => time >= `${dateToISO(new Date())}T${String(new Date().getHours()).padStart(2, '0')}`), 0);
     document.querySelector('#detailWeatherTemp').textContent = `${Math.round(data.hourly.temperature_2m[currentIndex])}°`;
     document.querySelector('#detailWeatherDescription').textContent = 'Condiciones actuales';
     document.querySelector('#detailWeatherMeta').innerHTML = `Humedad ${Math.round(data.hourly.relative_humidity_2m[currentIndex])}%<br />Previsión a 7 días`;
@@ -1042,14 +1058,14 @@ function renderNews(items, country) {
   const categories = [...new Set(items.slice(0, 4).map((item) => item.category))];
   insight.innerHTML = `<strong>${items.length > 3 ? 'Panorama amplio' : 'Lo esencial'}</strong> · ${categories.slice(0, 2).join(' y ')} · ${items.length} titulares seleccionados`;
   feed.innerHTML = `
-    <a class="news-lead" href="${lead.link}" target="_blank" rel="noreferrer">
+    <a class="news-lead" href="${escapeHtml(lead.link)}" target="_blank" rel="noreferrer">
       <span class="news-kicker"><span class="news-flag">${source.flag}</span> Lo más importante de ${source.label}</span>
       <strong>${escapeHtml(lead.title)}</strong>
       <span class="news-source">${escapeHtml(lead.source || 'Google News')} · ${escapeHtml(lead.timeLabel)}</span>
       <i data-lucide="arrow-up-right"></i>
     </a>
     <div class="news-list">${secondary.map((item, index) => `
-      <a class="news-item" href="${item.link}" target="_blank" rel="noreferrer">
+      <a class="news-item" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">
         <span class="news-item-index">${String(index + 2).padStart(2, '0')}</span>
         <span><strong>${escapeHtml(item.title)}</strong><small><b>${escapeHtml(item.category)}</b> · ${escapeHtml(item.source || 'Actualidad')} · ${escapeHtml(item.timeLabel)}</small></span>
         <i data-lucide="chevron-right"></i>
@@ -1074,7 +1090,7 @@ async function loadNews(country = activeNewsCountry) {
       source: (item.author || data.feed?.title?.split(' - ')[0] || 'Actualidad').replace(/^Primo piano\s*/i, '').trim(),
       category: classifyNews(cleanNewsTitle(stripNewsMarkup(item.title))),
       timeLabel: formatNewsTime(new Date(item.pubDate))
-    })).filter((item) => item.title && item.link);
+    })).filter((item) => item.title && /^https?:\/\//i.test(item.link || ''));
     newsCache[country] = items;
     renderNews(items, country);
     updated.innerHTML = `<i data-lucide="clock-3"></i> Actualizado hoy a las ${formatNewsTime()}`;
@@ -1127,12 +1143,29 @@ async function getFinanceData() {
       supabaseClient.from('shared_fixed_costs').select('*').eq('active', true).order('created_at'),
       supabaseClient.from('shared_settlements').select('*').order('payment_date', { ascending: false })
     ]);
-    return { expenses: dedupeImportedExpenses(expenses || []), bills: bills || [], fixedCosts: fixedError || !fixedCosts?.length ? fixedError ? getLocalFixedCosts() : defaultFixedCosts : fixedCosts, settlements: settlementsError ? readFinanceLocal(localSettlementsKey) : (settlements || []).map((payment) => ({ ...payment, from: payment.from_person, to: payment.to_person })) };
+    if (fixedError) throw fixedError;
+    if (settlementsError) throw settlementsError;
+    return { expenses: dedupeImportedExpenses(expenses || []), bills: bills || [], fixedCosts: fixedCosts.length ? fixedCosts : await seedHouseholdFixedCosts(), settlements: settlements.map((payment) => ({ ...payment, from: payment.from_person, to: payment.to_person })) };
   }
   return { expenses: readFinanceRecords(localExpensesKey), bills: readFinanceRecords(localBillsKey), fixedCosts: getLocalFixedCosts(), settlements: readFinanceRecords(localSettlementsKey) };
 }
 
 let financeCache = { expenses: [], bills: [] };
+
+// Con sesión iniciada, Supabase es la única fuente de verdad de las finanzas;
+// localStorage solo se usa en modo local (sin Supabase configurado).
+function financeInCloud() {
+  if (supabaseClient && authUserId && !householdId) throw new Error('Tu hogar aún se está conectando. Vuelve a intentarlo en un momento.');
+  return Boolean(supabaseClient && authUserId);
+}
+
+// Un hogar nuevo empieza con alquiler e internet como gastos fijos, igual que el modo local.
+async function seedHouseholdFixedCosts() {
+  const rows = defaultFixedCosts.map(({ id, ...cost }) => ({ ...cost, household_id: householdId, created_by: authUserId }));
+  const { data, error } = await supabaseClient.from('shared_fixed_costs').insert(rows).select('*');
+  if (error) throw error;
+  return data;
+}
 
 function readFinanceRecords(key) {
   const records = readFinanceLocal(key).map((entry) => entry.id ? entry : { ...entry, id: createLocalId() });
@@ -1184,7 +1217,7 @@ function financeEntries(data) {
   return [
     ...safeData.expenses.map((entry) => ({ ...entry, kind: 'expense', date: entry.expense_date, category: financeCategory(entry.category, entry.description), payer: entry.paid_by || 'Ines', label: entry.description, settled: Boolean(entry.settled) })),
     ...safeData.bills.filter((entry) => Number(entry.amount) > 0).map((entry) => ({ ...entry, kind: 'bill', date: entry.due_date || entry.created_at, category: entry.provider || 'Otro', payer: entry.paid_by || 'Ines', label: `${entry.provider} · ${entry.description}` })),
-    ...safeData.fixedCosts.filter((entry) => entry.active !== false).map((entry) => ({ ...entry, kind: 'fixed', date: new Date().toISOString().slice(0, 10), category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description, source: 'fixed' }))
+    ...safeData.fixedCosts.filter((entry) => entry.active !== false).map((entry) => ({ ...entry, kind: 'fixed', date: dateToISO(new Date()), category: entry.category || 'Otros', payer: entry.paid_by || 'Ines', label: entry.description, source: 'fixed' }))
   ];
 }
 
@@ -1196,7 +1229,7 @@ function filteredFinanceData(data) {
   const query = document.querySelector('#financeSearch')?.value.trim().toLowerCase() || '';
   const category = document.querySelector('#financeCategoryFilter')?.value || 'all';
   const period = document.querySelector('#financePeriod')?.value || 'all';
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = dateToISO(new Date()).slice(0, 7);
   const matches = (entry) => {
     const searchable = `${entry.description || ''} ${entry.provider || ''} ${entry.category || ''} ${entry.source || ''}`.toLowerCase();
     return (!query || searchable.includes(query)) && (category === 'all' || financeCategory(entry.category, entry.description) === category || entry.provider === category) && (period !== 'current' || String(entry.date || '').slice(0, 7) === currentMonth);
@@ -1254,14 +1287,18 @@ function renderFinance(data) {
   const settlement = calculateFinanceSettlement(allEntries, data.settlements);
   const billTotal = data.bills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
   const sourceCount = new Set(allEntries.map((entry) => entry.source || 'manual')).size;
-  document.querySelector('#financeTotal').textContent = financeMoney(settlement.total);
-  document.querySelector('#financeBalance').textContent = financeMoney(settlement.fairShare);
+  // Los gastos fijos se fechan hoy en financeEntries, así que cuentan una vez en el mes actual.
+  const currentMonth = dateToISO(new Date()).slice(0, 7);
+  const monthTotal = allEntries.filter((entry) => String(entry.date || '').slice(0, 7) === currentMonth).reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  document.querySelector('#financeTotal').textContent = financeMoney(monthTotal);
+  document.querySelector('#financeBalance').textContent = financeMoney(monthTotal / 2);
   document.querySelector('#financeExpenseCount').textContent = data.expenses.length;
   document.querySelector('#financeExpenseTotal').textContent = financeMoney(data.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0));
   document.querySelector('#financeBillCount').textContent = data.bills.filter((bill) => bill.status !== 'paid').length;
   document.querySelector('#financeBillTotal').textContent = financeMoney(billTotal);
   document.querySelector('#financeSourceCount').textContent = sourceCount;
   renderAttention({ pendingBills: data.bills.filter((bill) => bill.status !== 'paid').length, settlementAmount: settlement.amount });
+  renderFinanceTile(settlement, data.bills.filter((bill) => bill.status !== 'paid').length);
   document.querySelector('#settlementPaymentTotal').textContent = `${financeMoney(settlement.paymentsTotal)} entregados`;
   renderFixedCosts(data.fixedCosts || []);
   document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya entregados · ` : ''}Compensación global 50/50.</span>`;
@@ -1272,8 +1309,20 @@ function renderFinance(data) {
   lucide.createIcons();
 }
 
+function renderFinanceTile(settlement, pendingBills) {
+  const value = document.querySelector('#financeTileValue');
+  const detail = document.querySelector('#financeTileDetail');
+  if (settlement.amount < 0.01) {
+    value.textContent = 'Al día';
+    detail.textContent = pendingBills ? `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}` : 'Nada que compensar';
+    return;
+  }
+  value.textContent = financeMoney(settlement.amount);
+  detail.textContent = settlement.debtor === currentUser ? `Debes a ${settlement.creditor}` : settlement.creditor === currentUser ? `${settlement.debtor} te debe` : `${settlement.debtor} debe a ${settlement.creditor}`;
+}
+
 async function refreshFinance() {
-  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeCache.expenses.length + financeCache.bills.length} movimientos guardados · reparto 50/50`; lucide.createIcons(); } catch { document.querySelector('#financeStatus').innerHTML = '<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros.'; lucide.createIcons(); }
+  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeCache.expenses.length + financeCache.bills.length} movimientos guardados · reparto 50/50`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
 }
 
 function openFinance() {
@@ -1315,107 +1364,72 @@ function startFinanceEdit(kind, id) {
   form.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+const financeTables = { expense: 'shared_expenses', bill: 'shared_bills', fixed: 'shared_fixed_costs' };
+const financeLocalKeys = { expense: localExpensesKey, bill: localBillsKey, fixed: localFixedCostsKey };
+
+function readLocalFinanceKind(kind) {
+  return kind === 'fixed' ? getLocalFixedCosts() : readFinanceRecords(financeLocalKeys[kind]);
+}
+
 async function saveFinanceEntity(kind, values) {
-  const table = kind === 'expense' ? 'shared_expenses' : kind === 'bill' ? 'shared_bills' : 'shared_fixed_costs';
-  const key = kind === 'expense' ? localExpensesKey : kind === 'bill' ? localBillsKey : localFixedCostsKey;
-  const record = { ...values };
-
-  if (kind === 'fixed') {
-    const records = getLocalFixedCosts();
-    const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
-    const savedRecord = index >= 0 ? { ...records[index], ...record } : { ...record, id: createLocalId() };
-    if (index >= 0) records[index] = savedRecord;
-    else records.unshift(savedRecord);
-    localStorage.setItem(localFixedCostsKey, JSON.stringify(records));
-    financeEditing = null;
-
-    if (supabaseClient && authUserId) {
-      const query = savedRecord.id && index >= 0
-        ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
-        : supabaseClient.from(table).insert({ ...record, household_id: householdId, created_by: authUserId });
-      query.then(({ error }) => {
-        if (error) console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error.message);
-      }).catch((error) => console.warn('[Umbral] Gasto fijo guardado localmente; nube no disponible:', error));
-      return { localOnly: false };
-    }
-    return { localOnly: true };
+  const editingId = financeEditing?.kind === kind ? financeEditing.id : null;
+  // Al editar no se pisa el origen (Tricount, correo) ni el estado de pago.
+  const { source, status, settled, ...changes } = values;
+  if (financeInCloud()) {
+    const table = financeTables[kind];
+    const { error } = editingId
+      ? await supabaseClient.from(table).update(changes).eq('id', editingId)
+      : await supabaseClient.from(table).insert({ ...values, household_id: householdId, created_by: authUserId });
+    if (error) throw error;
+  } else {
+    const records = readLocalFinanceKind(kind);
+    const index = editingId ? records.findIndex((item) => item.id === editingId) : -1;
+    if (index >= 0) records[index] = { ...records[index], ...changes };
+    else records.unshift({ ...values, id: createLocalId() });
+    localStorage.setItem(financeLocalKeys[kind], JSON.stringify(records));
   }
-
-  const records = readFinanceRecords(key);
-  const index = financeEditing?.kind === kind ? records.findIndex((item) => item.id === financeEditing.id) : -1;
-  const savedRecord = index >= 0 ? { ...records[index], ...record } : { ...record, id: createLocalId() };
-  if (index >= 0) records[index] = savedRecord;
-  else records.unshift(savedRecord);
-  localStorage.setItem(key, JSON.stringify(records));
   financeEditing = null;
-
-  if (!supabaseClient || !authUserId) return { localOnly: true };
-
-  const query = index >= 0
-    ? supabaseClient.from(table).update(record).eq('id', savedRecord.id)
-    : supabaseClient.from(table).insert({ ...record, household_id: householdId, created_by: authUserId });
-  query.then(({ error }) => {
-    if (error) console.warn(`[Umbral] ${kind} guardado localmente; nube no disponible:`, error.message);
-  }).catch((error) => console.warn(`[Umbral] ${kind} guardado localmente; nube no disponible:`, error));
-  return { localOnly: false };
+  await refreshFinance();
 }
 
 async function deleteFinanceEntity(kind, id) {
   if (!id || !window.confirm('¿Eliminar este movimiento?')) return;
-  const table = kind === 'expense' ? 'shared_expenses' : kind === 'bill' ? 'shared_bills' : 'shared_fixed_costs';
-  const key = kind === 'expense' ? localExpensesKey : kind === 'bill' ? localBillsKey : localFixedCostsKey;
-  if (supabaseClient && authUserId) {
-    const { error } = await supabaseClient.from(table).delete().eq('id', id);
+  if (financeInCloud()) {
+    const { error } = await supabaseClient.from(financeTables[kind]).delete().eq('id', id);
     if (error) return showToast('No se pudo eliminar');
   } else {
-    const records = kind === 'fixed' ? getLocalFixedCosts() : readFinanceRecords(key);
-    localStorage.setItem(key, JSON.stringify(records.filter((item) => item.id !== id)));
+    localStorage.setItem(financeLocalKeys[kind], JSON.stringify(readLocalFinanceKind(kind).filter((item) => item.id !== id)));
   }
   await refreshFinance();
   showToast('Movimiento eliminado');
 }
 
 async function saveSettlementPayment(payment) {
-  const record = { ...payment, id: createLocalId() };
-  const payments = readFinanceRecords(localSettlementsKey);
-  payments.unshift(record);
-  localStorage.setItem(localSettlementsKey, JSON.stringify(payments));
-  financeCache.settlements = payments;
-  renderFinance(financeCache);
-  showToast('Pago registrado en la liquidación');
-  if (supabaseClient && authUserId) {
+  if (financeInCloud()) {
     const { error } = await supabaseClient.from('shared_settlements').insert({ from_person: payment.from, to_person: payment.to, amount: payment.amount, payment_date: payment.payment_date, note: payment.note, household_id: householdId, created_by: authUserId });
-    if (error) console.warn('[Umbral] Pago guardado localmente; nube no disponible:', error.message);
+    if (error) throw error;
+  } else {
+    const payments = readFinanceRecords(localSettlementsKey);
+    payments.unshift({ ...payment, id: createLocalId() });
+    localStorage.setItem(localSettlementsKey, JSON.stringify(payments));
   }
+  await refreshFinance();
 }
 
 async function toggleBillStatus(id) {
   const bill = financeCache.bills.find((item) => item.id === id);
   if (!bill) return;
   const status = bill.status === 'paid' ? 'pending' : 'paid';
-  bill.status = status;
-  const bills = readFinanceRecords(localBillsKey);
-  const index = bills.findIndex((item) => item.id === id);
-  if (index >= 0) { bills[index].status = status; localStorage.setItem(localBillsKey, JSON.stringify(bills)); }
-  renderFinance(financeCache);
+  if (financeInCloud()) {
+    const { error } = await supabaseClient.from('shared_bills').update({ status }).eq('id', id);
+    if (error) return showToast('No se pudo actualizar la factura');
+  } else {
+    const bills = readFinanceRecords(localBillsKey);
+    const index = bills.findIndex((item) => item.id === id);
+    if (index >= 0) { bills[index].status = status; localStorage.setItem(localBillsKey, JSON.stringify(bills)); }
+  }
+  await refreshFinance();
   showToast(status === 'paid' ? 'Factura marcada como pagada' : 'Factura marcada como pendiente');
-  if (supabaseClient && authUserId && !String(id).startsWith('umbral-')) {
-    supabaseClient.from('shared_bills').update({ status }).eq('id', id).then(({ error }) => { if (error) console.warn('[Umbral] No se sincronizó el estado de la factura:', error.message); });
-  }
-}
-
-async function toggleExpenseSettled(id) {
-  const expense = financeCache.expenses.find((item) => item.id === id);
-  if (!expense) return;
-  expense.settled = !Boolean(expense.settled);
-  const expenses = readFinanceRecords(localExpensesKey);
-  const index = expenses.findIndex((item) => item.id === id);
-  if (index >= 0) { expenses[index].settled = expense.settled; localStorage.setItem(localExpensesKey, JSON.stringify(expenses)); }
-  renderFinance(financeCache);
-  showToast(expense.settled ? 'Gasto marcado como saldado' : 'Gasto marcado como pendiente');
-  if (supabaseClient && authUserId && !String(id).startsWith('umbral-')) {
-    supabaseClient.from('shared_expenses').update({ settled: expense.settled }).eq('id', id).then(({ error }) => { if (error) console.warn('[Umbral] No se sincronizó el estado del gasto:', error.message); });
-  }
 }
 
 function financeRowFromImport(row) {
@@ -1423,8 +1437,20 @@ function financeRowFromImport(row) {
   const amountValue = values.amount || values.importe || values.total || values.cantidad || values.value;
   const amount = Number(String(amountValue || '').replace(',', '.').replace(/[^\d.-]/g, ''));
   if (!Number.isFinite(amount)) return null;
-  const description = String(values.description || values.descripcion || values.concept || values.concepto || values.name || 'Gasto importado');
-  return { description, amount, currency: 'EUR', paid_by: String(values.paidby || values.pagopor || values.payer || 'Ines').toLowerCase().includes('matteo') ? 'Matteo' : 'Ines', category: financeCategory(values.category || values.categoria, description), expense_date: values.date || values.fecha || new Date().toISOString().slice(0, 10), source: 'tricount', settled: false };
+  const description = String(values.description || values.descripcion || values.concept || values.concepto || values.name || 'Gasto importado').slice(0, 160);
+  const rawDate = values.date || values.fecha;
+  const expenseDate = rawDate instanceof Date ? dateToISO(rawDate) : String(rawDate || dateToISO(new Date())).slice(0, 10);
+  return { description, amount, currency: 'EUR', paid_by: String(values.paidby || values.pagopor || values.payer || 'Ines').toLowerCase().includes('matteo') ? 'Matteo' : 'Ines', category: financeCategory(values.category || values.categoria, description), expense_date: expenseDate, source: 'tricount', settled: false };
+}
+
+// Una referencia estable por fila evita duplicados si se importa el mismo archivo dos veces.
+function withFileReferences(rows) {
+  const occurrences = {};
+  return rows.map((row) => {
+    const base = `file:${row.expense_date}|${row.description}|${row.amount}|${row.paid_by}`;
+    occurrences[base] = (occurrences[base] || 0) + 1;
+    return { ...row, source_reference: `${base}#${occurrences[base]}` };
+  });
 }
 
 async function getSupabaseSessionToken() {
@@ -1434,61 +1460,26 @@ async function getSupabaseSessionToken() {
   return data.session.access_token;
 }
 
-async function syncFinanceImport(kind, rows) {
-  if (!supabaseClient) {
-    localStorage.setItem(kind === 'tricount' ? localExpensesKey : localBillsKey, JSON.stringify([...rows, ...readFinanceLocal(kind === 'tricount' ? localExpensesKey : localBillsKey)]));
-    return { ok: true, localOnly: true, imported: rows.length };
-  }
-
-  const sessionToken = await getSupabaseSessionToken();
-  if (!sessionToken) {
-    localStorage.setItem(kind === 'tricount' ? localExpensesKey : localBillsKey, JSON.stringify([...rows, ...readFinanceLocal(kind === 'tricount' ? localExpensesKey : localBillsKey)]));
-    return { ok: true, localOnly: true, imported: rows.length };
-  }
-
-  const endpoint = kind === 'tricount' ? 'tricount-sync' : 'invoice-ingest';
-  const payload = kind === 'tricount' ? { expenses: rows } : { invoices: rows };
-  const response = await fetch(`${supabaseConfig.url}/functions/v1/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionToken}`
-    },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || 'No se pudo sincronizar la importación');
-  }
-
-  return data;
-}
-
+// Devuelve cuántos gastos eran nuevos; los ya importados (misma source_reference) se ignoran.
 async function saveImportedExpenses(rows) {
+  if (financeInCloud()) {
+    const { data, error } = await supabaseClient.from('shared_expenses')
+      .upsert(rows.map((row) => ({ ...row, household_id: householdId, created_by: authUserId })), { onConflict: 'source_reference', ignoreDuplicates: true })
+      .select('id');
+    if (error) throw error;
+    await refreshFinance();
+    return data.length;
+  }
   const current = readFinanceRecords(localExpensesKey);
   const existingReferences = new Set(current.map((row) => row.source_reference).filter(Boolean));
   const savedRows = rows.filter((row) => !row.source_reference || !existingReferences.has(row.source_reference)).map((row) => ({ ...row, id: createLocalId() }));
-  if (!savedRows.length) {
-    financeCache.expenses = readFinanceRecords(localExpensesKey);
-    renderFinance(financeCache);
-    document.querySelector('#financeStatus').innerHTML = '<i data-lucide="check-circle-2"></i> Este Tricount ya estaba cargado.';
-    lucide.createIcons();
-    return { imported: 0, duplicate: true };
-  }
   localStorage.setItem(localExpensesKey, JSON.stringify([...savedRows, ...current]));
-  financeCache.expenses = readFinanceRecords(localExpensesKey);
-  renderFinance(financeCache);
-  document.querySelector('#financeStatus').innerHTML = `<i data-lucide="hard-drive"></i> ${savedRows.length} gastos nuevos guardados en este dispositivo.`;
-  lucide.createIcons();
+  await refreshFinance();
+  return savedRows.length;
+}
 
-  if (supabaseClient && authUserId) {
-    syncFinanceImport('tricount', rows).then((syncResult) => {
-      document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${syncResult.imported || rows.length} gastos sincronizados con Tricount.`;
-      lucide.createIcons();
-    }).catch((error) => console.warn('[Umbral] Importación local pendiente de nube:', error));
-  }
-  return { imported: savedRows.length, localOnly: true };
+function importResultMessage(imported) {
+  return imported ? `${imported} gasto${imported === 1 ? '' : 's'} nuevo${imported === 1 ? '' : 's'} importado${imported === 1 ? '' : 's'}` : 'No había gastos nuevos: ya estaba todo importado';
 }
 
 function normalizeSharedTricountData(payload) {
@@ -1506,7 +1497,7 @@ function normalizeSharedTricountData(payload) {
       currency: 'EUR',
       paid_by: payerName.toLowerCase().includes('matteo') ? 'Matteo' : 'Ines',
       category: allowedCategories.includes(category) ? category : 'Otros',
-      expense_date: String(expense.date || new Date().toISOString().slice(0, 10)).slice(0, 10),
+      expense_date: String(expense.date || dateToISO(new Date())).slice(0, 10),
       source: 'tricount',
       source_reference: `${payload.tricountId || 'shared'}:${expense.id || index}`
     };
@@ -1530,9 +1521,9 @@ document.querySelector('#financeShareForm').addEventListener('submit', async (ev
     if (!response.ok) throw new Error(result.error || 'No se pudo cargar el Tricount compartido');
     const rows = normalizeSharedTricountData(result);
     if (!rows.length) throw new Error('El enlace no contiene gastos importables');
-    await saveImportedExpenses(rows);
+    const imported = await saveImportedExpenses(rows);
     form.reset();
-    showToast(`${rows.length} gastos de Tricount añadidos`);
+    showToast(importResultMessage(imported));
   } catch (error) {
     reportAppError(error);
     showToast(error.message || 'No se pudo importar el Tricount');
@@ -1545,16 +1536,35 @@ document.querySelector('#financeShareForm').addEventListener('submit', async (ev
 
 document.querySelector('#expenseForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual', settled: Boolean(form.get('settled')) };
-  try { await saveFinanceEntity('expense', expense); event.currentTarget.reset(); event.currentTarget.date.value = new Date().toISOString().slice(0, 10); setFinanceFormButton(event.currentTarget, 'Añadir gasto', 'plus'); financeCache.expenses = readFinanceRecords(localExpensesKey); renderFinance(financeCache); showToast('Gasto guardado'); } catch (error) { reportAppError(error); showToast('No se pudo guardar el gasto'); }
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
+  const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual', settled: false };
+  try {
+    await saveFinanceEntity('expense', expense);
+    formElement.reset();
+    formElement.date.value = dateToISO(new Date());
+    setFinanceFormButton(formElement, 'Añadir gasto', 'plus');
+    showToast('Gasto guardado');
+  } catch (error) {
+    reportAppError(error);
+    showToast('No se pudo guardar el gasto');
+  }
 });
 
 document.querySelector('#billForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   const bill = { provider: form.get('provider'), description: form.get('description').trim(), amount: Number(form.get('amount')), due_date: form.get('dueDate') || null, billing_period: form.get('billingPeriod')?.trim() || null, paid_by: form.get('paidBy'), source: 'manual', status: 'pending' };
-  try { await saveFinanceEntity('bill', bill); event.currentTarget.reset(); setFinanceFormButton(event.currentTarget, 'Añadir factura', 'plus'); financeCache.bills = readFinanceRecords(localBillsKey); renderFinance(financeCache); showToast('Factura guardada'); } catch (error) { reportAppError(error); showToast('No se pudo guardar la factura'); }
+  try {
+    await saveFinanceEntity('bill', bill);
+    formElement.reset();
+    setFinanceFormButton(formElement, 'Añadir factura', 'plus');
+    showToast('Factura guardada');
+  } catch (error) {
+    reportAppError(error);
+    showToast('No se pudo guardar la factura');
+  }
 });
 
 document.querySelector('#addFixedCost').addEventListener('click', () => {
@@ -1564,18 +1574,16 @@ document.querySelector('#addFixedCost').addEventListener('click', () => {
 });
 document.querySelector('#fixedCostForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const form = new FormData(formElement);
   const fixed = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), active: true };
   try {
-    const result = await saveFinanceEntity('fixed', fixed);
-    event.currentTarget.reset();
-    event.currentTarget.hidden = true;
-    financeCache.fixedCosts = getLocalFixedCosts();
-    renderFinance(financeCache);
-    showToast(result?.localOnly ? 'Guardado en este dispositivo; falta configurar la tabla compartida' : 'Gasto fijo guardado');
+    await saveFinanceEntity('fixed', fixed);
+    formElement.reset();
+    formElement.hidden = true;
+    showToast('Gasto fijo guardado');
   } catch (error) {
-    document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> ${escapeHtml(error.message || 'No se pudo guardar el gasto fijo')}`;
-    lucide.createIcons();
+    reportAppError(error);
     showToast('No se pudo guardar el gasto fijo');
   }
 });
@@ -1595,10 +1603,6 @@ document.querySelector('#financeCategoryBreakdown').addEventListener('click', (e
   document.querySelector('#expenseList').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 document.querySelector('#expenseList').addEventListener('click', (event) => {
-  const settled = event.target.closest('[data-expense-settled]');
-  if (settled) toggleExpenseSettled(settled.dataset.expenseSettled);
-});
-document.querySelector('#expenseList').addEventListener('click', (event) => {
   const edit = event.target.closest('[data-expense-edit]');
   const remove = event.target.closest('[data-expense-delete]');
   if (edit) startFinanceEdit('expense', edit.dataset.expenseEdit);
@@ -1614,25 +1618,26 @@ document.querySelector('#billList').addEventListener('click', (event) => {
 });
 
 document.querySelector('#financeImport').addEventListener('change', async (event) => {
-  const file = event.target.files[0];
+  const input = event.currentTarget;
+  const file = input.files[0];
   if (!file || !window.XLSX) return;
   try {
-    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(financeRowFromImport).filter(Boolean);
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const rows = withFileReferences(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(financeRowFromImport).filter(Boolean));
     if (!rows.length) throw new Error('No hay gastos reconocibles');
-    await saveImportedExpenses(rows); await refreshFinance(); showToast(`${rows.length} gastos importados`);
+    showToast(importResultMessage(await saveImportedExpenses(rows)));
   } catch (error) {
     document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> ${escapeHtml(error.message || 'No se pudo interpretar el archivo de Tricount')}`;
     lucide.createIcons();
-    showToast('No se pudo interpretar el archivo de Tricount');
+    showToast('No se pudo importar el archivo');
   }
-  event.target.value = '';
+  input.value = '';
 });
 
 document.querySelector('#exportFinance').addEventListener('click', async () => {
   const data = await getFinanceData();
   const entries = financeEntries(data);
-  const settlement = calculateFinanceSettlement(entries);
+  const settlement = calculateFinanceSettlement(entries, data.settlements);
   const workbook = XLSX.utils.book_new();
   const expenseRows = data.expenses.map((expense) => ({ Fecha: expense.expense_date, Descripción: expense.description, Categoría: expense.category || 'Otros', Importe: Number(expense.amount || 0), 'Pagó': expense.paid_by || 'Ines', 'Parte de cada uno': Number(expense.amount || 0) / 2, Fuente: financeSourceLabel(expense.source) }));
   const fixedRows = data.fixedCosts.map((fixed) => ({ Concepto: fixed.description, Categoría: fixed.category, 'Importe mensual': Number(fixed.amount || 0), 'Pagó': fixed.paid_by || 'Ines', Reparto: '50/50', Fuente: 'Fijo' }));
@@ -1644,7 +1649,7 @@ document.querySelector('#exportFinance').addEventListener('click', async () => {
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(billRows), 'Facturas');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(categoryRows), 'Por categorías');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(settlementRows), 'Liquidación');
-  XLSX.writeFile(workbook, `umbral-finanzas-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.writeFile(workbook, `umbral-finanzas-${dateToISO(new Date())}.xlsx`);
   showToast('Excel detallado exportado');
 });
 
@@ -1657,20 +1662,27 @@ document.querySelector('#closeFinance').addEventListener('click', () => history.
 document.querySelector('#openSettlementForm').addEventListener('click', () => {
   const form = document.querySelector('#settlementForm');
   form.hidden = !form.hidden;
-  if (!form.hidden) form.paymentDate.value = new Date().toISOString().slice(0, 10);
+  if (!form.hidden) form.paymentDate.value = dateToISO(new Date());
 });
 document.querySelector('#settlementForm').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const values = new FormData(event.currentTarget);
+  const formElement = event.currentTarget;
+  const values = new FormData(formElement);
   const from = values.get('from');
   const to = values.get('to');
   const amount = Number(values.get('amount'));
   if (from === to || !Number.isFinite(amount) || amount <= 0) return showToast('Indica dos personas distintas y un importe válido');
-  await saveSettlementPayment({ from, to, amount, payment_date: values.get('paymentDate'), note: String(values.get('note') || '').trim() || null });
-  event.currentTarget.reset();
-  event.currentTarget.hidden = true;
+  try {
+    await saveSettlementPayment({ from, to, amount, payment_date: values.get('paymentDate'), note: String(values.get('note') || '').trim() || null });
+    formElement.reset();
+    formElement.hidden = true;
+    showToast('Pago registrado en la liquidación');
+  } catch (error) {
+    reportAppError(error);
+    showToast('No se pudo registrar el pago');
+  }
 });
-document.querySelector('#expenseForm').date.value = new Date().toISOString().slice(0, 10);
+document.querySelector('#expenseForm').date.value = dateToISO(new Date());
 
 function showToast(message) {
   toastMessage.textContent = message;
@@ -1680,18 +1692,13 @@ function showToast(message) {
 }
 
 document.querySelectorAll('[data-action]').forEach((action) => {
-  action.addEventListener('click', () => {
+  action.addEventListener('click', (event) => {
+    // El botón "+ Nota" está dentro de la tarjeta de notas: sin esto se abriría dos veces.
+    event.stopPropagation();
     const type = action.dataset.action;
 
     if (type === 'calendar') {
-      setWorkspace('personal');
-      showToast('Tu próxima cita es a las 10:30 en el estudio');
-      document.querySelector('#agenda-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    if (type === 'news') {
-      setWorkspace('personal');
-      document.querySelector('#news-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      openCalendar();
     }
 
     if (type === 'notes') {
@@ -1703,31 +1710,20 @@ document.querySelectorAll('[data-action]').forEach((action) => {
     }
 
     if (type === 'lights') {
-      setWorkspace('home');
+      setWorkspace('casa');
       document.querySelector('#smartLightsTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 });
 
-document.querySelector('#refreshButton').addEventListener('click', (event) => {
-  const icon = event.currentTarget.querySelector('svg');
-  icon.classList.add('spin');
-  updateWeather().then((updated) => {
-    if (updated) showToast('Tiempo actualizado hace un momento');
-  });
-  setTimeout(() => icon.classList.remove('spin'), 500);
-});
-
-document.querySelector('#toggleAllLightsButton').addEventListener('click', () => {
+document.querySelector('#toggleAllLightsButton').addEventListener('click', async () => {
   const shouldTurnOn = smartLights.some((light) => !light.powered);
-  smartLights.forEach(async (light) => {
-    try {
-      await callSmartHomeCommand(light.id, shouldTurnOn);
-      setSmartLightState(light.id, shouldTurnOn);
-    } catch (error) {
-      showToast(error.message || 'No se pudo cambiar el estado de la luz');
-    }
-  });
+  const results = await Promise.allSettled(smartLights.map(async (light) => {
+    await callSmartHomeCommand(light.id, shouldTurnOn);
+    setSmartLightState(light.id, shouldTurnOn);
+  }));
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed) return showToast(failed.reason?.message || 'No se pudo cambiar el estado de alguna luz');
   showToast(shouldTurnOn ? 'Todas las luces encendidas' : 'Todas las luces apagadas');
 });
 
@@ -1741,19 +1737,12 @@ function setWorkspace(view) {
   document.querySelectorAll('[data-space]').forEach((section) => {
     section.classList.toggle('is-hidden', section.dataset.space !== view);
   });
-  document.querySelectorAll('[data-space-target]').forEach((tab) => {
-    const selected = tab.dataset.spaceTarget === view;
-    tab.classList.toggle('active', selected);
-    tab.setAttribute('aria-selected', String(selected));
-  });
   document.querySelectorAll('.nav-item[data-view-target]').forEach((item) => {
-    item.classList.toggle('active', item.dataset.viewTarget === view);
+    const selected = item.dataset.viewTarget === view;
+    item.classList.toggle('active', selected);
+    item.toggleAttribute('aria-current', selected);
   });
 }
-
-document.querySelectorAll('[data-space-target]').forEach((tab) => {
-  tab.addEventListener('click', () => setWorkspace(tab.dataset.spaceTarget));
-});
 
 document.querySelectorAll('.nav-item').forEach((item) => {
   item.addEventListener('click', () => {
@@ -1762,13 +1751,11 @@ document.querySelectorAll('.nav-item').forEach((item) => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (item.querySelector('span')?.textContent === 'Ajustes') {
-      document.querySelector('#accountModal').classList.add('visible');
+    if ('navSettings' in item.dataset) {
+      if (supabaseClient && authUserId) document.querySelector('#accountModal').classList.add('visible');
+      else if (supabaseConfigured) authModal.classList.add('visible');
       lucide.createIcons();
-      return;
     }
-    const sectionName = item.querySelector('span').textContent;
-    showToast(`${sectionName}: próximamente`);
   });
 });
 
@@ -1790,8 +1777,17 @@ document.querySelector('.brand').addEventListener('click', (event) => {
   }
 });
 
+function renderGreeting() {
+  const hour = new Date().getHours();
+  document.querySelector('#greetingWord').textContent = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 21 ? 'Buenas tardes' : 'Buenas noches';
+  document.querySelector('#todayLabel').textContent = formatToday();
+}
+
+window.umbralScene?.mount(document.querySelector('#homeStateVisual'));
 setWorkspace('home');
+renderGreeting();
 updateWeather();
+setInterval(() => { renderGreeting(); updateWeather(); }, 30 * 60 * 1000);
 connectNotes();
 loadNews();
 renderSmartLights();
