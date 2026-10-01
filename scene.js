@@ -5,7 +5,13 @@
 // - el estado de la casa: luces encendidas por habitación, facturas pendientes
 //   (bandera del buzón) y notas urgentes (pósit en la puerta),
 // - y a Ines y Matteo, que van cambiando de plan según la hora y el tiempo,
-//   vestidos según la temperatura (ver PEOPLE, WARDROBE y eligibleActs).
+//   vestidos según la temperatura (ver PEOPLE, WARDROBE y eligibleActs),
+// - vuestras plantas reales junto a la puerta (tocarlas abre su ficha) y el riego,
+// - los días especiales (cumpleaños, aniversario, viajes) y la decoración de temporada
+//   (Halloween, Navidad, Nochevieja, San Valentín),
+// - y al tocarlos dicen algo según el día: la cena, la cuenta atrás, una planta con sed…
+// Al tocar el buzón, la nota de la puerta o una planta se lanza el evento
+// 'umbral:scene-tap' con { target } o { plant }.
 // Uso: umbralScene.mount(elemento) y umbralScene.update({ ...datos parciales }).
 (function () {
   'use strict';
@@ -135,30 +141,32 @@
   }
 
   // ---------- Ines y Matteo ----------
-  // Ines: pelo castaño oscuro largo con flequillo, ojos marrones. Matteo: castaño con
-  // volumen, ojos claros y más alto.
+  // Como en su foto. Ines: pelo castaño liso por debajo de los hombros con flequillo,
+  // ojos marrones, aros dorados, top negro y vaqueros anchos claros. Matteo: más alto,
+  // pelo castaño oscuro con volumen, ojos claros y camiseta negra.
   const PEOPLE = {
-    ines: { name: 'Ines', scale: 1, skin: '#dca07a', hair: '#2b1a12', eyes: '#5a3420' },
-    matteo: { name: 'Matteo', scale: 1.14, skin: '#f0c7a3', hair: '#6b4529', eyes: '#4f97b8' }
+    ines: { name: 'Ines', scale: 1, skin: '#f1c7a5', hair: '#4a2a1a', eyes: '#5a3420' },
+    matteo: { name: 'Matteo', scale: 1.16, skin: '#efc6a2', hair: '#33221a', eyes: '#5f8fa8' }
   };
 
   // Ropa según la temperatura. sleeve/shin 'skin' = manga corta / pantalón corto.
+  // wide: vaqueros anchos (los de Ines).
   const WARDROBE = {
     hot: {
-      ines: { top: '#f28b74', sleeve: 'skin', pants: '#86a9d4', shin: 'skin', shoe: '#f6f0e6' },
-      matteo: { top: '#f5f1e6', sleeve: 'skin', pants: '#7f9a6f', shin: 'skin', shoe: '#3d4a5c' }
+      ines: { top: '#1f1e24', sleeve: 'skin', pants: '#a9c7e3', shin: 'skin', shoe: '#f6f0e6' },
+      matteo: { top: '#1f1e24', sleeve: 'skin', pants: '#c9b48f', shin: 'skin', shoe: '#f2efe8' }
     },
     warm: {
-      ines: { top: '#f28b74', sleeve: 'skin', pants: '#46679a', shoe: '#f6f0e6' },
-      matteo: { top: '#f5f1e6', sleeve: 'skin', pants: '#4b5d78', shoe: '#3d4a5c' }
+      ines: { top: '#1f1e24', sleeve: 'skin', pants: '#a9c7e3', wide: true, shoe: '#f6f0e6' },
+      matteo: { top: '#1f1e24', sleeve: 'skin', pants: '#3d4f6e', shoe: '#f2efe8' }
     },
     mild: {
-      ines: { top: '#c9674a', pants: '#3f5c8a', shoe: '#6a4a3a' },
-      matteo: { top: '#4c79a8', pants: '#6b5a48', shoe: '#3d4a5c' }
+      ines: { top: '#1f1e24', pants: '#a9c7e3', wide: true, shoe: '#2a292e' },
+      matteo: { top: '#1f1e24', pants: '#3d4f6e', shoe: '#2f2f36' }
     },
     cold: {
-      ines: { top: '#b8834f', coat: '#b8834f', scarf: '#c8423b', hat: '#a33d5b', pants: '#2f3a4f', shoe: '#5a3e30' },
-      matteo: { top: '#34466b', coat: '#34466b', scarf: '#e0a83e', hat: '#707a86', pants: '#2f2f36', shoe: '#2f2f36' }
+      ines: { top: '#b8834f', coat: '#b8834f', scarf: '#c8423b', hat: '#a33d5b', pants: '#a9c7e3', wide: true, shoe: '#5a3e30' },
+      matteo: { top: '#2b2b31', coat: '#2b2b31', scarf: '#e0a83e', hat: '#707a86', pants: '#3d4f6e', shoe: '#2f2f36' }
     },
     rain: {
       ines: { top: '#f2c230', coat: '#f2c230', boot: '#e05a4f', pants: '#3f5c8a', shoe: '#e05a4f' },
@@ -178,12 +186,41 @@
     stargaze: { place: 'out', label: 'miran las estrellas' },
     movie: { place: 'in', room: 'salon', label: 'ven una película en el salón' },
     cook: { place: 'in', room: 'cocina', label: 'cocinan juntos' },
-    sleep: { place: 'in', label: 'duermen' }
+    sleep: { place: 'in', label: 'duermen' },
+    water: { place: 'out', label: 'riegan las plantas' },
+    birthday: { place: 'out', label: 'celebran un cumpleaños' },
+    anniversary: { place: 'out', label: 'celebran su aniversario' },
+    pack: { place: 'out', label: 'preparan las maletas' },
+    away: { place: 'in', label: 'están de viaje' }
   };
 
+  // Días especiales: mandan sobre el plan del momento (salvo de madrugada).
+  function specialAct({ minutes, condition, nightness }) {
+    if (state.trip === 'away') return 'away';
+    if (minutes >= 30 && minutes < 7 * 60) return null;
+    if (state.birthday) return 'birthday';
+    if (state.anniversary) return 'anniversary';
+    if (state.trip === 'leaving' && nightness < 0.6 && !['rain', 'storm'].includes(condition)) return 'pack';
+    return null;
+  }
+
+  // Decoración de temporada (o la que se fuerce con update({ decor })).
+  function decorFor(date) {
+    if (state.decor !== undefined && state.decor !== null) return state.decor;
+    const month = date.getMonth();
+    const day = date.getDate();
+    if ((month === 9 && day >= 15) || (month === 10 && day <= 2)) return 'halloween';
+    if (month === 11 || (month === 0 && day <= 6)) return 'christmas';
+    if (month === 1 && day >= 7 && day <= 14) return 'valentine';
+    return '';
+  }
+  const isNewYearNight = (date) => (date.getMonth() === 11 && date.getDate() === 31 && date.getHours() >= 20) || (date.getMonth() === 0 && date.getDate() === 1 && date.getHours() < 3);
+
   // Lista con pesos (repetir = más probable) de lo que tiene sentido ahora.
-  function eligibleActs({ condition, nightness, temperature, minutes, season }) {
+  function eligibleActs({ condition, nightness, temperature, minutes, season, thirsty }) {
     if (minutes >= 30 && minutes < 7 * 60) return ['sleep'];
+    // Una planta con sed y de día sin llover: lo más probable es que la rieguen.
+    const watering = thirsty && nightness < 0.5 && !['drizzle', 'rain', 'storm', 'snow'].includes(condition) ? ['water', 'water', 'water'] : [];
     const mealtime = (minutes >= 12 * 60 + 30 && minutes <= 14 * 60 + 30) || (minutes >= 19 * 60 + 30 && minutes <= 21 * 60 + 30);
     const indoor = ['movie', 'movie', ...(mealtime ? ['cook', 'cook'] : [])];
     const wet = ['drizzle', 'rain'].includes(condition);
@@ -194,6 +231,7 @@
     }
     if (wet) return ['puddles', 'puddles', 'umbrella', ...(mealtime ? ['cook'] : [])];
     if (condition === 'snow') return ['snowball', 'snowball', 'wave', 'hug'];
+    if (watering.length) return watering;
     const sunny = ['clear', 'partly'].includes(condition);
     const out = [...(sunny ? ['wave', 'wave'] : ['wave']), 'hug', 'dance'];
     if (season === 'autumn') out.push('leaves', 'leaves');
@@ -210,9 +248,11 @@
     return 'hot';
   }
 
-  const armMarkup = (side, x, y) => `<g transform="translate(${x} ${y})"><g class="ch-arm ch-arm-${side}">
-      <path class="ch-sleeve" d="M0 0 V8"></path><path class="ch-cuff" d="M0 0 V2.6"></path><circle class="ch-hand" cx="0" cy="9" r="1.3"></circle>
+  const armMarkup = (side, x, y, extra = '') => `<g transform="translate(${x} ${y})"><g class="ch-arm ch-arm-${side}">
+      <path class="ch-sleeve" d="M0 0 V8"></path><path class="ch-cuff" d="M0 0 V2.6"></path><circle class="ch-hand" cx="0" cy="9" r="1.3"></circle>${extra}
     </g></g>`;
+  // Regadera en la mano derecha de Ines.
+  const CAN = '<g class="ch-can"><rect x="-2.6" y="8.6" width="4.6" height="3.8" rx=".7"></rect><path d="M2 9.6 L5.4 7.6" class="ch-can-spout"></path><path d="M-2.6 9.4 q-1.6 1.4 0 2.6" class="ch-can-handle"></path></g>';
 
   const HAIR_FRONT = {
     // Flequillo recto con las puntas un poco desfiladas.
@@ -229,10 +269,11 @@
       <ellipse class="ch-shadow" cx="0" cy="0" rx="6.5" ry="1.4"></ellipse>
       <g class="ch-splash">${splash}</g>
       <g class="ch-body">
-        ${key === 'ines' ? '<path class="ch-hair" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.7 9.4 q-6 2.2 -12 0 z"></path>' : ''}
+        ${key === 'ines' ? '<path class="ch-hair" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.9 11.4 q-6.2 2.2 -12.4 0 z"></path>' : ''}
         <rect class="ch-thigh" x="-3.5" y="-12.5" width="3" height="6.5" rx=".8"></rect><rect class="ch-thigh" x=".5" y="-12.5" width="3" height="6.5" rx=".8"></rect>
         <rect class="ch-shin" x="-3.3" y="-6.6" width="2.6" height="5.4"></rect><rect class="ch-shin" x=".7" y="-6.6" width="2.6" height="5.4"></rect>
         <rect class="ch-shoe" x="-4.1" y="-1.9" width="3.7" height="1.9" rx=".9"></rect><rect class="ch-shoe" x=".4" y="-1.9" width="3.7" height="1.9" rx=".9"></rect>
+        <path class="ch-wide" d="M-3.7 -12.6 H-.3 L.1 -1.2 H-5 Z M.3 -12.6 H3.7 L5 -1.2 H-.1 Z"></path>
         <rect class="ch-boot" x="-3.9" y="-4.6" width="3.5" height="4.6" rx=".9"></rect><rect class="ch-boot" x=".4" y="-4.6" width="3.5" height="4.6" rx=".9"></rect>
         <path class="ch-torso" d="M-4.4 -11.6 v-8.4 q0 -2.2 2.2 -2.2 h4.4 q2.2 0 2.2 2.2 v8.4 z"></path>
         <path class="ch-coat" d="M-4.9 -8.6 v-11.4 q0 -2.4 2.4 -2.4 h5 q2.4 0 2.4 2.4 v11.4 z"></path>
@@ -240,7 +281,7 @@
         <rect class="ch-neck" x="-1" y="-23.6" width="2" height="2"></rect>
         <g class="ch-scarf"><rect x="-3.4" y="-23.2" width="6.8" height="2.4" rx="1.1"></rect><rect x="1" y="-21.6" width="2" height="5" rx=".8"></rect></g>
         ${armMarkup('l', -4.2, -20.4)}
-        ${armMarkup('r', 4.2, -20.4)}
+        ${armMarkup('r', 4.2, -20.4, key === 'ines' ? CAN : '')}
         <g class="ch-head">
           <circle class="ch-face" cx="0" cy="-27" r="4.8"></circle>
           <g class="ch-eyes"><circle cx="-1.7" cy="-26.6" r=".9"></circle><circle cx="1.7" cy="-26.6" r=".9"></circle></g>
@@ -248,9 +289,12 @@
           <circle class="ch-cheek" cx="-3" cy="-25" r=".9"></circle><circle class="ch-cheek" cx="3" cy="-25" r=".9"></circle>
           <path class="ch-mouth" d="M-1.1 -24.5 q1.1 1 2.2 0"></path>
           <path class="ch-hair" d="${HAIR_FRONT[key]}"></path>
+          ${key === 'ines' ? '<g class="ch-earrings"><circle cx="-4.9" cy="-25.2" r=".8"></circle><circle cx="4.9" cy="-25.2" r=".8"></circle></g>' : ''}
           <g class="ch-shades"><rect x="-3.2" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x=".3" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x="-.4" y="-27.1" width=".8" height=".45"></rect></g>
           <g class="ch-hat"><path d="M-5 -28.8 q0 -6 5 -6 q5 0 5 6 z"></path><rect x="-5.4" y="-29.6" width="10.8" height="2.1" rx="1"></rect><circle cx="0" cy="-35" r="1.4"></circle></g>
           <path class="ch-hood" d="M-6 -24.6 q-.7 -9.6 6 -9.6 q6.7 0 6 9.6 q-.9 -4.9 -6 -5.2 q-5.1 .3 -6 5.2 z"></path>
+          <g class="ch-santa"><path d="M-5.2 -29.4 q1.4 -7.4 6.6 -6.8 q3.4 .6 5.6 4.6 l-1.6 .8 q-1.4 -2.2 -3.2 -2.6 l3.6 4 z"></path><rect x="-5.6" y="-30.2" width="11.2" height="2.2" rx="1.1"></rect><circle cx="6.6" cy="-31.2" r="1.3"></circle></g>
+          <g class="ch-party"><path d="M-2.8 -31.2 L0 -39.6 L2.8 -31.2 Z"></path><path class="ch-party-stripe" d="M-1.9 -33.8 L1.9 -33.8 M-1 -36.6 L1 -36.6"></path><circle cx="0" cy="-40" r="1"></circle></g>
         </g>
         ${key === 'matteo' ? `<g class="ch-umbrella">
           <path class="ch-umbrella-stick" d="M-6.6 -29.2 L-8.6 -49"></path>
@@ -277,6 +321,17 @@
         <rect class="sc-snowman-scarf" x="-3.6" y="-17.2" width="7.2" height="1.6" rx=".8"></rect>
       </g>
       <path class="sc-leafpile" d="M197 189 q2 -6 7 -5.5 q3 -3 7 -.5 q4 -1.6 6 2 q3 1.4 2 4 z"></path>
+      <g class="sc-luggage">
+        <g transform="translate(180 189)"><rect class="sc-case" x="0" y="-11" width="8" height="11" rx="1.4"></rect><path class="sc-case-handle" d="M2.4 -11 v-2.2 h3.2 v2.2"></path><rect class="sc-case-band" x="0" y="-6.2" width="8" height="1.2"></rect></g>
+        <g transform="translate(236 189)"><rect class="sc-case sc-case-b" x="0" y="-13" width="9.6" height="13" rx="1.6"></rect><path class="sc-case-handle" d="M3 -13 v-2.4 h3.6 v2.4"></path><rect class="sc-case-band" x="0" y="-7.4" width="9.6" height="1.2"></rect></g>
+      </g>
+      <g class="sc-cake" transform="translate(209 189)">
+        <rect class="sc-cake-stand" x="-1" y="-6" width="2" height="6"></rect><rect class="sc-cake-stand" x="-6" y="-7" width="12" height="1.4" rx=".7"></rect>
+        <rect class="sc-cake-base" x="-5" y="-13" width="10" height="6" rx="1.2"></rect><path class="sc-cake-icing" d="M-5 -11.6 q1.25 1.6 2.5 0 q1.25 1.6 2.5 0 q1.25 1.6 2.5 0 q1.25 1.6 2.5 0 V-12 q0 -1 -1.2 -1 h-7.6 q-1.2 0 -1.2 1 z"></path>
+        <path class="sc-candles" d="M-2.6 -13 v-3 M0 -13 v-3 M2.6 -13 v-3"></path>
+        <g class="sc-flames"><ellipse cx="-2.6" cy="-17" rx=".7" ry="1.1"></ellipse><ellipse cx="0" cy="-17" rx=".7" ry="1.1"></ellipse><ellipse cx="2.6" cy="-17" rx=".7" ry="1.1"></ellipse></g>
+      </g>
+      <g class="sc-balloon"><path class="sc-balloon-string" d="M226 166 q-3 -10 0 -20"></path><path class="sc-balloon-heart" d="M226 146 c-3.4 -3.4 -8.4 -.8 -6.2 3.4 l6.2 6.2 l6.2 -6.2 c2.2 -4.2 -2.8 -6.8 -6.2 -3.4 z" transform="translate(0 -12)"></path></g>
       ${personMarkup('ines')}
       ${personMarkup('matteo')}
       <circle class="sc-snowball" r="1.5"></circle>
@@ -440,14 +495,29 @@
         ${windowMarkup('salon', 160, 124, 28, 24, movieMarkup())}
         ${windowMarkup('cocina', 228, 124, 28, 24, cookMarkup())}
         <g class="sc-plant"><rect x="188.5" y="154" width="8" height="6" rx="1"></rect><path d="M192.5 154 q-5 -6 -2 -9 M192.5 154 q1 -8 5 -8 M192.5 154 q-1 -5 -5 -5"></path></g>
+        <g class="sc-my-plants"></g>
+        <g class="sc-water-drops">${Array.from({ length: 5 }, (_, index) => `<ellipse rx=".55" ry=".9" style="--delay:${(-index * 0.16).toFixed(2)}s;--wx:${(index % 3) * 0.8}px"></ellipse>`).join('')}</g>
         <path class="sc-door" d="M198 160 V135 a10 10 0 0 1 20 0 V160 Z"></path>
         <circle class="sc-knob" cx="213.5" cy="147" r="1.3"></circle>
-        <g class="sc-door-note"><rect x="202.5" y="136" width="7" height="7" rx=".6" transform="rotate(-7 206 139.5)"></rect></g>
+        <g class="sc-door-note" data-scene-target="pendientes"><rect x="202.5" y="136" width="7" height="7" rx=".6" transform="rotate(-7 206 139.5)"></rect></g>
+        <g class="sc-wreath"><circle cx="208" cy="138.4" r="4.4"></circle><circle class="sc-wreath-berry" cx="205.4" cy="135.6" r=".8"></circle><circle class="sc-wreath-berry" cx="211.2" cy="140.6" r=".8"></circle><path class="sc-wreath-bow" d="M208 142.4 l-2.4 1.8 v-3 z M208 142.4 l2.4 1.8 v-3 z"></path></g>
+        <g class="sc-away-sign"><path class="sc-away-string" d="M203 133.5 L208 129.5 L213 133.5"></path><rect x="200" y="133.5" width="16" height="7" rx="1"></rect><text class="sc-away-text" x="208" y="138.6" text-anchor="middle">De viaje</text></g>
+        <g class="sc-cobweb"><path d="M150 97 L163 97 M150 97 L150 110 M150 97 L161 108 M150 97 L157 110 M150 97 L162 102 M153.6 97 q.4 3.2 -3.6 3.6 M157.6 97 q.6 6.4 -7.6 7.6 M161.2 97 q1 9.6 -11.2 11.2"></path><circle cx="156" cy="106" r=".9"></circle><path d="M156 97 V105"></path></g>
+        <g class="sc-bunting"><path class="sc-bunting-line" d="M150 96 Q208 108 266 96"></path>${Array.from({ length: 11 }, (_, index) => { const x = 155 + index * 10.6; const t = (x - 150) / 116; const y = 96 + 12 * 2 * t * (1 - t); return `<path class="sc-flag-${index % 4}" d="M${(x - 2.8).toFixed(1)} ${y.toFixed(1)} L${(x + 2.8).toFixed(1)} ${y.toFixed(1)} L${x.toFixed(1)} ${(y + 5.4).toFixed(1)} Z"></path>`; }).join('')}</g>
+        <g class="sc-xmas-lights">${Array.from({ length: 18 }, (_, index) => `<circle cx="${(142 + index * 7.8).toFixed(1)}" cy="${(96 + (index % 2) * 1.6).toFixed(1)}" r="1.3" class="sc-bulb-${index % 4}" style="--delay:${(-(index % 3) * 0.5).toFixed(1)}s"></circle>`).join('')}</g>
+        <g class="sc-valentine">${[[174, 131], [242, 131], [175, 104], [241, 104]].map(([x, y]) => `<path d="${HEART}" transform="translate(${x} ${y}) scale(.9)"></path>`).join('')}</g>
         <rect class="sc-trim" x="195" y="159" width="26" height="3" rx="1"></rect>
         <g class="sc-porch"><circle class="sc-porch-glow" cx="224" cy="133" r="4.5"></circle><rect class="sc-porch-lamp" x="222.4" y="130" width="3.2" height="5" rx="1"></rect></g>
       </g>
 
-      <g class="sc-mailbox">
+      <g class="sc-pumpkins">${[[188, 161, 1], [228, 161, 0.85], [266, 161, 1.1]].map(([x, y, scale]) => `<g transform="translate(${x} ${y}) scale(${scale})"><ellipse class="sc-pumpkin" cx="0" cy="-3.6" rx="4.6" ry="3.6"></ellipse><path class="sc-pumpkin-rib" d="M-1.6 -7 q-1.4 3.4 0 6.8 M1.6 -7 q1.4 3.4 0 6.8"></path><path class="sc-pumpkin-stem" d="M0 -7 q.4 -1.6 1.6 -2"></path><path class="sc-pumpkin-face" d="M-2.4 -4.8 l1 -1.2 l1 1.2 z M.4 -4.8 l1 -1.2 l1 1.2 z M-2.2 -2.6 q2.2 1.6 4.4 0 l-.8 .2 l-.6 -.6 l-.6 .6 l-.6 -.6 l-.6 .6 z"></path></g>`).join('')}</g>
+      <g class="sc-xmas-tree" transform="translate(372 178)">
+        <rect class="sc-xmas-trunk" x="-1.6" y="-4" width="3.2" height="4"></rect>
+        <path class="sc-xmas-fir" d="M0 -32 L-8 -20 H-4 L-11 -10 H-6 L-13 -3 H13 L6 -10 H11 L4 -20 H8 Z"></path>
+        ${[[-4, -22], [3, -17], [-6, -12], [5, -8], [-2, -6], [0, -27]].map(([x, y], index) => `<circle class="sc-bulb-${index % 4}" cx="${x}" cy="${y}" r="1.1" style="--delay:${(-index * 0.4).toFixed(1)}s"></circle>`).join('')}
+        <path class="sc-xmas-star" d="M0 -36.4 l1.2 2.6 l2.8 .3 l-2.1 1.9 l.6 2.8 l-2.5 -1.5 l-2.5 1.5 l.6 -2.8 l-2.1 -1.9 l2.8 -.3 z"></path>
+      </g>
+      <g class="sc-mailbox" data-scene-target="finance">
         <rect class="sc-mailbox-post" x="140.5" y="152" width="3" height="14"></rect>
         <rect class="sc-mailbox-box" x="133" y="143" width="18" height="10" rx="4"></rect>
         <g class="sc-flag"><rect x="150" y="137" width="1.6" height="11"></rect><rect x="150" y="137" width="7" height="4.2" rx=".6"></rect></g>
@@ -458,6 +528,14 @@
 
       <g class="sc-leaves">${leaves}</g>
       <g class="sc-fireflies">${fireflies}</g>
+      <g class="sc-bats">
+        <path class="sc-bat" d="M0 0 q2 -3 4 -1 q1 -2 2 0 q1 -2 2 0 q2 -2 4 1 q-3 -1 -4 1.4 q-1 -1 -2 0 q-1 -1 -2 0 q-1 -2.4 -4 -1.4z" style="--y:40px;--delay:0s;--dur:11s"></path>
+        <path class="sc-bat" d="M0 0 q2 -3 4 -1 q1 -2 2 0 q1 -2 2 0 q2 -2 4 1 q-3 -1 -4 1.4 q-1 -1 -2 0 q-1 -1 -2 0 q-1 -2.4 -4 -1.4z" style="--y:58px;--delay:-4s;--dur:13s"></path>
+        <path class="sc-bat" d="M0 0 q2 -3 4 -1 q1 -2 2 0 q1 -2 2 0 q2 -2 4 1 q-3 -1 -4 1.4 q-1 -1 -2 0 q-1 -1 -2 0 q-1 -2.4 -4 -1.4z" style="--y:30px;--delay:-8s;--dur:12s"></path>
+      </g>
+      <g class="sc-plane"><path d="M0 0 h14 l4 -2 h2 l-3 3 l3 3 h-2 l-4 -2 h-14 z M6 0 l-3 -5 h2 l5 5 z M6 2 l-3 5 h2 l5 -5 z"></path><path class="sc-plane-trail" d="M-2 1 H-40"></path></g>
+      <g class="sc-fireworks">${[[70, 40, '#ffd166'], [150, 28, '#ef476f'], [300, 36, '#06d6a0'], [360, 52, '#8ecbff']].map(([x, y, color], index) => `<g transform="translate(${x} ${y})" style="--fw:${color};--delay:${(-index * 0.7).toFixed(1)}s">${Array.from({ length: 10 }, (_, ray) => `<line x1="0" y1="0" x2="${(Math.cos(ray * Math.PI / 5) * 10).toFixed(1)}" y2="${(Math.sin(ray * Math.PI / 5) * 10).toFixed(1)}"></line>`).join('')}</g>`).join('')}</g>
+      <g class="sc-confetti">${Array.from({ length: 26 }, () => `<rect class="sc-confetto-${Math.floor(random() * 4)}" x="${(150 + random() * 120).toFixed(1)}" y="0" width="1.6" height="2.6" style="--delay:${(-random() * 4).toFixed(2)}s;--dur:${(2.6 + random() * 1.8).toFixed(2)}s;--sway:${(random() * 12 - 6).toFixed(1)}px"></rect>`).join('')}</g>
       <g class="sc-birds">
         <path class="sc-bird" d="M0 0 q4 -5 8 0 q4 -5 8 0" style="--y:34px;--delay:0s;--dur:14s"></path>
         <path class="sc-bird" d="M0 0 q3 -4 6 0 q3 -4 6 0" style="--y:44px;--delay:-2s;--dur:15s"></path>
@@ -480,7 +558,10 @@
   let currentAct = null;
   let actOptions = [];
   let loveTimer = null;
-  const state = { weatherCode: 1, temperature: 16, windSpeed: 6, sunrise: null, sunset: null, lights: [], pendingBills: 0, urgentNotes: 0, act: null };
+  const state = { weatherCode: 1, temperature: 16, windSpeed: 6, sunrise: null, sunset: null, lights: [], pendingBills: 0, urgentNotes: 0, act: null, plants: [], dinner: '', birthday: '', anniversary: false, trip: '', tripName: '', countdown: '', moviePlan: '', decor: null };
+  let plantsSignature = '';
+  let bubbleTimer = null;
+  const saidCount = { ines: 0, matteo: 0 };
 
   function atTime(base, hours, minutes) {
     const date = new Date(base);
@@ -568,7 +649,10 @@
 
     // Plan de la pareja: se mantiene mientras siga teniendo sentido con la hora y el tiempo.
     const temperature = Number.isFinite(Number(state.temperature)) ? Number(state.temperature) : 16;
-    const options = eligibleActs({ condition, nightness, temperature, minutes: minutesOf(now), season });
+    renderPlants();
+    const thirsty = (state.plants || []).some((plant) => ['thirsty', 'parched'].includes(plant.mood));
+    const special = specialAct({ minutes: minutesOf(now), condition, nightness });
+    const options = special ? [special] : eligibleActs({ condition, nightness, temperature, minutes: minutesOf(now), season, thirsty });
     actOptions = options;
     if (state.act && ACTS[state.act]) currentAct = state.act;
     else if (!options.includes(currentAct)) currentAct = pick(options);
@@ -578,6 +662,7 @@
 
     const litRooms = new Set(state.lights.map(normalizeRoom).map((room) => (WINDOW_ROOMS.includes(room) ? room : 'salon')));
     if (act.room) litRooms.add(act.room);
+    const decor = decorFor(now);
     svg.querySelectorAll('[data-room]').forEach((element) => element.classList.toggle('is-lit', litRooms.has(element.dataset.room)));
 
     const clearish = condition === 'clear' || condition === 'partly';
@@ -595,12 +680,20 @@
       act: currentAct,
       place: act.place,
       outfit,
-      shades: String(outfit === 'hot' && clearish && nightness < 0.3)
+      shades: String(outfit === 'hot' && clearish && nightness < 0.3),
+      inesWide: String(Boolean(WARDROBE[outfit].ines.wide)),
+      decor,
+      fireworks: String(isNewYearNight(now) || state.decor === 'newyear'),
+      bats: String(decor === 'halloween' && nightness > 0.3),
+      myPlants: String((state.plants || []).length > 0)
     });
+    const sign = svg.querySelector('.sc-away-text');
+    if (sign) sign.textContent = state.tripName ? `En ${state.tripName}`.slice(0, 16) : 'De viaje';
 
     const momentLabel = nightness > 0.7 ? 'Noche' : moment.from === 'dawn' || moment.to === 'dawn' ? 'Amanecer' : moment.from === 'dusk' || moment.to === 'dusk' ? 'Atardecer' : 'Día';
     const roomsLabel = litRooms.size ? `, luz encendida en ${[...litRooms].map((room) => ({ salon: 'el salón', cocina: 'la cocina', dormitorio: 'el dormitorio', bano: 'el baño', estudio: 'el estudio' })[room]).join(' y ')}` : '';
-    container.setAttribute('aria-label', `${momentLabel} de ${seasonConfig.label} ${conditionConfig.label} en Turín${roomsLabel}. Ines y Matteo ${act.label}`);
+    const actLabel = currentAct === 'away' && state.tripName ? `están de viaje en ${state.tripName}` : act.label;
+    container.setAttribute('aria-label', `${momentLabel} de ${seasonConfig.label} ${conditionConfig.label} en Turín${roomsLabel}. Ines y Matteo ${actLabel}`);
   }
 
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -640,11 +733,97 @@
   function cheer(event) {
     event.stopPropagation();
     event.preventDefault();
+    say(event.currentTarget.closest('.ch-ines') ? 'ines' : 'matteo', event.currentTarget);
     container.dataset.love = 'false';
     void container.getBoundingClientRect();
     container.dataset.love = 'true';
     clearTimeout(loveTimer);
     loveTimer = setTimeout(() => { container.dataset.love = 'false'; }, 2600);
+  }
+
+  // ---------- Vuestras plantas, junto a la puerta ----------
+  const PLANT_SLOTS = [[180, 160], [243, 160], [259, 160]];
+  const MINI_PLANTS = {
+    monstera: '<path class="mp-stem" d="M0 -6 q-1 -4 -3 -7 M0 -6 q1 -5 3 -8 M0 -6 v-5"></path><path class="mp-leaf" d="M-3 -13 q-5 -1 -4.6 -4.4 q2.6 -2.4 5.6 .4 l-1.4 1.4 l1.6 .4 z"></path><path class="mp-leaf mp-leaf-b" d="M3 -14 q5 -1 4.6 -4.6 q-2.6 -2.4 -5.6 .4 l1.4 1.4 l-1.6 .4 z"></path><path class="mp-leaf" d="M0 -11 q-3 -3 0 -7 q3 4 0 7 z"></path>',
+    strelitzia: '<path class="mp-stem" d="M-1 -6 L-3 -16 M0 -6 V-19 M1 -6 L3.4 -17"></path><path class="mp-leaf" d="M-3 -16 q-3.4 -3 -1.4 -7 q2.6 2.6 1.4 7 z"></path><path class="mp-leaf mp-leaf-b" d="M0 -19 q-2 -4 0 -7.6 q2 3.6 0 7.6 z"></path><path class="mp-leaf" d="M3.4 -17 q3.4 -3 1.4 -7 q-2.6 2.6 -1.4 7 z"></path><path class="mp-bird" d="M1.4 -14 l3.4 -1.6 l-1 -1.6 l2.2 .4 l-1.2 -1.8 l2 1 l-1.2 2.4 z"></path>',
+    pothos: '<path class="mp-vine" d="M-3 -6 q-3 4 -2 9 M3 -6 q3 5 1.6 10 M0 -6 q0 4 1 7"></path><circle class="mp-leaf" cx="-3.6" cy="-8" r="2"></circle><circle class="mp-leaf mp-leaf-b" cx="0" cy="-9.6" r="2.2"></circle><circle class="mp-leaf" cx="3.6" cy="-8" r="2"></circle><circle class="mp-leaf mp-leaf-b" cx="-5" cy="-1" r="1.4"></circle><circle class="mp-leaf" cx="4.6" cy="1" r="1.4"></circle><circle class="mp-leaf mp-leaf-b" cx="1" cy="0" r="1.2"></circle>',
+    other: '<path class="mp-stem" d="M0 -6 V-14"></path><circle class="mp-leaf" cx="-2.6" cy="-11" r="2.6"></circle><circle class="mp-leaf mp-leaf-b" cx="2.6" cy="-12.4" r="2.6"></circle><circle class="mp-leaf" cx="0" cy="-15" r="2.4"></circle>'
+  };
+  const escapeText = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+
+  function renderPlants() {
+    const plants = (state.plants || []).slice(0, PLANT_SLOTS.length);
+    const signature = JSON.stringify(plants);
+    if (signature === plantsSignature) return;
+    plantsSignature = signature;
+    const group = container.querySelector('.sc-my-plants');
+    group.innerHTML = plants.map((plant, index) => {
+      const [x, y] = PLANT_SLOTS[index];
+      return `<g class="mp mp-${plant.mood}" data-plant-id="${escapeText(plant.id)}" transform="translate(${x} ${y})">
+        <title>${escapeText(plant.name)}</title>
+        <g class="mp-foliage">${MINI_PLANTS[plant.species] || MINI_PLANTS.other}</g>
+        <path class="mp-pot" d="M-4 -6 h8 l-1 6 h-6 z"></path><rect class="mp-rim" x="-4.6" y="-6.8" width="9.2" height="1.6" rx=".6"></rect>
+        <g class="mp-sparkle"><path d="M-6 -16 l.6 1.4 l1.4 .6 l-1.4 .6 l-.6 1.4 l-.6 -1.4 l-1.4 -.6 l1.4 -.6 z"></path><path d="M6 -19 l.5 1.1 l1.1 .5 l-1.1 .5 l-.5 1.1 l-.5 -1.1 l-1.1 -.5 l1.1 -.5 z"></path></g>
+        <rect class="mp-hit" x="-7" y="-24" width="14" height="25"></rect>
+      </g>`;
+    }).join('');
+    // El riego cae sobre la primera planta con sed.
+    const thirstyIndex = plants.findIndex((plant) => ['thirsty', 'parched'].includes(plant.mood));
+    const [dropX, dropY] = PLANT_SLOTS[Math.max(0, thirstyIndex)];
+    container.style.setProperty('--sc-water-x', `${dropX - 3}px`);
+    container.style.setProperty('--sc-water-y', `${dropY - 15}px`);
+    container.style.setProperty('--sc-gardener-x', `${dropX - 15}px`);
+  }
+
+  // ---------- Bocadillos al tocarlos ----------
+  const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+  function phrasesFor(key) {
+    const partner = key === 'ines' ? 'Matteo' : 'Ines';
+    const temperature = Number(state.temperature);
+    const condition = conditionFor(Number(state.weatherCode));
+    const night = container.dataset.night === 'true';
+    const thirsty = (state.plants || []).filter((plant) => ['thirsty', 'parched'].includes(plant.mood));
+    const lines = [];
+    if (state.birthday) lines.push(state.birthday === PEOPLE[key].name ? '¡Hoy es mi cumple! 🎂' : `¡Feliz cumple, ${state.birthday}! 🎂`);
+    if (state.anniversary) lines.push(`¡Feliz aniversario, ${partner}! 💞`);
+    if (state.trip === 'leaving') lines.push(`¡Nos vamos a ${state.tripName || 'viajar'}! 🧳`);
+    if (state.countdown) lines.push(`¡${capitalize(state.countdown)}! ✨`);
+    if (thirsty.length) lines.push(`¡${thirsty[0].name} tiene sed! 💧`);
+    if (state.dinner) lines.push(night ? `Hoy cenamos ${state.dinner} 😋` : `Esta noche: ${state.dinner} 😋`);
+    if (state.moviePlan) lines.push(night ? `¿Vemos «${state.moviePlan}»? 🍿` : `Tenemos pendiente «${state.moviePlan}» 🎬`);
+    if (Number(state.pendingBills) > 0) lines.push('Hay algo en el buzón 📬');
+    if (condition === 'snow') lines.push('¡Está nevando! ☃️');
+    else if (['drizzle', 'rain', 'storm'].includes(condition)) lines.push('¡A saltar en los charcos! ☔');
+    else if (temperature < 6) lines.push('¡Qué frío hace! 🧣');
+    else if (temperature > 29) lines.push('¡Qué calor! 🥵');
+    if (container.dataset.decor === 'halloween') lines.push('¿Truco o trato? 🎃');
+    if (container.dataset.decor === 'christmas') lines.push('¡Feliz Navidad! 🎄');
+    if (currentAct === 'dance') lines.push('¡A bailar! 💃');
+    if (currentAct === 'stargaze') lines.push('¡Mira, una estrella fugaz! 🌠');
+    lines.push(`Te quiero, ${partner} ❤️`, key === 'ines' ? '¿Un café? ☕' : '¿Pizza esta noche? 🍕');
+    return lines;
+  }
+
+  function say(key, hit) {
+    const lines = phrasesFor(key);
+    const text = lines[saidCount[key] % lines.length];
+    saidCount[key] += 1;
+    const bubble = container.querySelector('.sc-bubble');
+    const box = container.getBoundingClientRect();
+    const target = hit.getBoundingClientRect();
+    bubble.textContent = text;
+    bubble.hidden = false;
+    const half = Math.min(bubble.offsetWidth / 2, box.width / 2 - 8);
+    const left = clamp(target.left + target.width / 2 - box.left, half + 8, box.width - half - 8);
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${Math.max(bubble.offsetHeight + 6, target.top - box.top + 2)}px`;
+    bubble.style.setProperty('--tail', `${clamp(target.left + target.width / 2 - box.left - left + half, 12, half * 2 - 12)}px`);
+    bubble.classList.remove('is-on');
+    void bubble.offsetWidth;
+    bubble.classList.add('is-on');
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => { bubble.classList.remove('is-on'); }, 3600);
   }
 
   function update(partial = {}) {
@@ -660,7 +839,7 @@
     container = element;
     container.classList.add('scene');
     container.setAttribute('role', 'img');
-    container.innerHTML = buildMarkup();
+    container.innerHTML = `${buildMarkup()}<div class="sc-bubble" hidden aria-live="polite"></div>`;
     apply();
     // El sol y la luna avanzan con el reloj.
     setInterval(apply, 5 * 60 * 1000);
@@ -668,6 +847,16 @@
     container.querySelectorAll('.ch-hit').forEach((target) => {
       target.addEventListener('click', cheer);
       target.addEventListener('keydown', (event) => event.stopPropagation());
+    });
+    // Plantas, buzón y nota de la puerta: avisan a la app de qué abrir.
+    container.addEventListener('click', (event) => {
+      const plant = event.target.closest('[data-plant-id]');
+      const target = event.target.closest('[data-scene-target]');
+      if (!plant && !target) return;
+      if (target && container.dataset[target.dataset.sceneTarget === 'finance' ? 'mail' : 'note'] !== 'true') return;
+      event.stopPropagation();
+      event.preventDefault();
+      window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: plant ? { plant: plant.dataset.plantId } : { target: target.dataset.sceneTarget } }));
     });
     // Sin animar cuando no se ve: ahorra batería.
     const setPaused = (paused) => container.classList.toggle('is-paused', paused);

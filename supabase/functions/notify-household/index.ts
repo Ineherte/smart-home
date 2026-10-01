@@ -2,8 +2,11 @@
 // GET  -> { publicKey }: la clave pública VAPID que necesita el navegador para suscribirse.
 // POST { title, body, url?, tag? } con la sesión del usuario -> avisa a los demás miembros
 //      de su hogar en todos sus dispositivos con los avisos activados.
-// POST { job: 'plant-reminders' } con la cabecera x-cron-secret -> recordatorio diario de
-//      riego para todo el hogar (lo lanza pg_cron, ver supabase/sql/plant-reminders-cron.sql).
+// POST { job } con la cabecera x-cron-secret -> avisos programados (los lanza pg_cron, ver
+//      supabase/sql/plant-reminders-cron.sql):
+//        plant-reminders  recordatorio diario de riego para todo el hogar.
+//        morning-brief    resumen de la mañana para cada persona (tareas, planes, menú, fechas).
+//        daily-photo      «¡Foto del día!» a la hora sorpresa de hoy, si aún no hay foto.
 // Secretos: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:tu@correo) y CRON_SECRET.
 // Cifrado según RFC 8291 (aes128gcm) y firma VAPID según RFC 8292, solo con WebCrypto.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -29,6 +32,14 @@ Deno.serve(async (request) => {
   const cronSecret = Deno.env.get('CRON_SECRET');
   if (request.headers.has('x-cron-secret')) {
     if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) return json({ error: 'Secreto inválido' }, 401);
+    let job = 'plant-reminders';
+    try {
+      job = String((await request.json())?.job || job);
+    } catch {
+      // Sin cuerpo: el trabajo de siempre.
+    }
+    if (job === 'morning-brief') return json(await sendMorningBrief(admin, vapid));
+    if (job === 'daily-photo') return json(await sendDailyPhoto(admin, vapid));
     return json(await sendPlantReminders(admin, vapid));
   }
 
@@ -119,6 +130,129 @@ async function sendPlantReminders(admin: Admin, vapid: Vapid) {
     await admin.from('plants').update({ reminded_on: today }).in('id', due.map((plant) => plant.id));
   }
   return { households: byHousehold.size, plants: plants?.length || 0, sent };
+}
+
+const turinToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+const addDays = (iso: string, days: number) => {
+  const date = new Date(`${iso}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86400000);
+const listText = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} y ${items.at(-1)}` : items[0] || '');
+
+// Si una tabla aún no existe (falta algún .sql), ese apartado simplemente no sale.
+async function rows<T>(query: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
+  const { data, error } = await query;
+  return error ? [] : data || [];
+}
+
+interface SpecialDate { title: string; kind: string; date: string; end_date: string | null; yearly: boolean; emoji: string | null }
+
+// Próxima vez que toca una fecha (las anuales se repiten cada año).
+function nextOccurrence(entry: SpecialDate, today: string) {
+  if (!entry.yearly) return entry.date;
+  const year = Number(today.slice(0, 4));
+  const thisYear = `${year}${entry.date.slice(4)}`;
+  return thisYear >= today ? thisYear : `${year + 1}${entry.date.slice(4)}`;
+}
+
+function countdownLine(dates: SpecialDate[], today: string) {
+  const short = (title: string) => title.replace(/^Viaje a /, '').replace(/^Cumpleaños de /, 'el cumple de ').replace(/^Nuestro /, 'nuestro ');
+  const away = dates.find((entry) => entry.kind === 'trip' && entry.end_date && entry.date <= today && entry.end_date >= today);
+  if (away) return `${away.emoji || '🧳'} ¡Disfrutad de ${short(away.title)}!`;
+  const next = dates
+    .map((entry) => ({ entry, day: nextOccurrence(entry, today) }))
+    .filter(({ day }) => day >= today)
+    .sort((a, b) => a.day.localeCompare(b.day))[0];
+  if (!next) return '';
+  const days = daysBetween(today, next.day);
+  const { entry } = next;
+  const emoji = entry.emoji || '✨';
+  if (days === 0) {
+    if (entry.kind === 'birthday') return `${emoji} ¡Hoy es ${short(entry.title)}!`;
+    if (entry.kind === 'anniversary') return `${emoji} ¡Feliz aniversario!`;
+    return `${emoji} ¡Hoy toca ${short(entry.title)}!`;
+  }
+  if (days === 1) return `${emoji} Mañana: ${entry.title}`;
+  if (days <= 30) return `${emoji} ${days} días para ${short(entry.title)}`;
+  return '';
+}
+
+// Resumen de la mañana: una notificación por teléfono, pensada para su dueño.
+async function sendMorningBrief(admin: Admin, vapid: Vapid) {
+  const today = turinToday();
+  const { data: subscriptions, error } = await admin.from('push_subscriptions').select('id, household_id, user_id, person, endpoint, p256dh, auth');
+  if (error) return { error: error.message };
+  const byHousehold = new Map<string, typeof subscriptions>();
+  (subscriptions || []).forEach((subscription) => byHousehold.set(subscription.household_id, [...(byHousehold.get(subscription.household_id) || []), subscription]));
+
+  let sent = 0;
+  for (const [householdId, devices] of byHousehold) {
+    const [tasks, events, meals, plants, dates] = await Promise.all([
+      rows<{ title: string; assignee: string; due_date: string }>(admin.from('household_tasks').select('title, assignee, due_date').eq('household_id', householdId).eq('active', true).lte('due_date', today)),
+      rows<{ title: string; event_time: string | null; scope: string; owner_id: string }>(admin.from('events').select('title, event_time, scope, owner_id').eq('household_id', householdId).eq('event_date', today).order('event_time', { ascending: true })),
+      rows<{ slot: string; title: string }>(admin.from('meal_plan').select('slot, title').eq('household_id', householdId).eq('day', today)),
+      rows<{ name: string }>(admin.from('plants').select('name').eq('household_id', householdId).eq('active', true).lte('next_water_on', today)),
+      rows<SpecialDate>(admin.from('special_dates').select('title, kind, date, end_date, yearly, emoji').eq('household_id', householdId))
+    ]);
+    const lunch = meals.find((meal) => meal.slot === 'lunch')?.title;
+    const dinner = meals.find((meal) => meal.slot === 'dinner')?.title;
+    const countdown = countdownLine(dates, today);
+
+    for (const device of devices || []) {
+      const person = device.person || '';
+      const myTasks = tasks.filter((task) => task.assignee === 'both' || !person || task.assignee === person);
+      const myEvents = events.filter((event) => event.scope === 'shared' || event.owner_id === device.user_id);
+      const lines: string[] = [];
+      if (countdown) lines.push(countdown);
+      if (myEvents.length) lines.push(`📅 ${myEvents.slice(0, 3).map((event) => (event.event_time ? `${event.event_time.slice(0, 5)} ${event.title}` : event.title)).join(' · ')}`);
+      if (myTasks.length) {
+        const late = myTasks.filter((task) => task.due_date < today).length;
+        lines.push(`✅ ${myTasks.length === 1 ? myTasks[0].title : `${myTasks.length} tareas`}${late ? ` (${late} atrasada${late > 1 ? 's' : ''})` : ''}`);
+      }
+      if (lunch || dinner) lines.push(`🍽️ ${[lunch && `Comida: ${lunch}`, dinner && `Cena: ${dinner}`].filter(Boolean).join(' · ')}`);
+      if (plants.length) lines.push(`🌱 Regar ${listText(plants.map((plant) => plant.name))}`);
+      if (!lines.length) continue;
+      const message = {
+        title: `Buenos días${person ? `, ${person}` : ''} ☀️`,
+        body: lines.join('\n').slice(0, 240),
+        url: './',
+        tag: 'morning-brief'
+      };
+      const result = await deliver(admin, [device], message, vapid);
+      sent += result.sent;
+    }
+  }
+  return { households: byHousehold.size, sent };
+}
+
+// Misma hora sorpresa que photoPromptTime() en nosotros.js: entre las 10:00 y las 19:50 de Turín.
+function photoPromptMinutes(iso: string) {
+  let hash = 0;
+  for (const char of iso) hash = (hash * 31 + char.charCodeAt(0)) % 1000003;
+  const slot = hash % 60;
+  return (10 + Math.floor(slot / 6)) * 60 + (slot % 6) * 10;
+}
+
+// Se lanza cada 10 minutos; solo avisa en la franja de la hora de hoy y si aún no hay foto.
+async function sendDailyPhoto(admin: Admin, vapid: Vapid) {
+  const today = turinToday();
+  const [hour, minute] = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date()).split(':').map(Number);
+  const now = hour * 60 + minute;
+  const target = photoPromptMinutes(today);
+  if (now < target || now >= target + 10) return { skipped: true, target: `${Math.floor(target / 60)}:${String(target % 60).padStart(2, '0')}` };
+
+  const { data: subscriptions, error } = await admin.from('push_subscriptions').select('id, household_id, endpoint, p256dh, auth');
+  if (error) return { error: error.message };
+  const households = [...new Set((subscriptions || []).map((subscription) => subscription.household_id))];
+  const done = new Set((await rows<{ household_id: string }>(admin.from('moments').select('household_id').eq('day', today).in('household_id', households))).map((row) => row.household_id));
+
+  const message = { title: '📸 ¡Foto del día!', body: 'Tenéis 15 minutos para haceros la foto de hoy juntos. ¡Ahora o nunca!', url: './?abrir=nosotros', tag: 'daily-photo' };
+  const pending = (subscriptions || []).filter((subscription) => !done.has(subscription.household_id));
+  if (!pending.length) return { households: 0, sent: 0 };
+  const result = await deliver(admin, pending, message, vapid);
+  return { households: households.length - done.size, ...result };
 }
 
 function json(value: unknown, status = 200) {

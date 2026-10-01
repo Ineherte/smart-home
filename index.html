@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=32" />
+    <link rel="stylesheet" href="styles.css?v=33" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -118,7 +118,7 @@
         <div class="view view-casa" data-space="casa">
           <div class="casa-tabs" role="tablist" aria-label="Secciones de casa">
             <button type="button" role="tab" data-casa-tab="pendientes" aria-selected="true" aria-controls="tasksView"><i data-lucide="list-todo"></i><span>Pendientes</span><b class="tab-count" id="pendingTabCount" hidden></b></button>
-            <button type="button" role="tab" data-casa-tab="compra" aria-selected="false" aria-controls="shoppingView"><i data-lucide="shopping-basket"></i><span>Compra</span><b class="tab-count" id="shoppingTabCount" hidden></b></button>
+            <button type="button" role="tab" data-casa-tab="cocina" aria-selected="false" aria-controls="kitchenView"><i data-lucide="chef-hat"></i><span>Cocina</span><b class="tab-count" id="shoppingTabCount" hidden></b></button>
             <button type="button" role="tab" data-casa-tab="plantas" aria-selected="false" aria-controls="plantsView"><i data-lucide="sprout"></i><span>Plantas</span><b class="tab-count" id="plantsTabCount" hidden></b></button>
             <button type="button" role="tab" data-casa-tab="luces" aria-selected="false" aria-controls="lightsView"><i data-lucide="lightbulb"></i><span>Luces</span><b class="tab-count" id="lightsTabCount" hidden></b></button>
           </div>
@@ -156,7 +156,15 @@
             <section class="money-card todo-insights" id="todoInsights" hidden></section>
           </div>
 
-          <div class="casa-panel" data-casa-panel="compra" id="shoppingView" role="tabpanel" hidden>
+          <div class="casa-panel" data-casa-panel="cocina" id="kitchenView" role="tabpanel" hidden>
+            <div class="segmented is-wide kitchen-switch" role="group" aria-label="Cocina">
+              <button type="button" data-kitchen-view="menu" aria-pressed="true"><i data-lucide="calendar-days"></i>Menú</button>
+              <button type="button" data-kitchen-view="recipes" aria-pressed="false"><i data-lucide="book-open"></i>Recetas</button>
+              <button type="button" data-kitchen-view="compra" aria-pressed="false"><i data-lucide="shopping-basket"></i>Compra</button>
+            </div>
+            <div class="kitchen-pane" data-kitchen-pane="menu"><section class="panel menu-panel" id="menuPanel"><p class="empty-note">Cargando el menú…</p></section></div>
+            <div class="kitchen-pane" data-kitchen-pane="recipes" hidden><section class="panel recipes-panel" id="recipesPanel"></section></div>
+            <div class="kitchen-pane" data-kitchen-pane="compra" id="shoppingView" hidden>
             <section class="panel shopping-panel" aria-labelledby="shoppingTitle">
               <div class="section-heading">
                 <div><p class="eyebrow">Compartida</p><h2 id="shoppingTitle">Lista de la compra</h2></div>
@@ -190,6 +198,7 @@
                 <div id="shoppingCartList"></div>
               </div>
             </section>
+            </div>
           </div>
 
           <div class="casa-panel" data-casa-panel="plantas" id="plantsView" role="tabpanel" hidden>
@@ -223,6 +232,16 @@
           </div>
         </div>
 
+          <div class="view view-nosotros" data-space="nosotros" id="usView">
+            <section class="us-hero" id="usHero"></section>
+            <div class="segmented is-wide us-switch" role="group" aria-label="Nosotros">
+              <button type="button" data-us-view="photos" aria-pressed="true"><i data-lucide="aperture"></i>Fotos</button>
+              <button type="button" data-us-view="dates" aria-pressed="false"><i data-lucide="calendar-heart"></i>Fechas</button>
+              <button type="button" data-us-view="plans" aria-pressed="false"><i data-lucide="popcorn"></i>Planes</button>
+            </div>
+            <div class="us-content" id="usContent"><p class="empty-note">Cargando…</p></div>
+          </div>
+
           <div class="view view-vida" data-space="personal">
             <section class="panel agenda-section" aria-labelledby="agenda-title">
               <div class="section-heading">
@@ -252,6 +271,7 @@
       <nav class="bottom-nav" aria-label="Navegación principal">
         <button class="nav-item active" type="button" data-view-target="home"><i data-lucide="sun-medium"></i><span>Hoy</span></button>
         <button class="nav-item" type="button" data-view-target="casa"><i data-lucide="house"></i><span>Casa</span><b class="nav-badge" hidden></b></button>
+        <button class="nav-item" type="button" data-view-target="nosotros"><i data-lucide="heart"></i><span>Nosotros</span></button>
         <button class="nav-item" type="button" data-action="finance"><i data-lucide="wallet-cards"></i><span>Cuentas</span></button>
         <button class="nav-item" type="button" data-view-target="personal"><i data-lucide="layers-3"></i><span>Vida</span></button>
       </nav>
@@ -344,6 +364,18 @@
         <div class="plant-sheet-body" id="moneySheetBody"></div>
       </div>
     </div>
+    <div class="plant-sheet" id="kitchenSheet" role="dialog" aria-modal="true" aria-labelledby="kitchenSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-kitchen aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="kitchenSheetBody"></div>
+      </div>
+    </div>
+    <div class="plant-sheet" id="usSheet" role="dialog" aria-modal="true" aria-labelledby="usSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-us aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="usSheetBody"></div>
+      </div>
+    </div>
     <div class="urgent-modal" id="urgentModal" role="dialog" aria-modal="true" aria-labelledby="urgentTitle">
       <div class="urgent-panel"><span class="urgent-mark"><i data-lucide="siren"></i></span><p class="eyebrow urgent-eyebrow">Importante</p><h2 id="urgentTitle">Tienes notas urgentes</h2><div id="urgentList"></div><button type="button" class="urgent-close" id="closeUrgent">Ver notas</button></div>
     </div>
@@ -426,16 +458,19 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="scene.js?v=4"></script>
+    <script src="scene.js?v=5"></script>
     <script src="store.js?v=1"></script>
     <script src="push.js?v=1"></script>
-    <script src="shopping.js?v=3"></script>
+    <script src="shopping.js?v=4"></script>
     <script src="tasks.js?v=4"></script>
     <script src="pending.js?v=2"></script>
-    <script src="plants.js?v=2"></script>
+    <script src="plants.js?v=3"></script>
     <script src="money.js?v=2"></script>
     <script src="bank-import.js?v=1"></script>
     <script src="personal.js?v=1"></script>
-    <script src="app.js?v=40"></script>
+    <script src="media.js?v=1"></script>
+    <script src="kitchen.js?v=1"></script>
+    <script src="nosotros.js?v=1"></script>
+    <script src="app.js?v=41"></script>
   </body>
 </html>

@@ -311,21 +311,22 @@ document.querySelector('#attentionList').addEventListener('click', (event) => {
 });
 
 // Resumen del día bajo el saludo: tareas, compra y eventos de hoy.
-const daySummaryState = { tasks: null, shopping: null, events: null, plants: null };
+const daySummaryState = { tasks: null, shopping: null, events: null, plants: null, lunch: null, dinner: null, countdown: null };
 
 function updateDaySummary(partial) {
   Object.assign(daySummaryState, partial);
   const summary = document.querySelector('#daySummary');
   if (!summary) return;
-  const { tasks, shopping, events, plants } = daySummaryState;
-  if ([tasks, shopping, events, plants].every((value) => value === null)) return;
+  const { tasks, shopping, events, plants, lunch, dinner, countdown } = daySummaryState;
+  if ([tasks, shopping, events, plants, lunch, dinner, countdown].every((value) => value === null)) return;
   const parts = [];
   if (tasks) parts.push(`<b>${tasks} tarea${tasks === 1 ? '' : 's'}</b>`);
   if (events) parts.push(`<b>${events} evento${events === 1 ? '' : 's'}</b>`);
   if (shopping) parts.push(`<b>${shopping} ${shopping === 1 ? 'cosa' : 'cosas'}</b> en la compra`);
   if (plants) parts.push(`<b>${plants} ${plants === 1 ? 'planta' : 'plantas'}</b> que regar`);
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}` : parts[0];
-  summary.innerHTML = parts.length ? `Hoy tienes ${list}.` : 'Hoy no tienes nada pendiente. Disfrutad del día.';
+  const meals = [lunch ? `de comer <b>${escapeHtml(lunch)}</b>` : '', dinner ? `de cena <b>${escapeHtml(dinner)}</b>` : ''].filter(Boolean).join(' y ');
+  summary.innerHTML = `${parts.length ? `Hoy tienes ${list}.` : 'Hoy no tienes nada pendiente. Disfrutad del día.'}${meals ? ` Hay ${meals}.` : ''}${countdown ? `<span class="summary-countdown">${escapeHtml(countdown)}</span>` : ''}`;
 }
 
 // Contadores de Casa: la pestaña muestra su número y la navegación avisa de lo que corre prisa.
@@ -1764,11 +1765,13 @@ document.querySelector('#smartLightsList').addEventListener('click', (event) => 
 // Muestra un espacio: en el móvil cambia de pestaña; en escritorio, donde se ven
 // todos, lleva hasta él.
 // Casa agrupa Pendientes, Compra y Luces en pestañas; esos nombres llevan a su pestaña.
-const casaTabAliases = { pendientes: 'pendientes', tareas: 'pendientes', compra: 'compra', plantas: 'plantas', luces: 'luces' };
+const casaTabAliases = { pendientes: 'pendientes', tareas: 'pendientes', cocina: 'cocina', compra: 'cocina', menu: 'cocina', recetas: 'cocina', plantas: 'plantas', luces: 'luces' };
+const kitchenAliases = { compra: 'compra', menu: 'menu', recetas: 'recipes' };
 function showView(view) {
   const casaTab = casaTabAliases[view];
   if (casaTab) {
     setCasaTab(casaTab);
+    if (kitchenAliases[view] && typeof setKitchenView === 'function') setKitchenView(kitchenAliases[view]);
     view = 'casa';
   }
   setWorkspace(view);
@@ -1788,6 +1791,7 @@ document.querySelector('.casa-tabs').addEventListener('click', (event) => {
 setCasaTab((() => { try { return localStorage.getItem('umbral-casa-tab'); } catch { return null; } })() || 'pendientes');
 
 function setWorkspace(view) {
+  if (view === 'nosotros' && typeof renderUs === 'function') renderUs();
   document.querySelectorAll('[data-space]').forEach((section) => {
     section.classList.toggle('is-hidden', section.dataset.space !== view);
   });
@@ -1848,7 +1852,7 @@ function renderGreeting() {
 }
 
 // Enlaces de los avisos: ?abrir=compra|tareas|casa|personal|notes|calendar|finance.
-const linkTargets = ['home', 'casa', 'personal', 'pendientes', 'tareas', 'compra', 'plantas', 'luces', 'notes', 'calendar', 'finance'];
+const linkTargets = ['home', 'casa', 'personal', 'nosotros', 'pendientes', 'tareas', 'cocina', 'menu', 'recetas', 'compra', 'plantas', 'luces', 'notes', 'calendar', 'finance'];
 function openLinkTarget(target) {
   if (!linkTargets.includes(target)) return;
   if (target === 'notes') openPending({ filter: 'notes' });
@@ -1864,6 +1868,13 @@ if (startTarget) {
 }
 navigator.serviceWorker?.addEventListener('message', (event) => {
   if (event.data?.type === 'umbral:open') openLinkTarget(event.data.target);
+});
+
+// Toques en la escena de la casa: una planta abre su ficha; el buzón y la nota, su sección.
+window.addEventListener('umbral:scene-tap', (event) => {
+  const { plant, target } = event.detail || {};
+  if (plant && typeof openPlantSheet === 'function') openPlantSheet(plant);
+  else if (target) openLinkTarget(target);
 });
 
 applyTheme((() => { try { return localStorage.getItem('umbral-theme'); } catch { return null; } })());

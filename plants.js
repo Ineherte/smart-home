@@ -408,6 +408,7 @@ function renderPlants() {
   setNavBadge('plantas', due.length);
   renderAttention({ thirstyPlants: names });
   updateDaySummary({ plants: due.length });
+  window.umbralScene?.update({ plants: householdPlants.map((plant) => ({ id: plant.id, name: plant.name, species: plant.species, mood: plantState(plant).mood })) });
   if (openPlantId) renderPlantSheet();
   lucide.createIcons();
 }
