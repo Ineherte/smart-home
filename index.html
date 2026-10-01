@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="styles.css?v=26" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -46,9 +46,10 @@
 
           <section class="attention-section" aria-labelledby="home-title">
             <div class="section-heading">
+              <span class="attention-mark" aria-hidden="true"><i data-lucide="house-heart"></i></span>
               <div>
-                <p class="eyebrow">Tu casa ahora</p>
-                <h2 id="home-title">Todo tranquilo <span class="wave">✦</span></h2>
+                <p class="eyebrow">Hoy en casa</p>
+                <h2 id="home-title">Todo tranquilo</h2>
               </div>
             </div>
             <p class="status-note">Sin notas urgentes, facturas ni pagos pendientes.</p>
@@ -97,7 +98,7 @@
               <span class="tile-label">Notas</span>
               <strong class="tile-value" id="notesCount">0 notas</strong>
               <small class="tile-detail" id="notesPreview">Nada pendiente</small>
-              <button class="card-quick-action" type="button" data-action="notes" aria-label="Añadir una nota" title="Añadir una nota"><i data-lucide="plus"></i></button>
+              <button class="card-quick-action" type="button" data-action="quick-note" aria-label="Añadir una nota" title="Añadir una nota"><i data-lucide="plus"></i></button>
             </article>
             <button class="tile tile-lights" type="button" data-action="lights">
               <span class="tile-icon"><i data-lucide="lightbulb"></i></span>
@@ -114,8 +115,60 @@
           </div>
         </div>
 
-        <div class="view-column is-a">
-          <div class="view view-compra" data-space="compra" id="shoppingView">
+        <div class="view view-casa" data-space="casa">
+          <div class="casa-tabs" role="tablist" aria-label="Secciones de casa">
+            <button type="button" role="tab" data-casa-tab="pendientes" aria-selected="true" aria-controls="tasksView"><i data-lucide="list-todo"></i><span>Pendientes</span><b class="tab-count" id="pendingTabCount" hidden></b></button>
+            <button type="button" role="tab" data-casa-tab="compra" aria-selected="false" aria-controls="shoppingView"><i data-lucide="shopping-basket"></i><span>Compra</span><b class="tab-count" id="shoppingTabCount" hidden></b></button>
+            <button type="button" role="tab" data-casa-tab="luces" aria-selected="false" aria-controls="lightsView"><i data-lucide="lightbulb"></i><span>Luces</span><b class="tab-count" id="lightsTabCount" hidden></b></button>
+          </div>
+
+          <div class="casa-panel" data-casa-panel="pendientes" id="tasksView" role="tabpanel">
+            <section class="panel pending-panel" aria-labelledby="pendingTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Entre los dos</p><h2 id="pendingTitle">Pendientes</h2></div>
+                <button type="button" class="pill-button" data-action="board"><i data-lucide="pen-line"></i> Pizarra</button>
+              </div>
+              <form class="pending-composer" id="pendingForm" autocomplete="off" data-kind="task">
+                <div class="kind-switch" role="radiogroup" aria-label="Qué quieres añadir">
+                  <button type="button" role="radio" data-kind="task" aria-checked="true"><i data-lucide="repeat-2"></i> Tarea de casa</button>
+                  <button type="button" role="radio" data-kind="note" aria-checked="false"><i data-lucide="sticky-note"></i> Nota</button>
+                </div>
+                <div class="composer">
+                  <input name="title" type="text" maxlength="120" placeholder="Sacar la basura, limpiar el baño…" aria-label="Qué hay que hacer" enterkeyhint="done" />
+                  <button type="submit" aria-label="Añadir"><i data-lucide="plus"></i></button>
+                </div>
+                <div class="pending-options" data-options="task">
+                  <label class="option-chip"><i data-lucide="user-round"></i><select name="assignee" aria-label="Quién"><option value="both">Los dos</option><option value="rotate">Por turnos</option><option value="Ines">Ines</option><option value="Matteo">Matteo</option></select></label>
+                  <label class="option-chip"><i data-lucide="repeat"></i><select name="recurrence" aria-label="Se repite"><option value="none">Una vez</option><option value="daily">Cada día</option><option value="weekly">Cada semana</option><option value="biweekly">Cada 2 semanas</option><option value="monthly">Cada mes</option><option value="yearly">Cada año</option></select></label>
+                  <label class="option-chip"><i data-lucide="calendar"></i><input name="dueDate" type="date" aria-label="Para cuándo" /></label>
+                </div>
+                <div class="pending-options" data-options="note" hidden>
+                  <label class="option-toggle"><input type="checkbox" name="private" /><span><i data-lucide="lock"></i> Solo para mí</span></label>
+                  <label class="option-toggle is-urgent"><input type="checkbox" name="urgent" /><span><i data-lucide="siren"></i> Urgente</span></label>
+                </div>
+              </form>
+              <div class="suggestions" id="taskPresetsBlock" hidden>
+                <p class="suggestions-label">Añadir con un toque</p>
+                <div class="suggestion-row" id="taskPresets"></div>
+              </div>
+              <div class="segmented pending-filters" role="group" aria-label="Qué ver">
+                <button type="button" data-pending-filter="all" aria-pressed="true">Todo</button>
+                <button type="button" data-pending-filter="tasks" aria-pressed="false">Tareas</button>
+                <button type="button" data-pending-filter="notes" aria-pressed="false">Notas</button>
+                <button type="button" data-pending-filter="mine" aria-pressed="false">Mías</button>
+              </div>
+              <div id="pendingList"></div>
+            </section>
+            <section class="panel balance-panel" id="taskBalance" hidden>
+              <div class="section-heading">
+                <div><p class="eyebrow">Últimos 30 días</p><h2>Quién hace qué</h2></div>
+              </div>
+              <div class="balance-bar" id="taskBalanceBar"></div>
+              <div class="balance-legend" id="taskBalanceLegend"></div>
+            </section>
+          </div>
+
+          <div class="casa-panel" data-casa-panel="compra" id="shoppingView" role="tabpanel" hidden>
             <section class="panel shopping-panel" aria-labelledby="shoppingTitle">
               <div class="section-heading">
                 <div><p class="eyebrow">Compartida</p><h2 id="shoppingTitle">Lista de la compra</h2></div>
@@ -151,7 +204,7 @@
             </section>
           </div>
 
-          <div class="view view-casa" data-space="casa">
+          <div class="casa-panel" data-casa-panel="luces" id="lightsView" role="tabpanel" hidden>
             <section class="panel routines-panel" aria-labelledby="routinesTitle">
               <div class="section-heading">
                 <div><p class="eyebrow">Con un toque</p><h2 id="routinesTitle">Rutinas</h2></div>
@@ -170,42 +223,6 @@
             </section>
           </div>
         </div>
-
-        <div class="view-column is-b">
-          <div class="view view-tareas" data-space="tareas" id="tasksView">
-            <section class="panel tasks-panel" aria-labelledby="tasksTitle">
-              <div class="section-heading">
-                <div><p class="eyebrow">Entre los dos</p><h2 id="tasksTitle">Tareas de casa</h2></div>
-                <button type="button" class="pill-button" id="newTaskButton"><i data-lucide="plus"></i> Nueva</button>
-              </div>
-              <div class="segmented" role="group" aria-label="Qué tareas ver">
-                <button type="button" data-task-filter="all" aria-pressed="true">Todas</button>
-                <button type="button" data-task-filter="mine" aria-pressed="false">Las mías</button>
-                <span class="count-pill" id="tasksCount">—</span>
-              </div>
-              <form class="task-form" id="taskForm" hidden autocomplete="off">
-                <input name="title" type="text" maxlength="80" placeholder="¿Qué hay que hacer?" aria-label="Tarea" required />
-                <div class="task-form-row">
-                  <label><span>Se repite</span><select name="recurrence"><option value="none">Una vez</option><option value="daily">Cada día</option><option value="weekly">Cada semana</option><option value="biweekly">Cada 2 semanas</option><option value="monthly">Cada mes</option><option value="yearly">Cada año</option></select></label>
-                  <label><span>Primera vez</span><input name="dueDate" type="date" /></label>
-                </div>
-                <label><span>Quién</span><select name="assignee"><option value="both">Los dos</option><option value="rotate">Por turnos (alternando)</option><option value="Ines">Ines</option><option value="Matteo">Matteo</option></select></label>
-                <button type="submit" class="primary-button"><i data-lucide="check"></i> Guardar tarea</button>
-              </form>
-              <div class="suggestions" id="taskPresetsBlock" hidden>
-                <p class="suggestions-label">Añadir con un toque</p>
-                <div class="suggestion-row" id="taskPresets"></div>
-              </div>
-              <div id="tasksList"></div>
-            </section>
-            <section class="panel balance-panel" id="taskBalance" hidden>
-              <div class="section-heading">
-                <div><p class="eyebrow">Últimos 30 días</p><h2>Quién hace qué</h2></div>
-              </div>
-              <div class="balance-bar" id="taskBalanceBar"></div>
-              <div class="balance-legend" id="taskBalanceLegend"></div>
-            </section>
-          </div>
 
           <div class="view view-vida" data-space="personal">
             <section class="panel agenda-section" aria-labelledby="agenda-title">
@@ -230,15 +247,13 @@
           <p class="news-updated" id="newsUpdated"><i data-lucide="clock-3"></i> Preparando el resumen...</p>
             </section>
           </div>
-        </div>
 
       </div>
 
       <nav class="bottom-nav" aria-label="Navegación principal">
         <button class="nav-item active" type="button" data-view-target="home"><i data-lucide="sun-medium"></i><span>Hoy</span></button>
-        <button class="nav-item" type="button" data-view-target="compra"><i data-lucide="shopping-basket"></i><span>Compra</span><b class="nav-badge" hidden></b></button>
-        <button class="nav-item" type="button" data-view-target="tareas"><i data-lucide="list-checks"></i><span>Tareas</span><b class="nav-badge" hidden></b></button>
-        <button class="nav-item" type="button" data-view-target="casa"><i data-lucide="house"></i><span>Casa</span></button>
+        <button class="nav-item" type="button" data-view-target="casa"><i data-lucide="house"></i><span>Casa</span><b class="nav-badge" hidden></b></button>
+        <button class="nav-item" type="button" data-action="finance"><i data-lucide="wallet-cards"></i><span>Cuentas</span></button>
         <button class="nav-item" type="button" data-view-target="personal"><i data-lucide="layers-3"></i><span>Vida</span></button>
       </nav>
     </main>
@@ -296,11 +311,9 @@
     </div>
     <div class="notes-modal" id="notesModal" role="dialog" aria-modal="true" aria-labelledby="notesTitle">
       <div class="notes-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Recordatorios de casa</p><h2 id="notesTitle">Notas</h2></div><button class="icon-button small" type="button" id="closeNotes" aria-label="Cerrar notas" title="Cerrar"><i data-lucide="x"></i></button></div>
-        <div class="note-group"><div class="note-group-heading"><strong>Compartidas</strong><span>Las veis los dos</span></div><div class="note-list" id="sharedNotes"></div><form class="note-form" data-note-type="shared"><div class="note-input-wrap"><input type="text" maxlength="120" placeholder="Añadir una nota para los dos" aria-label="Nueva nota compartida" required /><label><input type="checkbox" name="urgent" /> Urgente</label></div><button type="submit" aria-label="Añadir nota compartida" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
-        <div class="note-group private-group"><div class="note-group-heading"><strong>Solo para <span id="privateUserLabel">Ines</span></strong><span>Privada en este perfil</span></div><div class="note-list" id="privateNotes"></div><form class="note-form" data-note-type="private"><div class="note-input-wrap"><input type="text" maxlength="120" placeholder="Añadir una nota privada" aria-label="Nueva nota privada" required /><label><input type="checkbox" name="urgent" /> Urgente</label></div><button type="submit" aria-label="Añadir nota privada" title="Añadir nota"><i data-lucide="plus"></i></button></form></div>
-        <div class="drawing-section"><div class="note-group-heading"><strong>Pizarra compartida</strong><span>Lo veis los dos</span></div><div class="drawing-toolbar"><span><i data-lucide="pen-line"></i> Dibuja algo para Matteo</span><button type="button" id="clearDrawing" aria-label="Borrar pizarra" title="Borrar pizarra"><i data-lucide="eraser"></i></button></div><canvas id="sharedCanvas" aria-label="Pizarra compartida táctil"></canvas></div>
-        <p class="notes-local-warning" id="notesConnectionStatus"><i data-lucide="loader-circle"></i> Conectando notas...</p>
+        <div class="modal-heading"><div><p class="eyebrow muted">Para dejaros un mensaje</p><h2 id="notesTitle">Pizarra compartida</h2></div><button class="icon-button small" type="button" id="closeNotes" aria-label="Cerrar pizarra" title="Cerrar"><i data-lucide="x"></i></button></div>
+        <div class="drawing-section"><div class="drawing-toolbar"><span><i data-lucide="pen-line"></i> Dibuja algo para <span id="boardPartnerLabel">Matteo</span>. Lo veis los dos.</span><button type="button" id="clearDrawing" aria-label="Borrar pizarra" title="Borrar pizarra"><i data-lucide="eraser"></i></button></div><canvas id="sharedCanvas" aria-label="Pizarra compartida táctil"></canvas></div>
+        <p class="notes-local-warning" id="notesConnectionStatus"><i data-lucide="loader-circle"></i> Conectando…</p>
       </div>
     </div>
     <div class="calendar-modal" id="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
@@ -332,17 +345,17 @@
     <div class="finance-modal" id="financeModal" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
       <div class="finance-panel">
         <div class="modal-heading"><div><p class="eyebrow muted">Vida compartida</p><h2 id="financeTitle">Cuentas de casa</h2></div><button class="icon-button small" type="button" id="closeFinance" aria-label="Cerrar gastos" title="Cerrar"><i data-lucide="x"></i></button></div>
-        <div class="finance-summary"><div><span>Casa este mes</span><strong id="financeTotal">0,00 €</strong></div><div><span>Tu parte estimada</span><b id="financeBalance">0,00 €</b></div></div>
+        <div class="finance-summary"><div class="finance-month" role="group" aria-label="Mes que se muestra"><button type="button" id="financePrevMonth" aria-label="Mes anterior"><i data-lucide="chevron-left"></i></button><strong id="financeMonthLabel">Este mes</strong><button type="button" id="financeNextMonth" aria-label="Mes siguiente"><i data-lucide="chevron-right"></i></button></div><div class="finance-summary-figures"><div><span id="financeTotalLabel">Gastos de la casa</span><strong id="financeTotal">0,00 €</strong></div><div><span>Tu parte (50%)</span><b id="financeBalance">0,00 €</b></div></div><p class="finance-summary-note" id="financeMonthNote">Gastos, facturas y fijos de este mes.</p></div>
         <div class="finance-insight settlement-card" id="financeSettlement"><i data-lucide="scale"></i><span>Añade gastos para calcular quién debe a quién.</span></div>
         <div class="settlement-actions"><button type="button" class="settlement-payment-button" id="openSettlementForm"><i data-lucide="arrow-right-left"></i> Registrar pago</button><span id="settlementPaymentTotal">0,00 € entregados</span></div><form class="settlement-form" id="settlementForm" hidden><div class="finance-form-row"><select name="from"><option value="Matteo">Matteo entrega</option><option value="Ines">Ines entrega</option></select><select name="to"><option value="Ines">a Ines</option><option value="Matteo">a Matteo</option></select></div><div class="finance-form-row"><input name="amount" type="number" min="0.01" step="0.01" placeholder="Importe entregado" required /><input name="paymentDate" type="date" required /></div><input name="note" type="text" maxlength="100" placeholder="Nota opcional (ej. transferencia)" /><button type="submit"><i data-lucide="check"></i> Guardar pago</button></form>
         <div class="finance-fixed-section"><div class="finance-section-heading"><div><p class="eyebrow muted">Cada mes</p><strong>Gastos fijos</strong></div><button class="icon-button small" type="button" id="addFixedCost" aria-label="Añadir gasto fijo" title="Añadir gasto fijo"><i data-lucide="plus"></i></button></div><div class="finance-fixed-list" id="fixedCostList"></div><form class="finance-fixed-form" id="fixedCostForm" hidden><input name="description" type="text" maxlength="80" placeholder="Ej. Seguro del hogar" required /><div class="finance-form-row"><input name="amount" type="number" min="0" step="0.01" placeholder="Importe mensual" required /><select name="paidBy"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select></div><div class="finance-form-row"><select name="category"><option>Alquiler</option><option>Internet</option><option>Luz</option><option>Agua</option><option>Gas</option><option>Otros</option></select><button type="submit"><i data-lucide="check"></i> Guardar fijo</button></div></form></div>
-        <div class="finance-metrics"><div><span>Gastos</span><strong id="financeExpenseCount">0</strong><small id="financeExpenseTotal">0,00 €</small></div><div><span>Facturas pendientes</span><strong id="financeBillCount">0</strong><small id="financeBillTotal">0,00 €</small></div><div><span>Fuentes</span><strong id="financeSourceCount">0</strong><small>importadas y manuales</small></div></div>
-        <div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero</strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div>
-        <div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha adelantado más</strong><span>Reparto 50/50</span></div><div id="financePayerChart"></div></div>
+        <div class="finance-metrics"><div><span>Gastos del mes</span><strong id="financeExpenseCount">0</strong><small id="financeExpenseTotal">0,00 €</small></div><div><span>Facturas pendientes</span><strong id="financeBillCount">0</strong><small id="financeBillTotal">0,00 €</small></div><div><span>Fuentes</span><strong id="financeSourceCount">0</strong><small>importadas y manuales</small></div></div>
+        <div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero <em id="financeBreakdownMonth"></em></strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div>
+        <div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha pagado <em id="financePayerMonth"></em></strong><span>Reparto 50/50</span></div><div id="financePayerChart"></div></div>
         <div class="finance-toolbar"><button class="text-button" type="button" id="exportFinance"><i data-lucide="download"></i> Excel</button><label class="text-button finance-import-label"><i data-lucide="upload"></i> CSV/Excel<input id="financeImport" type="file" accept=".csv,.xlsx,.xls" hidden /></label></div>
         <form class="finance-share-form" id="financeShareForm"><input id="financeShareLink" name="shareLink" type="url" placeholder="Pega el enlace compartido de Tricount" aria-label="Enlace compartido de Tricount" required /><button type="submit"><i data-lucide="link-2"></i> Cargar Tricount</button></form>
         <div class="finance-tabs"><button class="finance-tab active" type="button" data-finance-view="expenses">Gastos</button><button class="finance-tab" type="button" data-finance-view="bills">Facturas</button></div>
-        <div class="finance-filter-row"><input id="financeSearch" type="search" placeholder="Buscar gasto, factura o proveedor" aria-label="Buscar gasto, factura o proveedor" /><select id="financeCategoryFilter" aria-label="Filtrar por categoría"><option value="all">Todas las categorías</option><option>Hogar</option><option>Alimentación</option><option>Transporte</option><option>Viajes</option><option>Ocio</option><option>Compras</option><option>Salud</option><option>Otros</option></select><select id="financePeriod" aria-label="Filtrar por periodo"><option value="all">Todo el historial</option><option value="current">Este mes</option></select></div>
+        <div class="finance-filter-row"><input id="financeSearch" type="search" placeholder="Buscar gasto, factura o proveedor" aria-label="Buscar gasto, factura o proveedor" /><select id="financeCategoryFilter" aria-label="Filtrar por categoría"><option value="all">Todas las categorías</option><option>Hogar</option><option>Alimentación</option><option>Transporte</option><option>Viajes</option><option>Ocio</option><option>Compras</option><option>Salud</option><option>Otros</option></select><select id="financePeriod" aria-label="Filtrar por periodo"><option value="month" id="financePeriodMonth">Solo este mes</option><option value="all">Todo el historial</option></select></div>
         <div class="finance-view active" id="expensesView"><form class="finance-form" id="expenseForm"><input name="description" type="text" maxlength="160" placeholder="¿En qué habéis gastado?" required /><div class="finance-form-row"><input name="amount" type="number" min="0" step="0.01" placeholder="Importe" required /><select name="paidBy"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select></div><div class="finance-form-row"><select name="category"><option>Hogar</option><option>Alimentación</option><option>Transporte</option><option>Viajes</option><option>Ocio</option><option>Compras</option><option>Salud</option><option selected>Otros</option></select><input name="date" type="date" required /></div><button type="submit"><i data-lucide="plus"></i> Añadir gasto</button></form><div class="finance-list" id="expenseList"></div></div>
         <div class="finance-view" id="billsView"><form class="finance-form" id="billForm"><select name="provider"><option>Alquiler</option><option>Octopus</option><option>TIM</option><option>Otro</option></select><div class="finance-form-row"><input name="amount" type="number" min="0" step="0.01" placeholder="Importe" required /><input name="dueDate" type="date" /></div><div class="finance-form-row"><select name="paidBy"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select><input name="billingPeriod" type="text" maxlength="40" placeholder="Periodo (ej. septiembre)" /></div><input name="description" type="text" maxlength="160" placeholder="Descripción de la factura" required /><button type="submit"><i data-lucide="plus"></i> Añadir factura</button></form><div class="finance-list" id="billList"></div><div class="finance-email-note"><i data-lucide="mail"></i><span><strong>Octopus y TIM</strong><br />Cuando conectemos tu correo, las nuevas facturas entrarán aquí con proveedor, periodo, importe y estado.</span></div></div>
         <p class="notes-local-warning" id="financeStatus"><i data-lucide="cloud-check"></i> Preparado para sincronizar entre los dos perfiles.</p>
@@ -354,11 +367,12 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="scene.js?v=3"></script>
+    <script src="scene.js?v=4"></script>
     <script src="store.js?v=1"></script>
     <script src="push.js?v=1"></script>
-    <script src="shopping.js?v=2"></script>
-    <script src="tasks.js?v=2"></script>
-    <script src="app.js?v=35"></script>
+    <script src="shopping.js?v=3"></script>
+    <script src="tasks.js?v=3"></script>
+    <script src="pending.js?v=1"></script>
+    <script src="app.js?v=36"></script>
   </body>
 </html>

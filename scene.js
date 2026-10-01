@@ -135,10 +135,11 @@
   }
 
   // ---------- Ines y Matteo ----------
-  // Ines: pelo castaño oscuro, ojos marrones. Matteo: castaño claro, ojos claros y más alto.
+  // Ines: pelo castaño oscuro largo con flequillo, ojos marrones. Matteo: castaño con
+  // volumen, ojos claros y más alto.
   const PEOPLE = {
     ines: { name: 'Ines', scale: 1, skin: '#dca07a', hair: '#2b1a12', eyes: '#5a3420' },
-    matteo: { name: 'Matteo', scale: 1.14, skin: '#f0c7a3', hair: '#9b6b3f', eyes: '#4f97b8' }
+    matteo: { name: 'Matteo', scale: 1.14, skin: '#f0c7a3', hair: '#6b4529', eyes: '#4f97b8' }
   };
 
   // Ropa según la temperatura. sleeve/shin 'skin' = manga corta / pantalón corto.
@@ -214,8 +215,10 @@
     </g></g>`;
 
   const HAIR_FRONT = {
-    ines: 'M-5.3 -26.4 q-.6 -7.4 5.3 -7.4 q5.9 0 5.3 7.4 q-1.4 -3.9 -4.4 -4.7 q-2.6 2.9 -6.2 4.7 z',
-    matteo: 'M-5.1 -27.4 q-.4 -6.4 5.1 -6.4 q5.7 0 5.2 6.2 q-1.6 -2.6 -4 -2.8 q-.7 1.3 -2.5 1.5 q-.4 -1.1 -1.4 -1.3 q-1.4 1.7 -2.4 2.8 z'
+    // Flequillo recto con las puntas un poco desfiladas.
+    ines: 'M-5.4 -25.8 Q-5.8 -34.2 0 -34.2 Q5.8 -34.2 5.4 -25.8 L4.7 -27.5 Q4.1 -28.6 3.2 -28.2 Q2.4 -28.9 1.6 -28.3 Q.8 -29 0 -28.3 Q-.8 -29 -1.6 -28.3 Q-2.4 -28.9 -3.2 -28.2 Q-4.1 -28.6 -4.7 -27.5 Z',
+    // Pelo frondoso, con mechones que sobresalen de la cabeza.
+    matteo: 'M-5.7 -25.6 Q-7 -29.8 -5 -32.6 Q-4.6 -35.6 -1.6 -35.3 Q.1 -37 2.2 -35.5 Q5.1 -35.4 5.5 -32.4 Q7.2 -29.8 5.7 -25.6 Q5.2 -28.4 3.6 -29.2 Q2.7 -27.9 1 -28.8 Q-.3 -27.8 -1.7 -28.9 Q-3.1 -28 -3.9 -29.3 Q-5.2 -28.3 -5.7 -25.6 Z'
   };
 
   function personMarkup(key) {

@@ -102,7 +102,10 @@ function renderShopping() {
   if (!list) return;
 
   document.querySelector('#shoppingCount').textContent = pending.length ? `${pending.length} por comprar` : inCart.length ? 'Todo en el carro' : 'Lista vacía';
-  const groups = SHOPPING_CATEGORIES.map((category) => ({ category, items: pending.filter((item) => (item.category || 'Otros') === category.name) })).filter((group) => group.items.length);
+  // Una categoría que ya no existe va a «Otros» para que el artículo no desaparezca.
+  const known = new Set(SHOPPING_CATEGORIES.map((category) => category.name));
+  const categoryOf = (item) => (known.has(item.category) ? item.category : 'Otros');
+  const groups = SHOPPING_CATEGORIES.map((category) => ({ category, items: pending.filter((item) => categoryOf(item) === category.name) })).filter((group) => group.items.length);
   list.innerHTML = groups.length
     ? groups.map(({ category, items }) => `<section class="list-group"><p class="list-group-title"><i data-lucide="${category.icon}"></i>${category.name}<span>${items.length}</span></p>${items.map(shoppingItemRow).join('')}</section>`).join('')
     : `<div class="empty-state"><span class="empty-state-icon"><i data-lucide="${inCart.length ? 'party-popper' : 'shopping-basket'}"></i></span><strong>${inCart.length ? '¡Todo en el carro!' : 'La lista está vacía'}</strong><span>${inCart.length ? 'Cuando paguéis, pulsa «Terminar compra».' : 'Escribe «leche, pan y 6 huevos» para añadir varias cosas a la vez.'}</span></div>`;

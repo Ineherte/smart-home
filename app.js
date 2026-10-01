@@ -131,6 +131,8 @@ function updateLightStatusText() {
   const lightsOnCount = document.querySelector('#lightsOnCount');
   const lightsStatus = document.querySelector('#lightsStatus');
   if (lightsOnCount) lightsOnCount.textContent = poweredLights.length ? `${poweredLights.length} encendida${poweredLights.length === 1 ? '' : 's'}` : 'Apagadas';
+  const lightsTabCount = document.querySelector('#lightsTabCount');
+  if (lightsTabCount) { lightsTabCount.textContent = String(poweredLights.length); lightsTabCount.hidden = !poweredLights.length; }
   window.umbralScene?.update({ lights: poweredLights.map((light) => light.room || light.name) });
   if (lightsStatus) lightsStatus.textContent = poweredLights.length ? poweredLights.map((light) => light.name).join(', ') : `${smartLights.length} luz${smartLights.length === 1 ? '' : 'es'} en casa`;
 }
@@ -200,7 +202,7 @@ function setUser(name) {
   localStorage.setItem(identityKey, formattedName);
   document.querySelector('#userName').textContent = formattedName;
   document.querySelector('#userAvatar').textContent = formattedName.slice(0, 2).toUpperCase();
-  document.querySelector('#privateUserLabel').textContent = formattedName;
+  document.querySelector('#boardPartnerLabel').textContent = otherPerson(formattedName);
   document.querySelector('#identityModal').classList.remove('visible');
   renderNotes();
 }
@@ -231,11 +233,6 @@ function readNotes(key) {
   }
 }
 
-function renderNoteList(elementId, notes, emptyText) {
-  const list = document.querySelector(`#${elementId}`);
-  list.innerHTML = notes.length ? notes.map((note, index) => `<div class="note-row ${note.completed ? 'completed' : ''} ${note.priority === 'urgent' ? 'urgent' : ''}"><button type="button" class="complete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="${note.completed ? 'Reabrir nota' : 'Marcar como hecha'}" title="${note.completed ? 'Reabrir nota' : 'Marcar como hecha'}"><i data-lucide="${note.completed ? 'check-circle-2' : 'circle'}"></i></button><span>${escapeHtml(note.content || note)}</span>${note.priority === 'urgent' && !note.completed ? '<b class="urgent-badge">Urgente</b>' : ''}<button type="button" class="delete-note" data-note-list="${elementId}" data-note-index="${index}" data-note-id="${note.id || ''}" aria-label="Eliminar nota" title="Eliminar nota"><i data-lucide="trash-2"></i></button></div>`).join('') : `<p class="empty-note">${emptyText}</p>`;
-}
-
 function showSupabaseError(action, error) {
   console.error(`[Umbral] ${action}:`, error);
   showToast(`${action}: ${error?.message || 'error desconocido'}`);
@@ -261,27 +258,6 @@ async function getNotes() {
   return { shared: readNotes(localSharedNotesKey), private: readNotes(localPrivateNotesKey()) };
 }
 
-async function renderNotes() {
-  let notes;
-  try {
-    notes = await getNotes();
-  } catch {
-    notes = { shared: [], private: [] };
-    showToast('No se pudieron cargar las notas');
-  }
-  const sharedNotes = notes.shared;
-  const privateNotes = notes.private;
-  renderNoteList('sharedNotes', sharedNotes, 'No hay notas compartidas.');
-  renderNoteList('privateNotes', privateNotes, 'Tus notas privadas aparecerán aquí.');
-  const pendingNotes = [...sharedNotes, ...privateNotes].filter((note) => !note.completed);
-  const urgentFirst = pendingNotes.find((note) => note.priority === 'urgent') || pendingNotes[0];
-  document.querySelector('#notesCount').textContent = pendingNotes.length ? `${pendingNotes.length} pendiente${pendingNotes.length === 1 ? '' : 's'}` : 'Todo hecho';
-  document.querySelector('#notesPreview').textContent = urgentFirst?.content || 'No hay nada pendiente';
-  renderAttention({ urgentCount: [...sharedNotes, ...privateNotes].filter((note) => note.priority === 'urgent' && !note.completed).length });
-  showUrgentNotes([...sharedNotes, ...privateNotes]);
-  lucide.createIcons();
-}
-
 function showUrgentNotes(notes) {
   const urgentNotes = notes.filter((note) => note.priority === 'urgent' && !note.completed);
   if (!urgentNotes.length || sessionStorage.getItem('umbral-urgent-seen') === 'true') return;
@@ -301,12 +277,12 @@ function renderAttention(nextState = {}) {
   const list = document.querySelector('#attentionList');
   if (!list) return;
   const items = [];
-  if (urgentCount) items.push({ icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Notas', action: 'notes' });
-  if (overdueTasks) items.push({ icon: 'alarm-clock', title: `${overdueTasks} tarea${overdueTasks === 1 ? '' : 's'} atrasada${overdueTasks === 1 ? '' : 's'}`, detail: 'Revisar en Tareas', action: 'tasks' });
-  if (pendingBills) items.push({ icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Cuentas de casa', action: 'finance' });
-  if (settlementAmount > 0.009) items.push({ icon: 'arrow-right-left', title: `Falta saldar ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
+  if (urgentCount) items.push({ tone: 'urgent', icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Casa · Pendientes', action: 'notes' });
+  if (overdueTasks) items.push({ tone: 'tasks', icon: 'alarm-clock', title: `${overdueTasks} tarea${overdueTasks === 1 ? '' : 's'} atrasada${overdueTasks === 1 ? '' : 's'}`, detail: 'Revisar en Casa · Pendientes', action: 'tasks' });
+  if (pendingBills) items.push({ tone: 'bills', icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Cuentas de casa', action: 'finance' });
+  if (settlementAmount > 0.009) items.push({ tone: 'money', icon: 'arrow-right-left', title: `Falta saldar ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
   section?.classList.toggle('has-items', items.length > 0);
-  list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
+  list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item is-${item.tone}" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
   updateHomeStatusMessage(items.length);
   lucide.createIcons();
 }
@@ -317,20 +293,19 @@ function updateHomeStatusMessage(pending) {
   if (!title || !eyebrow) return;
   // Con asuntos pendientes, el título los resume y la lista de debajo da el detalle.
   if (pending) {
-    eyebrow.textContent = 'Necesita tu atención';
-    title.innerHTML = `${pending} ${pending === 1 ? 'cosa' : 'cosas'} por resolver <span class="wave">✦</span>`;
+    eyebrow.textContent = 'Hoy en casa';
+    title.textContent = pending === 1 ? 'Una cosa por resolver' : `${pending} cosas por resolver`;
   } else {
-    eyebrow.textContent = 'Tu casa ahora';
-    title.innerHTML = 'Todo tranquilo <span class="wave">✦</span>';
+    eyebrow.textContent = 'Hoy en casa';
+    title.textContent = 'Todo tranquilo';
   }
 }
 
 document.querySelector('#attentionList').addEventListener('click', (event) => {
   const action = event.target.closest('[data-attention-action]')?.dataset.attentionAction;
   if (!action) return;
-  if (action === 'notes') openNotes();
+  if (action === 'notes' || action === 'tasks') openPending({ filter: 'all' });
   if (action === 'finance') openFinance();
-  if (action === 'tasks') showView('tareas');
 });
 
 // Resumen del día bajo el saludo: tareas, compra y eventos de hoy.
@@ -350,103 +325,31 @@ function updateDaySummary(partial) {
   summary.innerHTML = parts.length ? `Hoy tienes ${list}.` : 'Hoy no tienes nada pendiente. Disfrutad del día.';
 }
 
+// Contadores de Casa: la pestaña muestra su número y la navegación avisa de lo que corre prisa.
 function setNavBadge(view, count) {
-  const badge = document.querySelector(`.nav-item[data-view-target="${view}"] .nav-badge`);
-  if (!badge) return;
+  const tabCount = document.querySelector({ compra: '#shoppingTabCount', tareas: '#pendingTabCount' }[view]);
+  if (tabCount) {
+    tabCount.textContent = count > 99 ? '99+' : String(count);
+    tabCount.hidden = !count;
+  }
+  if (view !== 'tareas') return;
+  const badge = document.querySelector('.nav-item[data-view-target="casa"] .nav-badge');
   badge.textContent = count > 9 ? '9+' : String(count);
   badge.hidden = !count;
 }
 
-function openNotes() {
-  renderNotes();
+// La pizarra compartida vive en su propio panel; las notas están en Casa → Pendientes.
+function openBoard() {
   notesModal.classList.add('visible');
-  if (history.state?.page !== 'notes') history.pushState({ page: 'notes' }, '', '#notas');
+  if (history.state?.page !== 'board') history.pushState({ page: 'board' }, '', '#pizarra');
   initDrawing();
 }
 
 document.querySelector('.notes-card[data-action="notes"]').addEventListener('keydown', (event) => {
-  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) openNotes();
+  if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) openPending({ filter: 'notes' });
 });
 document.querySelector('#closeNotes').addEventListener('click', () => history.back());
-document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openNotes(); });
-document.querySelectorAll('.note-form').forEach((form) => {
-  const textInput = form.querySelector('input[type="text"]');
-  const urgentInput = form.querySelector('[name="urgent"]');
-  const submitButton = form.querySelector('button[type="submit"]');
-
-  if (submitButton) {
-    submitButton.addEventListener('click', (event) => {
-      if (!textInput || !textInput.value.trim()) {
-        event.preventDefault();
-        textInput?.focus();
-        return;
-      }
-    });
-  }
-
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (!textInput) return;
-
-    const content = textInput.value.trim();
-    if (!content) {
-      textInput.focus();
-      return;
-    }
-
-    const scope = form.dataset.noteType;
-    const priority = urgentInput?.checked ? 'urgent' : 'normal';
-
-    if (supabaseClient && authUserId) {
-      if (!householdReady()) return;
-      const { error } = await supabaseClient.from('notes').insert({ content, scope, priority, owner_id: authUserId, household_id: householdId });
-      if (error) return showSupabaseError('No se pudo guardar la nota', error);
-      if (scope === 'shared') notifyHousehold(priority === 'urgent' ? `Nota urgente de ${currentUser}` : `${currentUser} dejó una nota`, content, { open: 'notes', tag: 'notes' });
-    } else {
-      const key = scope === 'shared' ? localSharedNotesKey : localPrivateNotesKey();
-      const notes = readNotes(key);
-      notes.unshift({ id: createLocalId(), content, priority, completed: false });
-      localStorage.setItem(key, JSON.stringify(notes));
-    }
-
-    textInput.value = '';
-    if (urgentInput) urgentInput.checked = false;
-    renderNotes();
-    showToast(scope === 'shared' ? 'Nota compartida sincronizada' : 'Nota privada guardada');
-  });
-});
-document.querySelector('#notesModal').addEventListener('click', async (event) => {
-  const completeButton = event.target.closest('.complete-note');
-  if (completeButton) {
-    if (supabaseClient && authUserId && completeButton.dataset.noteId) {
-      const notes = await getNotes();
-      const note = [...notes.shared, ...notes.private].find((item) => item.id === completeButton.dataset.noteId);
-      const { error } = await supabaseClient.from('notes').update({ completed: !note.completed }).eq('id', note.id);
-      if (error) return showSupabaseError('No se pudo actualizar la nota', error);
-      if (!note.completed && note.scope === 'shared') notifyHousehold(`${currentUser} completó una nota`, note.content, { open: 'notes', tag: 'notes' });
-    } else {
-      const key = completeButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
-      const notes = readNotes(key);
-      notes[Number(completeButton.dataset.noteIndex)].completed = !notes[Number(completeButton.dataset.noteIndex)].completed;
-      localStorage.setItem(key, JSON.stringify(notes));
-    }
-    renderNotes();
-    return;
-  }
-  const deleteButton = event.target.closest('.delete-note');
-  if (!deleteButton) return;
-  if (supabaseClient && authUserId && deleteButton.dataset.noteId) {
-    const { error } = await supabaseClient.from('notes').delete().eq('id', deleteButton.dataset.noteId);
-    if (error) return showSupabaseError('No se pudo eliminar la nota', error);
-  } else {
-    const key = deleteButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
-    const notes = readNotes(key);
-    notes.splice(Number(deleteButton.dataset.noteIndex), 1);
-    localStorage.setItem(key, JSON.stringify(notes));
-  }
-  renderNotes();
-});
-
+document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openPending({ filter: 'all' }); });
 const calendarModal = document.querySelector('#calendarModal');
 const localEventsKey = () => `umbral-events-${currentUser.toLowerCase()}`;
 let selectedDate = new Date();
@@ -1265,6 +1168,40 @@ function financeEntries(data) {
   ];
 }
 
+// Mes que se muestra en Cuentas (AAAA-MM). Los totales, categorías y la lista son de ese mes;
+// el balance de quién debe a quién sigue siendo acumulado.
+let financeMonth = dateToISO(new Date()).slice(0, 7);
+const entryMonth = (entry) => String(entry.date || '').slice(0, 7);
+const monthLabel = (month) => capitalizeFirst(new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(new Date(`${month}-15T12:00:00`)));
+const shortMonthLabel = (month) => new Intl.DateTimeFormat('es-ES', { month: 'long' }).format(new Date(`${month}-15T12:00:00`));
+
+function shiftMonth(month, delta) {
+  const date = new Date(`${month}-15T12:00:00`);
+  date.setMonth(date.getMonth() + delta);
+  return dateToISO(date).slice(0, 7);
+}
+
+// Gastos y facturas fechados en el mes, más los fijos activos (cuentan cada mes desde que se crearon).
+function monthFinanceEntries(data, month) {
+  const dated = financeEntries({ expenses: data.expenses, bills: data.bills }).filter((entry) => entryMonth(entry) === month);
+  const fixed = financeEntries({ fixedCosts: data.fixedCosts })
+    .filter((entry) => !entry.created_at || String(entry.created_at).slice(0, 7) <= month)
+    .map((entry) => ({ ...entry, date: `${month}-01` }));
+  return [...dated, ...fixed];
+}
+
+// Para el balance de quién debe a quién, cada gasto fijo cuenta una vez por mes, desde el mes en
+// que se creó hasta el actual (sin fecha de creación, solo el mes actual).
+function settlementFinanceEntries(data) {
+  const currentMonth = dateToISO(new Date()).slice(0, 7);
+  const fixedByMonth = financeEntries({ fixedCosts: data.fixedCosts }).flatMap((entry) => {
+    const months = [];
+    for (let month = String(entry.created_at || '').slice(0, 7) || currentMonth; month <= currentMonth; month = shiftMonth(month, 1)) months.push(month);
+    return months.map((month) => ({ ...entry, date: `${month}-01` }));
+  });
+  return [...financeEntries({ expenses: data.expenses, bills: data.bills }), ...fixedByMonth];
+}
+
 function filteredFinanceData(data) {
   const safeData = {
     expenses: Array.isArray(data?.expenses) ? data.expenses : [],
@@ -1272,13 +1209,15 @@ function filteredFinanceData(data) {
   };
   const query = document.querySelector('#financeSearch')?.value.trim().toLowerCase() || '';
   const category = document.querySelector('#financeCategoryFilter')?.value || 'all';
-  const period = document.querySelector('#financePeriod')?.value || 'all';
-  const currentMonth = dateToISO(new Date()).slice(0, 7);
-  const matches = (entry) => {
+  const period = document.querySelector('#financePeriod')?.value || 'month';
+  const matches = (date) => (entry) => {
     const searchable = `${entry.description || ''} ${entry.provider || ''} ${entry.category || ''} ${entry.source || ''}`.toLowerCase();
-    return (!query || searchable.includes(query)) && (category === 'all' || financeCategory(entry.category, entry.description) === category || entry.provider === category) && (period !== 'current' || String(entry.date || '').slice(0, 7) === currentMonth);
+    return (!query || searchable.includes(query)) && (category === 'all' || financeCategory(entry.category, entry.description) === category || entry.provider === category) && (period !== 'month' || String(date(entry) || '').slice(0, 7) === financeMonth);
   };
-  return { expenses: safeData.expenses.filter(matches), bills: safeData.bills.filter(matches) };
+  return {
+    expenses: safeData.expenses.filter(matches((entry) => entry.expense_date)),
+    bills: safeData.bills.filter(matches((entry) => entry.due_date || entry.created_at))
+  };
 }
 
 function calculateFinanceSettlement(entries, settlements = []) {
@@ -1327,27 +1266,36 @@ function renderFinance(data) {
   const billList = document.querySelector('#billList');
   const allEntries = financeEntries(data);
   const visible = filteredFinanceData(data);
-  const visibleEntries = financeEntries(visible);
-  const settlement = calculateFinanceSettlement(allEntries, data.settlements);
-  const billTotal = data.bills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+  const settlement = calculateFinanceSettlement(settlementFinanceEntries(data), data.settlements);
+  const pendingBillsList = data.bills.filter((bill) => bill.status !== 'paid');
+  const billTotal = pendingBillsList.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
   const sourceCount = new Set(allEntries.map((entry) => entry.source || 'manual')).size;
-  // Los gastos fijos se fechan hoy en financeEntries, así que cuentan una vez en el mes actual.
-  const currentMonth = dateToISO(new Date()).slice(0, 7);
-  const monthTotal = allEntries.filter((entry) => String(entry.date || '').slice(0, 7) === currentMonth).reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const monthEntries = monthFinanceEntries(data, financeMonth);
+  const monthTotal = monthEntries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const monthExpenses = monthEntries.filter((entry) => entry.kind === 'expense');
+  const isCurrentMonth = financeMonth === dateToISO(new Date()).slice(0, 7);
+  const monthName = shortMonthLabel(financeMonth);
+  document.querySelector('#financeMonthLabel').textContent = isCurrentMonth ? `Este mes · ${monthName}` : monthLabel(financeMonth);
+  document.querySelector('#financeNextMonth').disabled = isCurrentMonth;
+  document.querySelector('#financeTotalLabel').textContent = `Gastos de la casa en ${monthName}`;
+  document.querySelector('#financeMonthNote').textContent = `${monthExpenses.length} gasto${monthExpenses.length === 1 ? '' : 's'}, ${monthEntries.filter((entry) => entry.kind === 'bill').length} factura${monthEntries.filter((entry) => entry.kind === 'bill').length === 1 ? '' : 's'} y ${monthEntries.filter((entry) => entry.kind === 'fixed').length} fijo${monthEntries.filter((entry) => entry.kind === 'fixed').length === 1 ? '' : 's'} de ${monthName}.`;
+  document.querySelector('#financePeriodMonth').textContent = `Solo ${monthName}`;
+  document.querySelector('#financeBreakdownMonth').textContent = `en ${monthName}`;
+  document.querySelector('#financePayerMonth').textContent = `en ${monthName}`;
   document.querySelector('#financeTotal').textContent = financeMoney(monthTotal);
   document.querySelector('#financeBalance').textContent = financeMoney(monthTotal / 2);
-  document.querySelector('#financeExpenseCount').textContent = data.expenses.length;
-  document.querySelector('#financeExpenseTotal').textContent = financeMoney(data.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0));
-  document.querySelector('#financeBillCount').textContent = data.bills.filter((bill) => bill.status !== 'paid').length;
+  document.querySelector('#financeExpenseCount').textContent = monthExpenses.length;
+  document.querySelector('#financeExpenseTotal').textContent = financeMoney(monthExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0));
+  document.querySelector('#financeBillCount').textContent = pendingBillsList.length;
   document.querySelector('#financeBillTotal').textContent = financeMoney(billTotal);
   document.querySelector('#financeSourceCount').textContent = sourceCount;
   renderAttention({ pendingBills: data.bills.filter((bill) => bill.status !== 'paid').length, settlementAmount: settlement.amount });
   renderFinanceTile(settlement, data.bills.filter((bill) => bill.status !== 'paid').length);
   document.querySelector('#settlementPaymentTotal').textContent = `${financeMoney(settlement.paymentsTotal)} entregados`;
   renderFixedCosts(data.fixedCosts || []);
-  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya entregados · ` : ''}Compensación global 50/50.</span>`;
-  renderFinanceBreakdown(allEntries);
-  renderFinancePayerChart(settlement);
+  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya entregados · ` : ''}Balance acumulado de todos los meses, a medias. Los fijos cuentan cada mes.</span>`;
+  renderFinanceBreakdown(monthEntries);
+  renderFinancePayerChart(calculateFinanceSettlement(monthEntries));
   expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
   billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => { const isPaid = bill.status === 'paid'; return `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-bill-status="${bill.id}"><i data-lucide="${isPaid ? 'check-circle-2' : 'circle'}"></i><em class="finance-status-badge ${isPaid ? 'is-paid' : ''}">${isPaid ? 'Pagada' : 'Pendiente'}</em></button></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
   lucide.createIcons();
@@ -1484,14 +1432,29 @@ async function toggleBillStatus(id) {
   showToast(status === 'paid' ? 'Factura marcada como pagada' : 'Factura marcada como pendiente');
 }
 
+// Fecha de un gasto importado. Acepta AAAA-MM-DD (con hora o sin ella), DD/MM/AAAA, DD-MM-AAAA,
+// DD.MM.AAAA, fechas de Excel (número de días) y objetos Date. Sin fecha reconocible, se usa hoy.
+function parseFinanceDate(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return dateToISO(value);
+  if (typeof value === 'number' && value > 20000 && value < 80000) return dateToISO(new Date(Date.UTC(1899, 11, 30) + value * 86400000 + 12 * 3600000));
+  const text = String(value ?? '').trim();
+  const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
+  const european = text.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);
+  if (european) {
+    const year = european[3].length === 2 ? `20${european[3]}` : european[3];
+    return `${year}-${european[2].padStart(2, '0')}-${european[1].padStart(2, '0')}`;
+  }
+  return dateToISO(new Date());
+}
+
 function financeRowFromImport(row) {
   const values = Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase().replace(/[^a-z0-9]/g, ''), value]));
   const amountValue = values.amount || values.importe || values.total || values.cantidad || values.value;
   const amount = Number(String(amountValue || '').replace(',', '.').replace(/[^\d.-]/g, ''));
   if (!Number.isFinite(amount)) return null;
   const description = String(values.description || values.descripcion || values.concept || values.concepto || values.name || 'Gasto importado').slice(0, 160);
-  const rawDate = values.date || values.fecha;
-  const expenseDate = rawDate instanceof Date ? dateToISO(rawDate) : String(rawDate || dateToISO(new Date())).slice(0, 10);
+  const expenseDate = parseFinanceDate(values.date || values.fecha);
   return { description, amount, currency: 'EUR', paid_by: String(values.paidby || values.pagopor || values.payer || 'Ines').toLowerCase().includes('matteo') ? 'Matteo' : 'Ines', category: financeCategory(values.category || values.categoria, description), expense_date: expenseDate, source: 'tricount', settled: false };
 }
 
@@ -1550,7 +1513,7 @@ function normalizeSharedTricountData(payload) {
       currency: 'EUR',
       paid_by: payerName.toLowerCase().includes('matteo') ? 'Matteo' : 'Ines',
       category: allowedCategories.includes(category) ? category : 'Otros',
-      expense_date: String(expense.date || dateToISO(new Date())).slice(0, 10),
+      expense_date: parseFinanceDate(expense.date),
       source: 'tricount',
       source_reference: `${payload.tricountId || 'shared'}:${expense.id || index}`
     };
@@ -1711,6 +1674,8 @@ document.querySelectorAll('[data-finance-view]').forEach((tab) => tab.addEventLi
   document.querySelectorAll('.finance-view').forEach((view) => view.classList.toggle('active', view.id === `${tab.dataset.financeView}View`));
 }));
 ['#financeSearch', '#financeCategoryFilter', '#financePeriod'].forEach((selector) => document.querySelector(selector).addEventListener('input', () => renderFinance(financeCache)));
+document.querySelector('#financePrevMonth').addEventListener('click', () => { financeMonth = shiftMonth(financeMonth, -1); renderFinance(financeCache); });
+document.querySelector('#financeNextMonth').addEventListener('click', () => { financeMonth = shiftMonth(financeMonth, 1); renderFinance(financeCache); });
 document.querySelector('#closeFinance').addEventListener('click', () => history.back());
 document.querySelector('#openSettlementForm').addEventListener('click', () => {
   const form = document.querySelector('#settlementForm');
@@ -1754,30 +1719,23 @@ document.querySelectorAll('[data-action]').forEach((action) => {
       openCalendar();
     }
 
-    if (type === 'notes') {
-      openNotes();
-    }
+    if (type === 'notes') openPending({ filter: 'notes' });
+    if (type === 'board') openBoard();
 
     if (type === 'finance') {
       openFinance();
     }
 
     if (type === 'shopping' || type === 'quick-shopping') focusShoppingInput();
-    if (type === 'tasks') showView('tareas');
+    if (type === 'tasks') openPending({ filter: 'tasks' });
     if (type === 'quick-task') focusNewTask();
-    if (type === 'quick-note') {
-      openNotes();
-      setTimeout(() => document.querySelector('.note-form[data-note-type="shared"] input[type="text"]')?.focus(), 250);
-    }
+    if (type === 'quick-note') openPending({ kind: 'note' });
     if (type === 'quick-expense') {
       openFinance();
       setTimeout(() => document.querySelector('#expenseForm [name="description"]')?.focus(), 350);
     }
 
-    if (type === 'lights') {
-      setWorkspace('casa');
-      document.querySelector('#smartLightsTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (type === 'lights') showView('luces');
   });
 });
 
@@ -1815,10 +1773,29 @@ document.querySelector('#smartLightsList').addEventListener('click', (event) => 
 
 // Muestra un espacio: en el móvil cambia de pestaña; en escritorio, donde se ven
 // todos, lleva hasta él.
+// Casa agrupa Pendientes, Compra y Luces en pestañas; esos nombres llevan a su pestaña.
+const casaTabAliases = { pendientes: 'pendientes', tareas: 'pendientes', compra: 'compra', luces: 'luces' };
 function showView(view) {
+  const casaTab = casaTabAliases[view];
+  if (casaTab) {
+    setCasaTab(casaTab);
+    view = 'casa';
+  }
   setWorkspace(view);
   document.querySelector(`[data-space="${view}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+function setCasaTab(tab) {
+  document.querySelectorAll('[data-casa-tab]').forEach((button) => button.setAttribute('aria-selected', String(button.dataset.casaTab === tab)));
+  document.querySelectorAll('[data-casa-panel]').forEach((panel) => { panel.hidden = panel.dataset.casaPanel !== tab; });
+  try { localStorage.setItem('umbral-casa-tab', tab); } catch {}
+}
+
+document.querySelector('.casa-tabs').addEventListener('click', (event) => {
+  const tab = event.target.closest('[data-casa-tab]');
+  if (tab) setCasaTab(tab.dataset.casaTab);
+});
+setCasaTab((() => { try { return localStorage.getItem('umbral-casa-tab'); } catch { return null; } })() || 'pendientes');
 
 function setWorkspace(view) {
   document.querySelectorAll('[data-space]').forEach((section) => {
@@ -1846,7 +1823,7 @@ window.addEventListener('popstate', () => {
   calendarModal.classList.remove('visible');
   weatherModal.classList.remove('visible');
   financeModal.classList.remove('visible');
-  if (history.state?.page === 'notes') openNotes();
+  if (history.state?.page === 'board') openBoard();
   if (history.state?.page === 'calendar') openCalendar();
   if (history.state?.page === 'weather') openWeather();
   if (history.state?.page === 'finance') openFinance();
@@ -1881,10 +1858,11 @@ function renderGreeting() {
 }
 
 // Enlaces de los avisos: ?abrir=compra|tareas|casa|personal|notes|calendar|finance.
-const linkTargets = ['home', 'compra', 'casa', 'tareas', 'personal', 'notes', 'calendar', 'finance'];
+const linkTargets = ['home', 'casa', 'personal', 'pendientes', 'tareas', 'compra', 'luces', 'notes', 'calendar', 'finance'];
 function openLinkTarget(target) {
   if (!linkTargets.includes(target)) return;
-  if (document.querySelector(`[data-space="${target}"]`)) showView(target);
+  if (target === 'notes') openPending({ filter: 'notes' });
+  else if (document.querySelector(`[data-space="${target}"]`) || casaTabAliases[target]) showView(target);
   else document.querySelector(`[data-action="${target}"]`)?.click();
 }
 const startTarget = new URLSearchParams(window.location.search).get('abrir');

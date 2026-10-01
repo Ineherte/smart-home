@@ -31,7 +31,6 @@ const TASK_PRESETS = [
 
 let householdTasks = [];
 let taskCompletions = [];
-let tasksFilter = 'all';
 let tasksReloadTimer;
 
 const taskIcon = (title) => TASK_ICONS.find(([pattern]) => pattern.test(normalizeText(title)))?.[1] || 'circle-check-big';
@@ -101,26 +100,13 @@ function taskRow(task, bucket) {
   </div>`;
 }
 
+// La lista se pinta junto a las notas en pending.js; aquí, sugerencias y resúmenes.
 function renderTasks() {
-  const list = document.querySelector('#tasksList');
-  if (!list) return;
   const today = dateToISO(new Date());
-  const visible = householdTasks.filter((task) => tasksFilter === 'all' || isMine(task)).sort((first, second) => first.due_date.localeCompare(second.due_date));
-  const buckets = [
-    ['overdue', 'Atrasadas', 'alarm-clock-off', visible.filter((task) => task.due_date < today)],
-    ['today', 'Hoy', 'sun', visible.filter((task) => task.due_date === today)],
-    ['week', 'Esta semana', 'calendar-range', visible.filter((task) => task.due_date > today && daysBetween(today, task.due_date) < 7)],
-    ['later', 'Más adelante', 'calendar-clock', visible.filter((task) => daysBetween(today, task.due_date) >= 7)]
-  ].filter(([, , , tasks]) => tasks.length);
-
-  list.innerHTML = buckets.length
-    ? buckets.map(([key, label, icon, tasks]) => `<section class="list-group is-${key}"><p class="list-group-title"><i data-lucide="${icon}"></i>${label}<span>${tasks.length}</span></p>${tasks.map((task) => taskRow(task, key)).join('')}</section>`).join('')
-    : `<div class="empty-state"><span class="empty-state-icon"><i data-lucide="${householdTasks.length ? 'party-popper' : 'list-checks'}"></i></span><strong>${householdTasks.length ? 'Nada pendiente para ti' : 'Aún no hay tareas'}</strong><span>${householdTasks.length ? 'Disfruta: todo lo tuyo está hecho.' : 'Añade las tareas de la casa y Umbral os irá recordando a quién le toca.'}</span></div>`;
-
   const existing = new Set(householdTasks.map((task) => normalizeText(task.title)));
   const presets = TASK_PRESETS.filter((preset) => !existing.has(normalizeText(preset.title)));
   document.querySelector('#taskPresets').innerHTML = presets.map((preset) => `<button type="button" class="suggestion-chip" data-task-preset="${escapeHtml(preset.title)}"><i data-lucide="${taskIcon(preset.title)}"></i>${escapeHtml(preset.title)} <em>${RECURRENCE_LABELS[preset.recurrence].toLowerCase()}</em></button>`).join('');
-  document.querySelector('#taskPresetsBlock').hidden = !presets.length;
+  document.querySelector('#taskPresetsBlock').hidden = !presets.length || document.querySelector('#pendingForm').dataset.kind !== 'task';
 
   renderTaskBalance();
 
@@ -128,13 +114,11 @@ function renderTasks() {
   const overdue = householdTasks.filter((task) => task.due_date < today);
   const mineNow = householdTasks.filter((task) => isMine(task) && task.due_date <= today);
   const nextMine = householdTasks.filter(isMine).sort((first, second) => first.due_date.localeCompare(second.due_date))[0];
-  document.querySelector('#tasksCount').textContent = mineNow.length ? `${mineNow.length} para hoy` : 'Al día';
   document.querySelector('#tasksTileValue').textContent = mineNow.length ? `${mineNow.length} para hoy` : householdTasks.length ? 'Al día' : 'Sin tareas';
   document.querySelector('#tasksTileDetail').textContent = mineNow[0] ? `${mineNow[0].assignee === currentUser ? 'Te toca' : 'Toca'}: ${mineNow[0].title}` : nextMine ? `Próxima: ${nextMine.title} (${dueLabel(nextMine.due_date).toLowerCase()})` : 'Toca para organizar la casa';
-  setNavBadge('tareas', mineNow.length);
   renderAttention({ overdueTasks: overdue.length });
   updateDaySummary({ tasks: mineNow.length });
-  lucide.createIcons();
+  renderPending();
 }
 
 function renderTaskBalance() {
@@ -163,14 +147,14 @@ async function completeTask(id) {
       await tasksStore.update(id, { active: false });
       householdTasks = householdTasks.filter((entry) => entry.id !== id);
       showToast('¡Hecho! Una cosa menos.');
-      notifyHousehold(`${doneBy} completó una tarea`, task.title, { open: 'tareas', tag: 'tasks' });
+      notifyHousehold(`${doneBy} completó una tarea`, task.title, { open: 'pendientes', tag: 'tasks' });
     } else {
       const changes = { due_date: nextDueDate(task) };
       if (task.rotate) changes.assignee = otherPerson(task.assignee === 'both' ? doneBy : task.assignee);
       await tasksStore.update(id, changes);
       Object.assign(task, changes);
       showToast(`¡Hecho! Próxima vez: ${dueLabel(task.due_date).toLowerCase()}${task.rotate ? ` · le toca a ${task.assignee === currentUser ? 'ti' : task.assignee}` : ''}`);
-      notifyHousehold(`${doneBy} completó una tarea`, `${task.title}${task.rotate && task.assignee !== doneBy ? ' · la próxima vez te toca a ti' : ''}`, { open: 'tareas', tag: 'tasks' });
+      notifyHousehold(`${doneBy} completó una tarea`, `${task.title}${task.rotate && task.assignee !== doneBy ? ' · la próxima vez te toca a ti' : ''}`, { open: 'pendientes', tag: 'tasks' });
     }
   } catch (error) {
     showSupabaseError('No se pudo completar la tarea', error);
@@ -185,7 +169,7 @@ async function createTask({ title, recurrence, dueDate, assignee }) {
     householdTasks.push(task);
     renderTasks();
     showToast(`Tarea añadida: ${title}`);
-    notifyHousehold(`${currentUser} añadió una tarea`, `${title}${task.assignee !== currentUser && task.assignee !== 'both' ? ' · te toca a ti' : ''}`, { open: 'tareas', tag: 'tasks' });
+    notifyHousehold(`${currentUser} añadió una tarea`, `${title}${task.assignee !== currentUser && task.assignee !== 'both' ? ' · te toca a ti' : ''}`, { open: 'pendientes', tag: 'tasks' });
     return true;
   } catch (error) {
     showSupabaseError('No se pudo crear la tarea', error);
@@ -221,25 +205,6 @@ async function deleteTask(id) {
   }
 }
 
-function openTaskForm(prefill = {}) {
-  const form = document.querySelector('#taskForm');
-  form.hidden = false;
-  form.title.value = prefill.title || '';
-  form.recurrence.value = prefill.recurrence || 'none';
-  form.assignee.value = prefill.assignee || 'both';
-  form.dueDate.value = dateToISO(new Date());
-  setTimeout(() => form.title.focus({ preventScroll: true }), 350);
-}
-
-document.querySelector('#taskForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const title = form.title.value.trim();
-  if (!title) return form.title.focus();
-  const saved = await createTask({ title, recurrence: form.recurrence.value, dueDate: form.dueDate.value || dateToISO(new Date()), assignee: form.assignee.value });
-  if (saved) { form.reset(); form.hidden = true; }
-});
-
 document.querySelector('#tasksView').addEventListener('click', (event) => {
   const done = event.target.closest('[data-task-done]');
   if (done) return completeTask(done.dataset.taskDone);
@@ -258,22 +223,10 @@ document.querySelector('#tasksView').addEventListener('click', (event) => {
     const found = TASK_PRESETS.find((entry) => entry.title === preset.dataset.taskPreset);
     return createTask({ title: found.title, recurrence: found.recurrence, dueDate: dateToISO(new Date()), assignee: found.assignee });
   }
-  if (event.target.closest('#newTaskButton')) {
-    const form = document.querySelector('#taskForm');
-    if (form.hidden) openTaskForm(); else form.hidden = true;
-    return;
-  }
-  const filter = event.target.closest('[data-task-filter]');
-  if (filter) {
-    tasksFilter = filter.dataset.taskFilter;
-    document.querySelectorAll('[data-task-filter]').forEach((button) => button.setAttribute('aria-pressed', String(button === filter)));
-    renderTasks();
-  }
 });
 
 function focusNewTask() {
-  showView('tareas');
-  openTaskForm();
+  openPending({ kind: 'task' });
 }
 
 document.addEventListener('umbral:ready', () => {
