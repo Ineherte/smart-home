@@ -1,8 +1,8 @@
-const CACHE_NAME = 'umbral-shell-v48';
+const CACHE_NAME = 'umbral-shell-v50';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=30',
+  './styles.css?v=32',
   './scene.js?v=4',
   './store.js?v=1',
   './push.js?v=1',
@@ -10,8 +10,10 @@ const APP_SHELL = [
   './tasks.js?v=4',
   './pending.js?v=2',
   './plants.js?v=2',
-  './money.js?v=1',
-  './app.js?v=39',
+  './money.js?v=2',
+  './bank-import.js?v=1',
+  './personal.js?v=1',
+  './app.js?v=40',
   './smart-lights-config.js',
   './supabase-config.js',
   './mobile-bridge.js',

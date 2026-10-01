@@ -10,7 +10,7 @@ La aplicación ya muestra acceso por correo y contraseña, crea el primer hogar 
 
 Orden de puesta en producción:
 
-1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/schema-sync.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql`, `supabase/sql/household-scoping.sql`, `supabase/sql/shopping-and-tasks.sql`, `supabase/sql/push-notifications.sql`, `supabase/sql/plants.sql`, `supabase/sql/finance-personal.sql` y `supabase/sql/tasks-notes-v2.sql` en el editor SQL (en ese orden). Para el aviso diario de riego, ejecuta además `supabase/sql/plant-reminders-cron.sql` (lee las instrucciones del principio del archivo).
+1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/schema-sync.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql`, `supabase/sql/household-scoping.sql`, `supabase/sql/shopping-and-tasks.sql`, `supabase/sql/push-notifications.sql`, `supabase/sql/plants.sql`, `supabase/sql/finance-personal.sql`, `supabase/sql/tasks-notes-v2.sql` y `supabase/sql/finance-personal-v2.sql` en el editor SQL (en ese orden). Para el aviso diario de riego, ejecuta además `supabase/sql/plant-reminders-cron.sql` (lee las instrucciones del principio del archivo).
 2. Crea una cuenta para cada persona desde Umbral.
 3. Añade el segundo usuario a `household_members` con el mismo `household_id` y rol `member`.
 4. Comprueba las tablas y políticas con usuarios reales antes de importar datos financieros.

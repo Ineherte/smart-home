@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=30" />
+    <link rel="stylesheet" href="styles.css?v=32" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -338,6 +338,12 @@
         <div class="plant-sheet-body" id="itemSheetBody"></div>
       </div>
     </div>
+    <div class="plant-sheet money-sheet" id="moneySheet" role="dialog" aria-modal="true" aria-labelledby="moneySheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-money aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="moneySheetBody"></div>
+      </div>
+    </div>
     <div class="urgent-modal" id="urgentModal" role="dialog" aria-modal="true" aria-labelledby="urgentTitle">
       <div class="urgent-panel"><span class="urgent-mark"><i data-lucide="siren"></i></span><p class="eyebrow urgent-eyebrow">Importante</p><h2 id="urgentTitle">Tienes notas urgentes</h2><div id="urgentList"></div><button type="button" class="urgent-close" id="closeUrgent">Ver notas</button></div>
     </div>
@@ -383,21 +389,33 @@
         </div>
 
         <div class="money-pane" data-money-pane="personal" id="personalPane" hidden>
-          <div class="finance-summary is-personal"><div class="finance-summary-figures"><div><span id="personalTotalLabel">Tus gastos este mes</span><strong id="personalTotal">0,00 €</strong></div><div><span>Frente al mes anterior</span><b id="personalDelta">—</b></div></div><label class="share-toggle"><input type="checkbox" id="personalIncludeShare" /><span><i data-lucide="house"></i> Incluir mi parte de la casa <b id="personalShareAmount"></b></span></label><div class="month-bars" id="personalTrend" aria-label="Tus gastos en los últimos meses"></div></div>
-          <form class="money-card personal-form" id="personalForm" autocomplete="off">
-            <div class="finance-subheading"><strong>Añadir un gasto</strong><span>Solo lo ves tú</span></div>
-            <div class="personal-form-row"><input name="description" type="text" maxlength="160" placeholder="¿En qué?" aria-label="Descripción" required /><input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="€" aria-label="Importe" required /></div>
-            <div class="category-chips" id="personalCategoryChips" role="radiogroup" aria-label="Categoría"></div>
-            <div class="personal-form-row"><input name="date" type="date" aria-label="Fecha" required /><button type="submit" class="primary-button"><i data-lucide="plus"></i> Guardar</button></div>
-          </form>
-          <section class="money-card"><div class="finance-subheading"><strong>En qué se te va <em id="personalCategoryMonth"></em></strong><span id="personalCategoryTotal">0,00 €</span></div><div id="personalCategories"></div></section>
-          <section class="money-card"><div class="finance-subheading"><strong>Dónde más gastas</strong><span>Este mes</span></div><div id="personalTop"></div></section>
-          <section class="money-card"><div class="finance-subheading"><strong id="personalListTitle">Movimientos</strong><span id="personalCount"></span></div><div id="personalList"></div></section>
-          <section class="money-card connect-card">
-            <div class="finance-subheading"><strong>Que se apunten solos</strong><span>Gratis</span></div>
-            <details class="connect-option"><summary><span class="connect-icon is-wallet"><i data-lucide="smartphone-nfc"></i></span><span><strong>Apple Pay</strong><small>Cada pago con el iPhone se apunta al momento</small></span><i data-lucide="chevron-down"></i></summary><div class="connect-steps" id="walletSteps"></div></details>
-            <details class="connect-option"><summary><span class="connect-icon is-bank"><i data-lucide="landmark"></i></span><span><strong>Extracto del banco</strong><small>Sube el CSV o Excel que descargas de tu banco</small></span><i data-lucide="chevron-down"></i></summary><div class="connect-steps"><p>En la web o app de tu banco, descarga los movimientos del mes en <b>CSV</b> o <b>Excel</b> y súbelo aquí. Solo se importan los cargos (no los ingresos), y si subes el mismo extracto dos veces no se duplica nada.</p><label class="primary-button bank-import-button"><i data-lucide="upload"></i> Elegir archivo<input type="file" id="bankImport" accept=".csv,.xlsx,.xls,.txt" hidden /></label><div id="bankImportResult"></div></div></details>
+          <div class="finance-summary is-personal">
+            <div class="personal-kpis">
+              <div class="kpi-main"><span id="personalTotalLabel">Gastado este mes</span><strong id="personalTotal">0,00 €</strong><small id="personalCompare"></small></div>
+              <div class="kpi-side"><div><span>Ingresos</span><b id="personalIncome">—</b></div><div><span>Ahorro</span><b id="personalSaved">—</b></div></div>
+            </div>
+            <div class="savings-meter" id="personalSavingsMeter"></div>
+            <label class="share-toggle"><input type="checkbox" id="personalIncludeShare" /><span><i data-lucide="house"></i> Incluir mi parte de la casa <b id="personalShareAmount"></b></span></label>
+            <div class="month-bars" id="personalTrend" aria-label="Tus gastos en los últimos meses"></div>
+          </div>
+          <div class="personal-actions">
+            <label class="primary-button import-button"><i data-lucide="upload"></i> Importar extracto<input type="file" id="bankImport" accept=".xlsx,.xls,.csv,.txt" hidden /></label>
+            <button type="button" class="pill-button" id="personalAddButton"><i data-lucide="plus"></i> A mano</button>
+            <button type="button" class="pill-button is-quiet" id="personalBudgetButton"><i data-lucide="target"></i> Presupuestos</button>
+          </div>
+          <div id="personalImport"></div>
+          <section class="money-card" id="personalInsightsCard"><div class="finance-subheading"><strong>Lo destacado</strong><span id="personalInsightsMonth"></span></div><div class="insight-list" id="personalInsights"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Por categoría</strong><span id="personalCategoryHint"></span></div><div id="personalCategories"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Cuándo gastas</strong><span id="personalCalendarHint"></span></div><div class="spend-calendar" id="personalCalendar"></div><p class="insight-label">Media por día de la semana</p><div class="weekday-bars" id="personalWeekdays"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Fijos y suscripciones</strong><span id="personalRecurringTotal"></span></div><div id="personalRecurring"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Dónde más gastas</strong><span id="personalTopHint"></span></div><div id="personalTop"></div></section>
+          <section class="money-card movements-card" id="personalMovements">
+            <div class="finance-subheading"><strong id="personalListTitle">Movimientos</strong><span id="personalCount"></span></div>
+            <input type="search" class="guide-search" id="personalSearch" placeholder="Buscar comercio o concepto" aria-label="Buscar movimientos" />
+            <div class="category-chips" id="personalFilterChips"></div>
+            <div id="personalList"></div>
           </section>
+          <details class="money-tools"><summary><i data-lucide="smartphone-nfc"></i> Apple Pay automático (opcional)</summary><div class="connect-steps" id="walletSteps"></div></details>
           <p class="notes-local-warning" id="personalPrivacyNote"><i data-lucide="lock"></i> Tus gastos personales son privados: solo los ves tú.</p>
         </div>
       </div>
@@ -415,7 +433,9 @@
     <script src="tasks.js?v=4"></script>
     <script src="pending.js?v=2"></script>
     <script src="plants.js?v=2"></script>
-    <script src="money.js?v=1"></script>
-    <script src="app.js?v=39"></script>
+    <script src="money.js?v=2"></script>
+    <script src="bank-import.js?v=1"></script>
+    <script src="personal.js?v=1"></script>
+    <script src="app.js?v=40"></script>
   </body>
 </html>

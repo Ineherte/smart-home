@@ -10,13 +10,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-sync-token'
 };
 
-// Mismas reglas que guessPersonalCategory en money.js.
+// Mismas reglas (resumidas) que CATEGORY_KEYWORDS en bank-import.js.
 const CATEGORY_RULES: [RegExp, string][] = [
   [/esselunga|carrefour|coop|conad|lidl|eurospin|\bpam\b|aldi|penny|mercadona|\bdia\b|supermerc|naturasi|bennet|despar|crai/, 'Supermercado'],
-  [/bar\b|caff|cafe|ristorante|pizzeri|trattoria|osteria|restaurante|mcdonald|burger|kebab|sushi|glovo|deliveroo|just ?eat|uber ?eats|gelateria|pasticceria|panetteria|starbucks/, 'Comer fuera'],
-  [/\bgtt\b|trenitalia|italo|\buber\b|taxi|\beni\b|\bq8\b|tamoil|\bip\b|esso|autostrad|telepass|parcheggi|parking|bird|lime|bolt|renfe|metro/, 'Transporte'],
-  [/netflix|spotify|disney|prime video|cinema|teatro|museo|ticket|steam|playstation|apple\.com|icloud|ryanair|vueling|easyjet|booking|airbnb|hotel/, 'Ocio y viajes'],
-  [/amazon|zara|h&m|\bhm\b|ikea|decathlon|mediaworld|unieuro|primark|uniqlo|zalando|leroy|tiger/, 'Compras'],
+  [/\bbar\b|caff|cafe|ristorant|pizzer|trattoria|osteria|restaurante|mcdonald|burger|kebab|sushi|glovo|deliveroo|just ?eat|uber ?eats|gelater|pasticcer|panetter|starbucks/, 'Comer fuera'],
+  [/\bgtt\b|trenitalia|italo|\buber\b|taxi|\beni\b|\bq8\b|tamoil|\bip\b|esso|autostrad|telepass|parcheggi|parking|\bbird\b|\blime\b|\bbolt\b/, 'Transporte'],
+  [/netflix|spotify|disney|prime video|\bdazn\b|youtube|icloud|apple\.com|google one|palestra|\bgym\b/, 'Suscripciones'],
+  [/ryanair|vueling|easyjet|wizz|booking|airbnb|hotel|flixbus/, 'Viajes'],
+  [/cinema|\bcine\b|teatro|museo|ticketone|steam|playstation|nintendo|libreria|feltrinelli/, 'Ocio'],
+  [/\bzara\b|h&m|\bhm\b|primark|uniqlo|bershka|mango|zalando|decathlon|vinted/, 'Ropa'],
+  [/amazon|ikea|mediaworld|unieuro|tiger|ebay|aliexpress|shein|temu/, 'Compras'],
   [/farmac|pharm|parafarm|ospedal|clinic|dentist|ottica|optic|douglas|sephora|parrucch|barbier/, 'Salud y cuidado']
 ];
 
@@ -54,7 +57,7 @@ Deno.serve(async (request) => {
     const minute = new Date().toISOString().slice(0, 16);
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const { error } = await supabase.from('personal_expenses').upsert({
+    const base = {
       user_id: userId,
       description: merchant,
       amount: Math.round(amount * 100) / 100,
@@ -62,7 +65,11 @@ Deno.serve(async (request) => {
       expense_date: today,
       source: 'apple_pay',
       source_reference: `applepay:${minute}:${amount}:${merchant}`.slice(0, 300)
-    }, { onConflict: 'user_id,source_reference', ignoreDuplicates: true });
+    };
+    const save = (row: Record<string, unknown>) => supabase.from('personal_expenses').upsert(row, { onConflict: 'user_id,source_reference', ignoreDuplicates: true });
+    // Con finance-personal-v2.sql se guardan también comercio, tipo y sentido.
+    let { error } = await save({ ...base, merchant: merchant.slice(0, 80), kind: 'card', direction: 'out' });
+    if (error && /column|schema cache/i.test(error.message)) ({ error } = await save(base));
     if (error) return json({ error: error.message }, 500);
     return json({ saved: true, amount, merchant, category: guessCategory(merchant) });
   } catch (error) {
