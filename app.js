@@ -428,7 +428,7 @@ function renderSelectedDay() {
   const dateLabel = formatEventDate(selectedDate);
   document.querySelector('#selectedDateLabel').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
   document.querySelector('#selectedDayCount').textContent = `${dayEvents.length} ${dayEvents.length === 1 ? 'evento' : 'eventos'}`;
-  document.querySelector('#calendarEvents').innerHTML = dayEvents.length ? dayEvents.map((event) => { const isIphoneEvent = event.source === 'iphone'; const sourceLabel = isIphoneEvent ? 'Calendario iPhone' : 'Smart Home'; const eventLocation = event.location || (event.scope === 'shared' ? 'Casa · Compartido' : `Solo para ${currentUser}`); return `<div class="calendar-event ${isIphoneEvent ? 'iphone-event' : 'home-event'}"><div class="time-block"><strong>${(event.event_time || '00:00').slice(0, 5)}</strong><span>${event.duration || 'Sin duración'}</span></div><div class="event-line"></div><div class="event-copy"><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(eventLocation)}</span></div><span class="source-tag">${sourceLabel}</span>${event.scope === 'shared' && !isIphoneEvent ? '<span class="shared-tag">Casa</span>' : ''}${!isIphoneEvent ? `<button type="button" class="export-event" data-event-index="${cachedEvents.indexOf(event)}" aria-label="Añadir al Calendario del iPhone" title="Añadir al Calendario del iPhone"><i data-lucide="calendar-plus"></i></button><button type="button" class="delete-event" data-event-id="${event.id || ''}" data-event-index="${cachedEvents.indexOf(event)}" aria-label="Eliminar evento" title="Eliminar evento"><i data-lucide="trash-2"></i></button>` : ''}</div>`; }).join('') : '<p class="empty-note">No hay eventos para este día.</p>';
+  document.querySelector('#calendarEvents').innerHTML = dayEvents.length ? dayEvents.map((event) => { const isIphoneEvent = event.source === 'iphone'; const eventLocation = [event.location, isIphoneEvent ? 'Del iPhone' : event.scope === 'shared' ? 'Los dos' : 'Solo tú'].filter(Boolean).join(' · '); return `<div class="calendar-event ${isIphoneEvent ? 'iphone-event' : 'home-event'}"><div class="time-block"><strong>${event.event_time ? event.event_time.slice(0, 5) : 'Todo'}</strong><span>${event.event_time ? escapeHtml(event.duration || '') : 'el día'}</span></div><div class="event-line"></div><div class="event-copy"><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(eventLocation)}</span></div>${!isIphoneEvent ? `<button type="button" class="export-event" data-event-index="${cachedEvents.indexOf(event)}" aria-label="Añadir al Calendario del iPhone" title="Añadir al Calendario del iPhone"><i data-lucide="calendar-plus"></i></button><button type="button" class="delete-event" data-event-id="${event.id || ''}" data-event-index="${cachedEvents.indexOf(event)}" aria-label="Eliminar evento" title="Eliminar evento"><i data-lucide="trash-2"></i></button>` : ''}</div>`; }).join('') : '<p class="empty-note">No hay eventos para este día.</p>';
   const eventForm = document.querySelector('#eventForm');
   eventForm.date.value = dateISO;
   lucide.createIcons();
@@ -498,9 +498,17 @@ document.querySelector('#eventForm').addEventListener('submit', async (event) =>
   form.title.value = '';
   form.time.value = '';
   form.duration.value = '';
+  form.hidden = true;
+  document.querySelector('#openEventForm').hidden = false;
   form.location.value = '';
   await renderCalendarData();
-  showToast(eventData.scope === 'shared' ? 'Evento compartido añadido' : 'Evento personal añadido');
+  showToast(eventData.scope === 'shared' ? 'Evento guardado para los dos' : 'Evento guardado solo para ti');
+});
+document.querySelector('#openEventForm').addEventListener('click', (event) => {
+  const form = document.querySelector('#eventForm');
+  form.hidden = false;
+  event.currentTarget.hidden = true;
+  form.title.focus();
 });
 document.querySelector('#calendarEvents').addEventListener('click', async (event) => {
   const exportButton = event.target.closest('.export-event');
@@ -1215,22 +1223,28 @@ function settlementWithReset(data, reset = latestReset()) {
   return calculateFinanceSettlement(entries, payments);
 }
 
-function filteredFinanceData(data) {
-  const safeData = {
-    expenses: Array.isArray(data?.expenses) ? data.expenses : [],
-    bills: Array.isArray(data?.bills) ? data.bills : []
-  };
-  const query = document.querySelector('#financeSearch')?.value.trim().toLowerCase() || '';
-  const category = document.querySelector('#financeCategoryFilter')?.value || 'all';
-  const period = document.querySelector('#financePeriod')?.value || 'month';
-  const matches = (date) => (entry) => {
-    const searchable = `${entry.description || ''} ${entry.provider || ''} ${entry.category || ''} ${entry.source || ''}`.toLowerCase();
-    return (!query || searchable.includes(query)) && (category === 'all' || financeCategory(entry.category, entry.description) === category || entry.provider === category) && (period !== 'month' || String(date(entry) || '').slice(0, 7) === financeMonth);
-  };
-  return {
-    expenses: safeData.expenses.filter(matches((entry) => entry.expense_date)),
-    bills: safeData.bills.filter(matches((entry) => entry.due_date || entry.created_at))
-  };
+// Movimientos de la casa: los del mes que se ve o, al buscar, de todos los meses.
+let houseCategoryFilter = null;
+function houseMovements(data) {
+  const query = normalizeText(document.querySelector('#financeSearch')?.value || '');
+  const rows = [
+    ...data.expenses.map((entry) => ({ kind: 'expense', id: entry.id, date: entry.expense_date, title: entry.description, category: financeCategory(entry.category, entry.description), amount: entry.amount, payer: entry.paid_by || 'Ines', source: entry.source })),
+    ...data.bills.map((entry) => ({ kind: 'bill', id: entry.id, date: entry.due_date || String(entry.created_at || '').slice(0, 10) || dateToISO(new Date()), title: entry.description && entry.description !== entry.provider ? `${entry.provider} · ${entry.description}` : entry.provider, category: entry.provider, amount: entry.amount, payer: entry.paid_by || 'Ines', source: entry.source, pending: entry.status !== 'paid' }))
+  ];
+  return rows
+    .filter((row) => (query ? normalizeText(`${row.title} ${row.category}`).includes(query) : String(row.date || '').slice(0, 7) === financeMonth))
+    .filter((row) => !houseCategoryFilter || row.category === houseCategoryFilter)
+    .sort((first, second) => String(second.date || '').localeCompare(String(first.date || '')));
+}
+
+function houseMoveRow(row) {
+  const badge = row.source === 'tricount' || row.source === 'email' ? ` <em class="finance-item-source">${financeSourceLabel(row.source)}</em>` : '';
+  const meta = [row.kind === 'bill' ? 'Factura' : row.category, row.date ? financeDate(row.date) : '', `pagó ${row.payer}`].filter(Boolean).join(' · ');
+  return `<button type="button" class="move-row" data-house-open="${row.kind}|${escapeHtml(row.id)}">
+    <span class="pcat-icon${row.kind === 'bill' ? ' is-bill' : ''}"><i data-lucide="${row.kind === 'bill' ? 'file-text' : 'receipt'}"></i></span>
+    <span class="move-copy"><strong>${escapeHtml(row.title)}${badge}</strong><small>${escapeHtml(meta)}${row.pending ? ' · <em class="is-pending">por pagar</em>' : ''}</small></span>
+    <b>${row.amount ? financeMoney(row.amount) : '—'}</b>
+  </button>`;
 }
 
 function calculateFinanceSettlement(entries, settlements = []) {
@@ -1256,8 +1270,11 @@ function renderFinancePayerChart(settlement) {
 }
 
 function renderFixedCosts(fixedCosts) {
-  const list = document.querySelector('#fixedCostList');
-  list.innerHTML = fixedCosts.length ? fixedCosts.map((cost) => `<div class="finance-fixed-item"><span class="fixed-cost-icon"><i data-lucide="repeat-2"></i></span><span class="finance-fixed-copy"><strong>${escapeHtml(cost.description)}</strong><small>${escapeHtml(cost.category || 'Otros')} · Pagó ${escapeHtml(cost.paid_by || 'Ines')} · Cada mes</small></span><b class="finance-fixed-amount">${financeMoney(cost.amount)}</b><span class="finance-item-actions"><button type="button" data-fixed-edit="${cost.id}" aria-label="Editar ${escapeHtml(cost.description)}" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-fixed-delete="${cost.id}" aria-label="Eliminar ${escapeHtml(cost.description)}" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos fijos configurados.</p>';
+  const active = fixedCosts.filter((cost) => cost.active !== false);
+  document.querySelector('#fixedCostTotal').textContent = active.length ? `${financeMoney(active.reduce((sum, cost) => sum + Number(cost.amount || 0), 0))} al mes` : '';
+  document.querySelector('#fixedCostList').innerHTML = active.length
+    ? active.map((cost) => `<button type="button" class="move-row" data-house-open="fixed|${escapeHtml(cost.id)}"><span class="pcat-icon"><i data-lucide="repeat-2"></i></span><span class="move-copy"><strong>${escapeHtml(cost.description)}</strong><small>${escapeHtml(cost.category || 'Otros')} · pagó ${escapeHtml(cost.paid_by || 'Ines')}</small></span><b>${financeMoney(cost.amount)}</b></button>`).join('')
+    : '<p class="empty-note">El alquiler, internet… Añádelos una vez con «Añadir gasto → Cada mes» y contarán solos todos los meses.</p>';
 }
 
 function renderFinance(data) {
@@ -1267,9 +1284,6 @@ function renderFinance(data) {
     fixedCosts: Array.isArray(data?.fixedCosts) ? data.fixedCosts : [],
     settlements: Array.isArray(data?.settlements) ? data.settlements : []
   };
-  const expenseList = document.querySelector('#expenseList');
-  const billList = document.querySelector('#billList');
-  const visible = filteredFinanceData(data);
   const settlement = settlementWithReset(data);
   const reset = latestReset();
   const monthEntries = monthFinanceEntries(data, financeMonth);
@@ -1281,22 +1295,27 @@ function renderFinance(data) {
   document.querySelector('#financeNextMonth').disabled = isCurrentMonth;
   document.querySelector('#financeTotalLabel').textContent = `Gastos de la casa en ${monthName}`;
   document.querySelector('#financeMonthNote').textContent = `${monthExpenses.length} gasto${monthExpenses.length === 1 ? '' : 's'}, ${monthEntries.filter((entry) => entry.kind === 'bill').length} factura${monthEntries.filter((entry) => entry.kind === 'bill').length === 1 ? '' : 's'} y ${monthEntries.filter((entry) => entry.kind === 'fixed').length} fijo${monthEntries.filter((entry) => entry.kind === 'fixed').length === 1 ? '' : 's'} de ${monthName}.`;
-  document.querySelector('#financePeriodMonth').textContent = `Solo ${monthName}`;
   document.querySelector('#financeBreakdownMonth').textContent = `en ${monthName}`;
   document.querySelector('#financePayerMonth').textContent = `en ${monthName}`;
   document.querySelector('#financeTotal').textContent = financeMoney(monthTotal);
   document.querySelector('#financeBalance').textContent = financeMoney(monthTotal / 2);
   renderAttention({ pendingBills: data.bills.filter((bill) => bill.status !== 'paid').length, settlementAmount: settlement.amount });
   renderFinanceTile(settlement, data.bills.filter((bill) => bill.status !== 'paid').length);
-  document.querySelector('#settlementPaymentTotal').textContent = `${financeMoney(settlement.paymentsTotal)} entregados`;
+  document.querySelector('#settlementPaymentTotal').textContent = settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya saldados` : '';
   renderFixedCosts(data.fixedCosts || []);
-  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya entregados · ` : ''}${reset ? 'Desde la última puesta a cero' : 'Balance acumulado de todos los meses'}, a medias. Los fijos cuentan cada mes.</span>`;
+  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${reset ? 'Desde la última puesta a cero' : 'Sumando todos los meses'}, a medias.</span>`;
   renderResetNote();
   renderHouseholdCharts(data, monthEntries);
   renderFinancePayerChart(calculateFinanceSettlement(monthEntries));
   renderPersonal();
-  expenseList.innerHTML = visible.expenses.length ? visible.expenses.map((expense) => `<div class="finance-item"><span class="finance-item-icon"><i data-lucide="receipt"></i></span><span><strong>${escapeHtml(expense.description)} <em class="finance-item-source">${financeSourceLabel(expense.source)}</em></strong><small>${escapeHtml(financeCategory(expense.category, expense.description))} · ${financeDate(expense.expense_date)} · Pagó ${escapeHtml(expense.paid_by || 'Ines')}</small></span><b>${financeMoney(expense.amount)}</b><span class="finance-item-actions"><button type="button" data-expense-edit="${expense.id}" aria-label="Editar gasto" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-expense-delete="${expense.id}" aria-label="Eliminar gasto" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`).join('') : '<p class="empty-note">No hay gastos con estos filtros.</p>';
-  billList.innerHTML = visible.bills.length ? visible.bills.map((bill) => { const isPaid = bill.status === 'paid'; return `<div class="finance-item"><span class="finance-item-icon bill-icon"><i data-lucide="file-text"></i></span><span><strong>${escapeHtml(bill.provider)} · ${escapeHtml(bill.description)} <em class="finance-item-source">${financeSourceLabel(bill.source)}</em></strong><small>Vence ${financeDate(bill.due_date)} · Pagó ${escapeHtml(bill.paid_by || 'Ines')}</small><button type="button" class="finance-status-toggle" data-bill-status="${bill.id}"><i data-lucide="${isPaid ? 'check-circle-2' : 'circle'}"></i><em class="finance-status-badge ${isPaid ? 'is-paid' : ''}">${isPaid ? 'Pagada' : 'Pendiente'}</em></button></span><b>${bill.amount ? financeMoney(bill.amount) : 'Por revisar'}</b><span class="finance-item-actions"><button type="button" data-bill-edit="${bill.id}" aria-label="Editar factura" title="Editar"><i data-lucide="pencil"></i></button><button type="button" data-bill-delete="${bill.id}" aria-label="Eliminar factura" title="Eliminar"><i data-lucide="trash-2"></i></button></span></div>`; }).join('') : '<p class="empty-note">No hay facturas con estos filtros.</p>';
+  const moves = houseMovements(data);
+  const searching = Boolean(document.querySelector('#financeSearch')?.value.trim());
+  document.querySelector('#houseMovesTitle').textContent = searching ? 'Resultados' : `Movimientos de ${monthName}`;
+  document.querySelector('#houseMovesCount').textContent = moves.length ? `${moves.length}` : '';
+  document.querySelector('#houseMovesFilter').innerHTML = houseCategoryFilter ? `<button type="button" class="filter-chip is-on" data-clear-house-filter>${escapeHtml(houseCategoryFilter)} <i data-lucide="x"></i></button>` : '';
+  document.querySelector('#houseMoves').innerHTML = moves.length
+    ? moves.map(houseMoveRow).join('')
+    : `<p class="empty-note">${searching || houseCategoryFilter ? 'Nada con esta búsqueda.' : `Aún no hay gastos en ${monthName}. Pulsa «Añadir gasto» para apuntar el primero.`}</p>`;
   lucide.createIcons();
 }
 
@@ -1313,7 +1332,7 @@ function renderFinanceTile(settlement, pendingBills) {
 }
 
 async function refreshFinance() {
-  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeCache.expenses.length + financeCache.bills.length} movimientos guardados · reparto 50/50`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
+  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeInCloud() ? 'Sincronizado entre los dos' : 'Guardado en este teléfono'} · todo a medias`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
 }
 
 function openFinance() {
@@ -1324,35 +1343,105 @@ function openFinance() {
 
 let financeEditing = null;
 
-function setFinanceFormButton(form, label, icon) {
-  const button = form.querySelector('button[type="submit"]');
-  button.innerHTML = `<i data-lucide="${icon}"></i> ${label}`;
+const FIXED_CATEGORIES = ['Alquiler', 'Internet', 'Luz', 'Agua', 'Gas', 'Otros'];
+const BILL_PROVIDERS = ['Alquiler', 'Octopus', 'TIM', 'Otro'];
+const HOUSE_KINDS = {
+  expense: { label: 'Una vez', hint: 'La compra, una cena, un mueble… Cuenta en el mes de su fecha.' },
+  fixed: { label: 'Cada mes', hint: 'Alquiler, internet… Lo apuntas una vez y cuenta solo todos los meses.' },
+  bill: { label: 'Factura', hint: 'Luz, gas, teléfono… con fecha de vencimiento. Puedes marcarla como pagada.' }
+};
+const optionList = (list, selected) => list.map((item) => `<option ${item === selected ? 'selected' : ''}>${escapeHtml(item)}</option>`).join('');
+
+function houseFormFields(kind, entry = {}) {
+  const payer = entry.paid_by || (householdPeople.includes(currentUser) ? currentUser : 'Ines');
+  const payerPicker = `<fieldset class="plant-field"><legend>Pagó</legend><div class="segmented is-wide">${householdPeople.map((person) => `<label class="segmented-option"><input type="radio" name="paidBy" value="${person}" ${person === payer ? 'checked' : ''} /><span>${person}</span></label>`).join('')}</div></fieldset>`;
+  const amount = `<label class="plant-field"><span>Importe (€)</span><input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${entry.amount ?? ''}" /></label>`;
+  if (kind === 'bill') {
+    return `<label class="plant-field"><span>Proveedor</span><select name="provider">${optionList(BILL_PROVIDERS, entry.provider || 'Otro')}</select></label>
+      <label class="plant-field"><span>Concepto</span><input name="description" type="text" maxlength="160" required placeholder="Luz de septiembre" value="${escapeHtml(entry.description || '')}" /></label>
+      <div class="detail-grid">${amount}<label class="plant-field"><span>Vence</span><input name="date" type="date" value="${entry.due_date || (entry.id ? '' : dateToISO(new Date()))}" /></label></div>
+      ${payerPicker}
+      <label class="option-toggle"><input type="checkbox" name="paid" ${entry.status === 'paid' ? 'checked' : ''} /><span><i data-lucide="check-circle-2"></i>Ya está pagada</span></label>`;
+  }
+  if (kind === 'fixed') {
+    return `<label class="plant-field"><span>Concepto</span><input name="description" type="text" maxlength="80" required placeholder="Alquiler" value="${escapeHtml(entry.description || '')}" /></label>
+      <div class="detail-grid">${amount}<label class="plant-field"><span>Categoría</span><select name="category">${optionList(FIXED_CATEGORIES, entry.category || 'Otros')}</select></label></div>
+      ${payerPicker}`;
+  }
+  return `<label class="plant-field"><span>Concepto</span><input name="description" type="text" maxlength="160" required placeholder="Compra en Esselunga" value="${escapeHtml(entry.description || '')}" /></label>
+    <div class="detail-grid">${amount}<label class="plant-field"><span>Fecha</span><input name="date" type="date" required value="${entry.expense_date || dateToISO(new Date())}" /></label></div>
+    <label class="plant-field"><span>Categoría</span><select name="category">${optionList(financeCategories, entry.category ? financeCategory(entry.category, entry.description) : 'Otros')}</select></label>
+    ${payerPicker}`;
+}
+
+// Alta y edición de gastos de la casa en una sola ficha. Sin id: nueva (se elige el tipo).
+function openHouseEntry(kind = 'expense', id = null) {
+  const source = { expense: financeCache.expenses, bill: financeCache.bills, fixed: financeCache.fixedCosts }[kind] || [];
+  const entry = id ? source.find((item) => item.id === id) : null;
+  if (id && !entry) return;
+  financeEditing = entry ? { kind, id } : null;
+  showMoneySheet(`
+    <div class="plant-add-heading"><p class="eyebrow muted">Gastos de la casa · a medias</p><h2 id="moneySheetTitle">${entry ? escapeHtml(entry.description || entry.provider) : 'Nuevo gasto'}</h2></div>
+    ${entry ? '' : `<div class="segmented is-wide" role="group" aria-label="Tipo de gasto">${Object.entries(HOUSE_KINDS).map(([key, info]) => `<button type="button" data-house-kind="${key}" aria-pressed="${key === kind}">${info.label}</button>`).join('')}</div>`}
+    <p class="recurring-intro" data-house-hint><i data-lucide="info"></i><span>${HOUSE_KINDS[kind].hint}</span></p>
+    <form class="item-editor" data-house-form="${kind}">
+      <div data-house-fields>${houseFormFields(kind, entry || {})}</div>
+      <div class="plant-form-actions"><button type="submit" class="primary-button"><i data-lucide="check"></i> ${entry ? 'Guardar cambios' : 'Guardar'}</button>${entry ? '<button type="button" class="link-button is-danger" data-house-delete>Eliminar</button>' : ''}</div>
+    </form>`, { kind: 'house', entryKind: kind, id });
+  if (!entry) setTimeout(() => document.querySelector('#moneySheet [name="description"]')?.focus(), 300);
+}
+
+function setHouseKind(kind) {
+  const form = document.querySelector('#moneySheet [data-house-form]');
+  if (!form) return;
+  form.dataset.houseForm = kind;
+  const kept = { description: form.description?.value, amount: form.amount?.value };
+  form.querySelector('[data-house-fields]').innerHTML = houseFormFields(kind, { description: kept.description, amount: kept.amount || undefined, paid_by: form.querySelector('[name="paidBy"]:checked')?.value });
+  document.querySelector('#moneySheet [data-house-hint] span').textContent = HOUSE_KINDS[kind].hint;
+  document.querySelectorAll('#moneySheet [data-house-kind]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.houseKind === kind)));
   lucide.createIcons();
 }
 
-function startFinanceEdit(kind, id) {
-  const source = kind === 'expense' ? financeCache.expenses : kind === 'bill' ? financeCache.bills : financeCache.fixedCosts;
-  const entry = source.find((item) => item.id === id);
-  if (!entry) return;
-  financeEditing = { kind, id };
-  const form = document.querySelector(kind === 'expense' ? '#expenseForm' : kind === 'bill' ? '#billForm' : '#fixedCostForm');
-  form.hidden = false;
-  form.description.value = entry.description || '';
-  form.amount.value = entry.amount || '';
-  form.paidBy.value = entry.paid_by || 'Ines';
-  if (kind === 'expense') {
-    form.category.value = entry.category || 'Otros';
-    form.date.value = entry.expense_date || '';
+async function saveHouseEntry(form) {
+  const kind = form.dataset.houseForm;
+  const values = new FormData(form);
+  const base = { description: String(values.get('description') || '').trim(), amount: Math.round(Number(values.get('amount')) * 100) / 100, paid_by: values.get('paidBy') || 'Ines' };
+  if (!base.description || !(base.amount > 0)) return showToast('Pon un concepto y un importe');
+  const record = kind === 'bill'
+    ? { ...base, provider: values.get('provider'), due_date: values.get('date') || null, source: 'manual', status: values.has('paid') ? 'paid' : 'pending' }
+    : kind === 'fixed'
+      ? { ...base, category: values.get('category'), active: true }
+      : { ...base, category: values.get('category'), expense_date: values.get('date'), source: 'manual', settled: false };
+  // Al editar, el estado de la factura se cambia aparte (saveFinanceEntity no lo pisa).
+  const editingBillId = kind === 'bill' && financeEditing?.kind === 'bill' ? financeEditing.id : null;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    await saveFinanceEntity(kind, record);
+    if (editingBillId) await setBillStatus(editingBillId, record.status);
+    closeMoneySheet();
+    showToast(kind === 'fixed' ? 'Gasto fijo guardado: contará cada mes' : kind === 'bill' ? 'Factura guardada' : 'Gasto guardado');
+  } catch (error) {
+    button.disabled = false;
+    reportAppError(error);
+    showToast('No se pudo guardar');
   }
-  if (kind === 'bill') {
-    form.provider.value = entry.provider || 'Otro';
-    form.dueDate.value = entry.due_date || '';
-    form.billingPeriod.value = entry.billing_period || '';
-  }
-  if (kind === 'fixed') form.category.value = entry.category || 'Otros';
-  setFinanceFormButton(form, 'Guardar cambios', 'check');
-  if (kind !== 'fixed') document.querySelector(`[data-finance-view="${kind === 'expense' ? 'expenses' : 'bills'}"]`).click();
-  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Saldar: rellena quién debe a quién y cuánto.
+function openSettlement() {
+  const settlement = settlementWithReset(financeCache);
+  const owes = settlement.amount >= 0.01;
+  const from = owes ? settlement.debtor : otherPerson(currentUser);
+  showMoneySheet(`
+    <div class="plant-add-heading"><p class="eyebrow muted">Saldar la deuda</p><h2 id="moneySheetTitle">${owes ? `${escapeHtml(settlement.debtor)} paga a ${escapeHtml(settlement.creditor)}` : 'Registrar un pago'}</h2></div>
+    <p class="recurring-intro"><i data-lucide="info"></i><span>Apunta aquí el dinero que uno le pasa al otro (Bizum, transferencia, efectivo). No es un gasto: solo ajusta quién debe a quién.</span></p>
+    <form class="item-editor" data-settlement-form>
+      <fieldset class="plant-field"><legend>¿Quién paga?</legend><div class="segmented is-wide">${householdPeople.map((person) => `<label class="segmented-option"><input type="radio" name="from" value="${person}" ${person === from ? 'checked' : ''} /><span>${person} paga</span></label>`).join('')}</div></fieldset>
+      <div class="detail-grid"><label class="plant-field"><span>Importe (€)</span><input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${owes ? settlement.amount.toFixed(2) : ''}" /></label><label class="plant-field"><span>Fecha</span><input name="paymentDate" type="date" required value="${dateToISO(new Date())}" /></label></div>
+      <label class="plant-field"><span>Nota (opcional)</span><input name="note" type="text" maxlength="100" placeholder="Bizum" /></label>
+      <div class="plant-form-actions"><button type="submit" class="primary-button"><i data-lucide="check"></i> Guardar pago</button></div>
+    </form>`, { kind: 'settlement' });
 }
 
 const financeTables = { expense: 'shared_expenses', bill: 'shared_bills', fixed: 'shared_fixed_costs' };
@@ -1390,8 +1479,8 @@ async function saveFinanceEntity(kind, values, { notify = true } = {}) {
   await refreshFinance();
 }
 
-async function deleteFinanceEntity(kind, id) {
-  if (!id || !window.confirm('¿Eliminar este movimiento?')) return;
+async function deleteFinanceEntity(kind, id, { confirmed = false } = {}) {
+  if (!id || (!confirmed && !window.confirm('¿Eliminar este movimiento?'))) return;
   if (financeInCloud()) {
     const { error } = await supabaseClient.from(financeTables[kind]).delete().eq('id', id);
     if (error) return showToast('No se pudo eliminar');
@@ -1399,7 +1488,7 @@ async function deleteFinanceEntity(kind, id) {
     localStorage.setItem(financeLocalKeys[kind], JSON.stringify(readLocalFinanceKind(kind).filter((item) => item.id !== id)));
   }
   await refreshFinance();
-  showToast('Movimiento eliminado');
+  showToast('Eliminado');
 }
 
 async function saveSettlementPayment(payment) {
@@ -1415,10 +1504,9 @@ async function saveSettlementPayment(payment) {
   await refreshFinance();
 }
 
-async function toggleBillStatus(id) {
+async function setBillStatus(id, status) {
   const bill = financeCache.bills.find((item) => item.id === id);
-  if (!bill) return;
-  const status = bill.status === 'paid' ? 'pending' : 'paid';
+  if (!bill || bill.status === status) return;
   if (financeInCloud()) {
     const { error } = await supabaseClient.from('shared_bills').update({ status }).eq('id', id);
     if (error) return showToast('No se pudo actualizar la factura');
@@ -1428,7 +1516,6 @@ async function toggleBillStatus(id) {
     if (index >= 0) { bills[index].status = status; localStorage.setItem(localBillsKey, JSON.stringify(bills)); }
   }
   await refreshFinance();
-  showToast(status === 'paid' ? 'Factura marcada como pagada' : 'Factura marcada como pendiente');
 }
 
 // Fecha de un gasto importado. Acepta AAAA-MM-DD (con hora o sin ella), DD/MM/AAAA, DD-MM-AAAA,
@@ -1549,79 +1636,52 @@ document.querySelector('#financeShareForm').addEventListener('submit', async (ev
   }
 });
 
-document.querySelector('#expenseForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const formElement = event.currentTarget;
-  const form = new FormData(formElement);
-  const expense = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), expense_date: form.get('date'), source: 'manual', settled: false };
-  try {
-    await saveFinanceEntity('expense', expense);
-    formElement.reset();
-    formElement.date.value = dateToISO(new Date());
-    setFinanceFormButton(formElement, 'Añadir gasto', 'plus');
-    showToast('Gasto guardado');
-  } catch (error) {
-    reportAppError(error);
-    showToast('No se pudo guardar el gasto');
+document.querySelector('#addHouseExpense').addEventListener('click', () => openHouseEntry());
+['#fixedCostList', '#houseMoves'].forEach((selector) => document.querySelector(selector).addEventListener('click', (event) => {
+  const row = event.target.closest('[data-house-open]');
+  if (!row) return;
+  const [kind, id] = row.dataset.houseOpen.split('|');
+  openHouseEntry(kind, id);
+}));
+document.querySelector('#houseMovesFilter').addEventListener('click', (event) => {
+  if (!event.target.closest('[data-clear-house-filter]')) return;
+  houseCategoryFilter = null;
+  renderFinance(financeCache);
+});
+moneySheet.addEventListener('click', async (event) => {
+  const kind = event.target.closest('[data-house-kind]');
+  if (kind) return setHouseKind(kind.dataset.houseKind);
+  if (event.target.closest('[data-house-delete]') && financeEditing) {
+    const { kind: entryKind, id } = financeEditing;
+    if (!window.confirm('¿Eliminar este gasto?')) return;
+    await deleteFinanceEntity(entryKind, id, { confirmed: true });
+    financeEditing = null;
+    closeMoneySheet();
   }
 });
-
-document.querySelector('#billForm').addEventListener('submit', async (event) => {
+moneySheet.addEventListener('submit', async (event) => {
+  const form = event.target;
+  if (form.dataset.houseForm) {
+    event.preventDefault();
+    return saveHouseEntry(form);
+  }
+  if (!form.hasAttribute('data-settlement-form')) return;
   event.preventDefault();
-  const formElement = event.currentTarget;
-  const form = new FormData(formElement);
-  const bill = { provider: form.get('provider'), description: form.get('description').trim(), amount: Number(form.get('amount')), due_date: form.get('dueDate') || null, billing_period: form.get('billingPeriod')?.trim() || null, paid_by: form.get('paidBy'), source: 'manual', status: 'pending' };
+  const values = new FormData(form);
+  const from = values.get('from');
+  const amount = Math.round(Number(values.get('amount')) * 100) / 100;
+  if (!(amount > 0)) return showToast('Pon un importe válido');
   try {
-    await saveFinanceEntity('bill', bill);
-    formElement.reset();
-    setFinanceFormButton(formElement, 'Añadir factura', 'plus');
-    showToast('Factura guardada');
+    await saveSettlementPayment({ from, to: otherPerson(from), amount, payment_date: values.get('paymentDate'), note: String(values.get('note') || '').trim() || null });
+    closeMoneySheet();
+    showToast('Pago guardado');
   } catch (error) {
     reportAppError(error);
-    showToast('No se pudo guardar la factura');
+    showToast('No se pudo guardar el pago');
   }
 });
-
-document.querySelector('#addFixedCost').addEventListener('click', () => {
-  const form = document.querySelector('#fixedCostForm');
-  form.hidden = !form.hidden;
-  if (!form.hidden) { financeEditing = null; form.reset(); setFinanceFormButton(form, 'Guardar fijo', 'check'); }
-});
-document.querySelector('#fixedCostForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const formElement = event.currentTarget;
-  const form = new FormData(formElement);
-  const fixed = { description: form.get('description').trim(), amount: Number(form.get('amount')), paid_by: form.get('paidBy'), category: form.get('category'), active: true };
-  try {
-    await saveFinanceEntity('fixed', fixed);
-    formElement.reset();
-    formElement.hidden = true;
-    showToast('Gasto fijo guardado');
-  } catch (error) {
-    reportAppError(error);
-    showToast('No se pudo guardar el gasto fijo');
-  }
-});
-
-document.querySelector('#fixedCostList').addEventListener('click', (event) => {
-  const edit = event.target.closest('[data-fixed-edit]');
-  const remove = event.target.closest('[data-fixed-delete]');
-  if (edit) startFinanceEdit('fixed', edit.dataset.fixedEdit);
-  if (remove) deleteFinanceEntity('fixed', remove.dataset.fixedDelete);
-});
-document.querySelector('#expenseList').addEventListener('click', (event) => {
-  const edit = event.target.closest('[data-expense-edit]');
-  const remove = event.target.closest('[data-expense-delete]');
-  if (edit) startFinanceEdit('expense', edit.dataset.expenseEdit);
-  if (remove) deleteFinanceEntity('expense', remove.dataset.expenseDelete);
-});
-document.querySelector('#billList').addEventListener('click', (event) => {
-  const status = event.target.closest('[data-bill-status]');
-  const edit = event.target.closest('[data-bill-edit]');
-  const remove = event.target.closest('[data-bill-delete]');
-  if (status) toggleBillStatus(status.dataset.billStatus);
-  if (edit) startFinanceEdit('bill', edit.dataset.billEdit);
-  if (remove) deleteFinanceEntity('bill', remove.dataset.billDelete);
+window.addEventListener('popstate', () => {
+  if (history.state?.page !== 'money-sheet') financeEditing = null;
 });
 
 document.querySelector('#financeImport').addEventListener('change', async (event) => {
@@ -1660,38 +1720,11 @@ document.querySelector('#exportFinance').addEventListener('click', async () => {
   showToast('Excel detallado exportado');
 });
 
-document.querySelectorAll('[data-finance-view]').forEach((tab) => tab.addEventListener('click', () => {
-  document.querySelectorAll('[data-finance-view]').forEach((item) => item.classList.toggle('active', item === tab));
-  document.querySelectorAll('.finance-view').forEach((view) => view.classList.toggle('active', view.id === `${tab.dataset.financeView}View`));
-}));
-['#financeSearch', '#financeCategoryFilter', '#financePeriod'].forEach((selector) => document.querySelector(selector).addEventListener('input', () => renderFinance(financeCache)));
+document.querySelector('#financeSearch').addEventListener('input', () => renderFinance(financeCache));
 document.querySelector('#financePrevMonth').addEventListener('click', () => { financeMonth = shiftMonth(financeMonth, -1); renderFinance(financeCache); });
 document.querySelector('#financeNextMonth').addEventListener('click', () => { financeMonth = shiftMonth(financeMonth, 1); renderFinance(financeCache); });
 document.querySelector('#closeFinance').addEventListener('click', () => history.back());
-document.querySelector('#openSettlementForm').addEventListener('click', () => {
-  const form = document.querySelector('#settlementForm');
-  form.hidden = !form.hidden;
-  if (!form.hidden) form.paymentDate.value = dateToISO(new Date());
-});
-document.querySelector('#settlementForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const formElement = event.currentTarget;
-  const values = new FormData(formElement);
-  const from = values.get('from');
-  const to = values.get('to');
-  const amount = Number(values.get('amount'));
-  if (from === to || !Number.isFinite(amount) || amount <= 0) return showToast('Indica dos personas distintas y un importe válido');
-  try {
-    await saveSettlementPayment({ from, to, amount, payment_date: values.get('paymentDate'), note: String(values.get('note') || '').trim() || null });
-    formElement.reset();
-    formElement.hidden = true;
-    showToast('Pago registrado en la liquidación');
-  } catch (error) {
-    reportAppError(error);
-    showToast('No se pudo registrar el pago');
-  }
-});
-document.querySelector('#expenseForm').date.value = dateToISO(new Date());
+document.querySelector('#openSettlementForm').addEventListener('click', openSettlement);
 
 function showToast(message) {
   toastMessage.textContent = message;
@@ -1723,7 +1756,7 @@ document.querySelectorAll('[data-action]').forEach((action) => {
     if (type === 'quick-note') openPending({ kind: 'note' });
     if (type === 'quick-expense') {
       openFinance();
-      setTimeout(() => document.querySelector('#expenseForm [name="description"]')?.focus(), 350);
+      openHouseEntry();
     }
 
     if (type === 'lights') showView('luces');

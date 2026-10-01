@@ -386,7 +386,7 @@ function renderHero() {
   const stat = (key, view, icon, value, label) => `<button type="button" class="todo-stat is-${key}${value ? '' : ' is-zero'}" data-todo-view-jump="${view}"><i data-lucide="${icon}"></i><b>${value}</b><span>${label}</span></button>`;
   document.querySelector('#todoStats').innerHTML = [
     stat('overdue', 'today', 'alarm-clock', overdue, overdue === 1 ? 'atrasada' : 'atrasadas'),
-    stat('today', 'today', 'sun', dueToday, 'para hoy'),
+    stat('today', 'today', 'sun', dueToday, 'hoy en casa'),
     stat('week', 'week', 'calendar-range', week, 'esta semana'),
     stat('urgent', 'notes', 'siren', urgent, urgent === 1 ? 'nota urgente' : 'notas urgentes')
   ].join('');

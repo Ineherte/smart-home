@@ -233,6 +233,8 @@ svg.spin { animation: spin .6s linear; }
 .view > * { min-width: 0; }
 
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.section-heading > .heading-copy { flex-shrink: 0; }
+.heading-actions[hidden], .event-form[hidden], .primary-button[hidden] { display: none; }
 .section-heading h2 { font-size: 21px; font-weight: 600; line-height: 1.15; letter-spacing: -.035em; }
 .panel { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }
 
@@ -296,7 +298,7 @@ svg.spin { animation: spin .6s linear; }
 .weather-now { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .weather-icon { display: grid; width: 42px; height: 42px; flex-shrink: 0; place-items: center; border-radius: 13px; background: var(--green-soft); color: var(--accent); }
 .weather-icon svg.lucide { width: 21px; height: 21px; }
-.weather-temp { font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -.05em; }
+.weather-temp { font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -.05em; white-space: nowrap; }
 .weather-now-copy { min-width: 0; }
 .weather-hero-body { display: grid; gap: 14px; padding: 14px 16px 16px; }
 .weather-hero-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -895,6 +897,13 @@ svg.spin { animation: spin .6s linear; }
 .segmented.is-wide button { flex: 1; padding: 9px 8px; }
 .segmented svg.lucide { width: 16px; height: 16px; }
 
+.segmented-option { position: relative; display: flex; flex: 1; min-width: 0; cursor: pointer; }
+.segmented-option input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented-option span { flex: 1; padding: 9px 8px; border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; text-align: center; transition: background .15s ease, color .15s ease; }
+.segmented-option input:checked + span { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.segmented-option input:focus-visible + span { box-shadow: var(--focus-ring); }
+fieldset.plant-field .segmented { margin: 4px 0 0; }
+
 .balance-bar { display: flex; gap: 3px; height: 14px; margin-bottom: 12px; overflow: hidden; border-radius: var(--radius-pill); }
 .balance-segment { min-width: 8px; transition: flex .4s ease; }
 .balance-segment.is-0, .balance-dot.is-0 { background: var(--green); }
@@ -987,7 +996,8 @@ svg.spin { animation: spin .6s linear; }
   padding: 12px 16px;
   transform: translate(-50%, 12px);
   border-radius: 14px;
-  background: var(--ink);
+  border: 1px solid rgba(255, 255, 255, .08);
+  background: #16221e;
   color: #fff;
   box-shadow: var(--shadow-md);
   font-size: 14px;
@@ -1163,9 +1173,10 @@ svg.spin { animation: spin .6s linear; }
 
 /* Finanzas */
 .finance-summary { display: grid; gap: 14px; margin-bottom: 12px; padding: 14px 18px 18px; border-radius: var(--radius-lg); background: linear-gradient(140deg, #152a24, #21483b); color: #f2f7ee; box-shadow: var(--shadow-md); }
-.finance-summary-figures { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.finance-summary-figures { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 12px; }
+.finance-summary-figures > div { min-width: 0; }
 .finance-summary-figures span { display: block; margin-bottom: 4px; color: #aac4b6; font-size: 13px; }
-.finance-summary-figures strong { display: block; color: var(--lime); font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -.04em; }
+.finance-summary-figures strong { display: block; color: var(--lime); font-size: clamp(28px, 9vw, 34px); font-weight: 600; line-height: 1; letter-spacing: -.04em; }
 .finance-summary-figures b { font-family: var(--font-display); font-size: 19px; font-weight: 600; }
 .finance-summary-figures > div:last-child { text-align: right; }
 .finance-summary-note { margin: -4px 0 0; color: #aac4b6; font-size: 12.5px; }
@@ -1301,8 +1312,16 @@ svg.spin { animation: spin .6s linear; }
 .money-tools summary { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; }
 .money-tools summary::-webkit-details-marker { display: none; }
 .money-tools summary svg.lucide { width: 16px; height: 16px; }
-.money-tools .finance-toolbar { margin: 12px 0 10px; }
-.money-tools .finance-share-form { margin-bottom: 4px; }
+.money-tools-body { display: grid; gap: 8px; margin-top: 12px; }
+.money-tools-body .pill-button { justify-content: center; cursor: pointer; }
+.money-tools .finance-share-form { margin-bottom: 0; }
+.money-card[hidden] { display: none; }
+.money-add { display: flex; width: 100%; justify-content: center; margin-bottom: 12px; }
+.pcat-icon.is-bill { background: var(--amber-soft); color: var(--amber-ink); }
+.move-copy small em.is-pending { color: var(--amber-ink); }
+#houseMovesFilter:not(:empty) { margin-bottom: 8px; }
+#houseMovesFilter .filter-chip { margin: 0; padding: 5px 10px; }
+#houseMovesFilter svg.lucide { width: 13px; height: 13px; }
 
 /* Mis gastos */
 .finance-summary.is-personal { background: linear-gradient(140deg, #232a4a, #3b4a85); }

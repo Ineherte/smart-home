@@ -205,10 +205,8 @@ document.querySelector('#financeModal').addEventListener('click', (event) => {
 document.querySelector('#financeCategoryBreakdown').addEventListener('click', (event) => {
   const row = event.target.closest('[data-category-filter]');
   if (!row) return;
-  const select = document.querySelector('#financeCategoryFilter');
-  select.value = [...select.options].some((option) => option.value === row.dataset.categoryFilter) ? row.dataset.categoryFilter : 'all';
-  document.querySelector('#financePeriod').value = 'month';
-  document.querySelector('[data-finance-view="expenses"]').click();
+  houseCategoryFilter = row.dataset.categoryFilter;
+  document.querySelector('#financeSearch').value = '';
   renderFinance(financeCache);
   document.querySelector('.movements-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });

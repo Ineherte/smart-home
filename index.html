@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=33" />
+    <link rel="stylesheet" href="styles.css?v=34" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -98,7 +98,6 @@
               <span class="tile-label">Notas</span>
               <strong class="tile-value" id="notesCount">0 notas</strong>
               <small class="tile-detail" id="notesPreview">Nada pendiente</small>
-              <button class="card-quick-action" type="button" data-action="quick-note" aria-label="Añadir una nota" title="Añadir una nota"><i data-lucide="plus"></i></button>
             </article>
             <button class="tile tile-lights" type="button" data-action="lights">
               <span class="tile-icon"><i data-lucide="lightbulb"></i></span>
@@ -204,7 +203,7 @@
           <div class="casa-panel" data-casa-panel="plantas" id="plantsView" role="tabpanel" hidden>
             <section class="panel plants-panel" aria-labelledby="plantsTitle">
               <div class="section-heading">
-                <div><p class="eyebrow">Vuestro jardín</p><h2 id="plantsTitle">Plantas</h2></div>
+                <div class="heading-copy"><p class="eyebrow">Vuestro jardín</p><h2 id="plantsTitle">Plantas</h2></div>
                 <div class="heading-actions"><button type="button" class="pill-button is-quiet" id="plantGuideButton"><i data-lucide="book-open"></i> Guía</button><button type="button" class="pill-button" id="addPlantButton"><i data-lucide="plus"></i> Añadir</button></div>
               </div>
               <p class="plants-summary" id="plantsSummary" hidden></p>
@@ -337,13 +336,13 @@
     </div>
     <div class="calendar-modal" id="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
       <div class="calendar-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Plan familiar</p><h2 id="calendarTitle">Mi día</h2></div><button class="icon-button small" type="button" id="closeCalendar" aria-label="Cerrar calendario" title="Cerrar"><i data-lucide="x"></i></button></div>
+        <div class="modal-heading"><div><p class="eyebrow muted">Vuestros planes</p><h2 id="calendarTitle">Agenda</h2></div><button class="icon-button small" type="button" id="closeCalendar" aria-label="Cerrar calendario" title="Cerrar"><i data-lucide="x"></i></button></div>
         <div class="calendar-toolbar"><button class="icon-button small" type="button" id="previousMonth" aria-label="Mes anterior" title="Mes anterior"><i data-lucide="chevron-left"></i></button><strong id="calendarMonth"></strong><button class="icon-button small" type="button" id="nextMonth" aria-label="Mes siguiente" title="Mes siguiente"><i data-lucide="chevron-right"></i></button></div>
         <div class="calendar-grid calendar-weekdays"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
         <div class="calendar-grid" id="calendarDays"></div>
         <div class="day-summary"><div class="section-heading"><div><p class="eyebrow muted">Eventos del día</p><h3 id="selectedDateLabel"></h3></div><span class="action-count" id="selectedDayCount">0 eventos</span></div><div class="event-list" id="calendarEvents"></div></div>
-        <form class="event-form" id="eventForm"><p class="eyebrow muted">Añadir evento</p><input name="title" type="text" maxlength="80" placeholder="Título del evento" aria-label="Título del evento" required /><div class="event-form-row"><input name="date" type="date" aria-label="Fecha del evento" required /><input name="time" type="time" aria-label="Hora del evento (opcional)" /></div><div class="event-form-row"><input name="duration" type="text" maxlength="20" placeholder="Duración (opcional, ej. 1 h)" aria-label="Duración opcional" /><select name="scope" aria-label="Visibilidad del evento"><option value="private">Solo para mí</option><option value="shared">Para los dos</option></select></div><input name="location" type="text" maxlength="80" placeholder="Lugar o enlace (opcional)" aria-label="Lugar o enlace" /><button type="submit"><i data-lucide="plus"></i> Añadir evento</button></form>
-        <p class="notes-local-warning" id="eventsConnectionStatus"><i data-lucide="info"></i> Selecciona el icono de calendario de un evento para añadirlo al iPhone.</p>
+        <button type="button" class="primary-button money-add" id="openEventForm"><i data-lucide="plus"></i> Añadir evento</button><form class="event-form" id="eventForm" hidden><p class="eyebrow muted">Nuevo evento</p><input name="title" type="text" maxlength="80" placeholder="Título del evento" aria-label="Título del evento" required /><div class="event-form-row"><input name="date" type="date" aria-label="Fecha del evento" required /><input name="time" type="time" aria-label="Hora del evento (opcional)" /></div><div class="event-form-row"><input name="duration" type="text" maxlength="20" placeholder="Duración (opcional, ej. 1 h)" aria-label="Duración opcional" /><select name="scope" aria-label="Quién lo ve"><option value="shared">Lo vemos los dos</option><option value="private">Solo yo</option></select></div><input name="location" type="text" maxlength="80" placeholder="Lugar o enlace (opcional)" aria-label="Lugar o enlace" /><button type="submit"><i data-lucide="check"></i> Guardar evento</button></form>
+        <p class="notes-local-warning" id="eventsConnectionStatus"><i data-lucide="info"></i> Con el icono de calendario de un evento lo añades al Calendario del iPhone.</p>
       </div>
     </div>
     <div class="plant-sheet" id="plantSheet" role="dialog" aria-modal="true" aria-labelledby="plantSheetTitle">
@@ -399,24 +398,30 @@
 
         <div class="money-pane" data-money-pane="casa">
           <div class="finance-summary"><div class="finance-summary-figures"><div><span id="financeTotalLabel">Gastos de la casa</span><strong id="financeTotal">0,00 €</strong></div><div><span>Tu parte (50%)</span><b id="financeBalance">0,00 €</b></div></div><p class="finance-summary-note" id="financeMonthNote">Gastos, facturas y fijos de este mes.</p><div class="month-bars" id="financeTrend" aria-label="Gastos de la casa en los últimos meses"></div></div>
+          <button type="button" class="primary-button money-add" id="addHouseExpense"><i data-lucide="plus"></i> Añadir gasto</button>
           <section class="money-card balance-card" aria-labelledby="balanceTitle">
-            <div class="finance-subheading"><strong id="balanceTitle">Quién debe a quién</strong><span id="settlementPaymentTotal">0,00 € entregados</span></div>
+            <div class="finance-subheading"><strong id="balanceTitle">Quién debe a quién</strong><span id="settlementPaymentTotal"></span></div>
             <div class="finance-insight settlement-card" id="financeSettlement"><i data-lucide="scale"></i><span>Añade gastos para calcular quién debe a quién.</span></div>
             <p class="reset-note" id="financeResetNote" hidden></p>
-            <div class="settlement-actions"><button type="button" class="settlement-payment-button" id="openSettlementForm"><i data-lucide="arrow-right-left"></i> Registrar pago</button><button type="button" class="settlement-reset-button" id="openResetPanel" aria-expanded="false"><i data-lucide="rotate-ccw"></i> Poner a cero</button></div>
+            <div class="settlement-actions"><button type="button" class="settlement-payment-button" id="openSettlementForm"><i data-lucide="hand-coins"></i> Saldar la deuda</button><button type="button" class="settlement-reset-button" id="openResetPanel" aria-expanded="false"><i data-lucide="rotate-ccw"></i> Poner a cero</button></div>
             <div class="reset-panel" id="financeResetPanel" hidden></div>
-            <form class="settlement-form" id="settlementForm" hidden><div class="finance-form-row"><select name="from"><option value="Matteo">Matteo entrega</option><option value="Ines">Ines entrega</option></select><select name="to"><option value="Ines">a Ines</option><option value="Matteo">a Matteo</option></select></div><div class="finance-form-row"><input name="amount" type="number" min="0.01" step="0.01" placeholder="Importe entregado" required /><input name="paymentDate" type="date" required /></div><input name="note" type="text" maxlength="100" placeholder="Nota opcional (ej. transferencia)" /><button type="submit"><i data-lucide="check"></i> Guardar pago</button></form>
           </section>
-          <section class="money-card">        <div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero <em id="financeBreakdownMonth"></em></strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div></section>
-          <section class="money-card">        <div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha pagado <em id="financePayerMonth"></em></strong><span>Reparto 50/50</span></div><div id="financePayerChart"></div></div></section>
-                  <div class="finance-fixed-section"><div class="finance-section-heading"><div><p class="eyebrow muted">Cada mes</p><strong>Gastos fijos</strong></div><button class="icon-button small" type="button" id="addFixedCost" aria-label="Añadir gasto fijo" title="Añadir gasto fijo"><i data-lucide="plus"></i></button></div><div class="finance-fixed-list" id="fixedCostList"></div><form class="finance-fixed-form" id="fixedCostForm" hidden><input name="description" type="text" maxlength="80" placeholder="Ej. Seguro del hogar" required /><div class="finance-form-row"><input name="amount" type="number" min="0" step="0.01" placeholder="Importe mensual" required /><select name="paidBy"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select></div><div class="finance-form-row"><select name="category"><option>Alquiler</option><option>Internet</option><option>Luz</option><option>Agua</option><option>Gas</option><option>Otros</option></select><button type="submit"><i data-lucide="check"></i> Guardar fijo</button></div></form></div>
-          <section class="money-card movements-card" aria-label="Movimientos">
-                    <div class="finance-tabs"><button class="finance-tab active" type="button" data-finance-view="expenses">Gastos</button><button class="finance-tab" type="button" data-finance-view="bills">Facturas</button></div>
-                    <div class="finance-filter-row"><input id="financeSearch" type="search" placeholder="Buscar gasto, factura o proveedor" aria-label="Buscar gasto, factura o proveedor" /><select id="financeCategoryFilter" aria-label="Filtrar por categoría"><option value="all">Todas las categorías</option><option>Hogar</option><option>Alimentación</option><option>Transporte</option><option>Viajes</option><option>Ocio</option><option>Compras</option><option>Salud</option><option>Otros</option></select><select id="financePeriod" aria-label="Filtrar por periodo"><option value="month" id="financePeriodMonth">Solo este mes</option><option value="all">Todo el historial</option></select></div>
-                    <div class="finance-view active" id="expensesView"><form class="finance-form" id="expenseForm"><input name="description" type="text" maxlength="160" placeholder="¿En qué habéis gastado?" required /><div class="finance-form-row"><input name="amount" type="number" min="0" step="0.01" placeholder="Importe" required /><select name="paidBy"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select></div><div class="finance-form-row"><select name="category"><option>Hogar</option><option>Alimentación</option><option>Transporte</option><option>Viajes</option><option>Ocio</option><option>Compras</option><option>Salud</option><option selected>Otros</option></select><input name="date" type="date" required /></div><button type="submit"><i data-lucide="plus"></i> Añadir gasto</button></form><div class="finance-list" id="expenseList"></div></div>
-                    <div class="finance-view" id="billsView"><form class="finance-form" id="billForm"><select name="provider"><option>Alquiler</option><option>Octopus</option><option>TIM</option><option>Otro</option></select><div class="finance-form-row"><input name="amount" type="number" min="0" step="0.01" placeholder="Importe" required /><input name="dueDate" type="date" /></div><div class="finance-form-row"><select name="paidBy"><option value="Ines">Pagó Ines</option><option value="Matteo">Pagó Matteo</option></select><input name="billingPeriod" type="text" maxlength="40" placeholder="Periodo (ej. septiembre)" /></div><input name="description" type="text" maxlength="160" placeholder="Descripción de la factura" required /><button type="submit"><i data-lucide="plus"></i> Añadir factura</button></form><div class="finance-list" id="billList"></div><div class="finance-email-note"><i data-lucide="mail"></i><span><strong>Octopus y TIM</strong><br />Cuando conectemos tu correo, las nuevas facturas entrarán aquí con proveedor, periodo, importe y estado.</span></div></div>
+          <section class="money-card"><div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero <em id="financeBreakdownMonth"></em></strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div></section>
+          <section class="money-card"><div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha pagado <em id="financePayerMonth"></em></strong><span>A medias</span></div><div id="financePayerChart"></div></div></section>
+          <section class="money-card" aria-labelledby="fixedTitle"><div class="finance-subheading"><strong id="fixedTitle">Gastos fijos</strong><span id="fixedCostTotal"></span></div><div id="fixedCostList"></div></section>
+          <section class="money-card movements-card" aria-labelledby="houseMovesTitle">
+            <div class="finance-subheading"><strong id="houseMovesTitle">Movimientos</strong><span id="houseMovesCount"></span></div>
+            <input id="financeSearch" class="guide-search" type="search" placeholder="Buscar en todos los meses" aria-label="Buscar gastos y facturas" />
+            <div id="houseMovesFilter"></div>
+            <div id="houseMoves"></div>
           </section>
-          <details class="money-tools"><summary><i data-lucide="arrow-down-up"></i> Importar y exportar</summary>        <div class="finance-toolbar"><button class="text-button" type="button" id="exportFinance"><i data-lucide="download"></i> Excel</button><label class="text-button finance-import-label"><i data-lucide="upload"></i> CSV/Excel<input id="financeImport" type="file" accept=".csv,.xlsx,.xls" hidden /></label></div>        <form class="finance-share-form" id="financeShareForm"><input id="financeShareLink" name="shareLink" type="url" placeholder="Pega el enlace compartido de Tricount" aria-label="Enlace compartido de Tricount" required /><button type="submit"><i data-lucide="link-2"></i> Cargar Tricount</button></form></details>
+          <details class="money-tools"><summary><i data-lucide="arrow-down-up"></i> Exportar o importar</summary>
+            <div class="money-tools-body">
+              <button class="pill-button" type="button" id="exportFinance"><i data-lucide="download"></i> Descargar Excel</button>
+              <label class="pill-button finance-import-label"><i data-lucide="upload"></i> Importar Excel o CSV<input id="financeImport" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <form class="finance-share-form" id="financeShareForm"><input id="financeShareLink" name="shareLink" type="url" placeholder="Enlace compartido de Tricount" aria-label="Enlace compartido de Tricount" required /><button type="submit"><i data-lucide="link-2"></i> Cargar</button></form>
+            </div>
+          </details>
           <p class="notes-local-warning" id="financeStatus"><i data-lucide="cloud-check"></i> Preparado para sincronizar entre los dos perfiles.</p>
         </div>
 
@@ -432,7 +437,7 @@
           </div>
           <div class="personal-actions">
             <label class="primary-button import-button"><i data-lucide="upload"></i> Importar extracto<input type="file" id="bankImport" accept=".xlsx,.xls,.csv,.txt" hidden /></label>
-            <button type="button" class="pill-button" id="personalAddButton"><i data-lucide="plus"></i> A mano</button>
+            <button type="button" class="pill-button" id="personalAddButton"><i data-lucide="plus"></i> Añadir a mano</button>
             <button type="button" class="pill-button is-quiet" id="personalBudgetButton"><i data-lucide="target"></i> Presupuestos</button>
           </div>
           <div id="personalImport"></div>
@@ -463,14 +468,14 @@
     <script src="push.js?v=1"></script>
     <script src="shopping.js?v=4"></script>
     <script src="tasks.js?v=4"></script>
-    <script src="pending.js?v=2"></script>
-    <script src="plants.js?v=3"></script>
-    <script src="money.js?v=2"></script>
+    <script src="pending.js?v=3"></script>
+    <script src="plants.js?v=4"></script>
+    <script src="money.js?v=3"></script>
     <script src="bank-import.js?v=1"></script>
-    <script src="personal.js?v=1"></script>
+    <script src="personal.js?v=2"></script>
     <script src="media.js?v=1"></script>
-    <script src="kitchen.js?v=1"></script>
-    <script src="nosotros.js?v=1"></script>
-    <script src="app.js?v=41"></script>
+    <script src="kitchen.js?v=2"></script>
+    <script src="nosotros.js?v=2"></script>
+    <script src="app.js?v=42"></script>
   </body>
 </html>

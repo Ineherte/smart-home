@@ -404,6 +404,8 @@ function renderPlants() {
     ? `${names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names.at(-1)} tienen` : `${names[0]} tiene`} sed. ${names.length > 1 ? 'Riégalas' : 'Riégala'} y márcalo aquí.`
     : `Todas bien regadas. La próxima es ${states[0].plant.name}, ${dueLabel(states[0].state.due).toLowerCase()}.`;
   summary.hidden = !householdPlants.length;
+  // Sin plantas, el estado vacío ya tiene su propio botón y enlace a la guía.
+  document.querySelector('#plantsView .heading-actions').hidden = !householdPlants.length;
 
   setNavBadge('plantas', due.length);
   renderAttention({ thirstyPlants: names });

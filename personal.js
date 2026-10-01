@@ -304,6 +304,12 @@ function renderPersonal() {
   const previous = monthsWithData(month, 3);
   const average = previous.length ? previous.reduce((sum, other) => sum + monthSpend(other), 0) / previous.length : 0;
 
+  // Sin movimientos este mes no se enseñan gráficos vacíos: solo cómo empezar.
+  const hasData = monthEntries(month).length > 0;
+  ['#personalInsightsCard', '#personalCalendar', '#personalRecurring', '#personalTop', '#personalMovements'].forEach((selector) => {
+    const card = document.querySelector(selector)?.closest('.money-card');
+    if (card) card.hidden = !hasData;
+  });
   document.querySelector('#personalTotalLabel').textContent = `Gastado en ${monthName}`;
   document.querySelector('#personalTotal').textContent = financeMoney(spend);
   const compare = document.querySelector('#personalCompare');
