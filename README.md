@@ -10,7 +10,7 @@ La aplicación ya muestra acceso por correo y contraseña, crea el primer hogar 
 
 Orden de puesta en producción:
 
-1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/schema-sync.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql`, `supabase/sql/household-scoping.sql`, `supabase/sql/shopping-and-tasks.sql`, `supabase/sql/push-notifications.sql` y `supabase/sql/plants.sql` en el editor SQL (en ese orden). Para el aviso diario de riego, ejecuta además `supabase/sql/plant-reminders-cron.sql` (lee las instrucciones del principio del archivo).
+1. Ejecuta `supabase/sql/supabase-foundation.sql`, `supabase/sql/supabase-access-hardening.sql`, `supabase/sql/supabase-members.sql`, `supabase/sql/schema-sync.sql`, `supabase/sql/household-policies-fix.sql`, `supabase/sql/security-fixes.sql`, `supabase/sql/household-scoping.sql`, `supabase/sql/shopping-and-tasks.sql`, `supabase/sql/push-notifications.sql`, `supabase/sql/plants.sql` y `supabase/sql/finance-personal.sql` en el editor SQL (en ese orden). Para el aviso diario de riego, ejecuta además `supabase/sql/plant-reminders-cron.sql` (lee las instrucciones del principio del archivo).
 2. Crea una cuenta para cada persona desde Umbral.
 3. Añade el segundo usuario a `household_members` con el mismo `household_id` y rol `member`.
 4. Comprueba las tablas y políticas con usuarios reales antes de importar datos financieros.
@@ -49,6 +49,7 @@ Estas funciones:
    - `supabase functions deploy invoice-ingest`
    - `supabase functions deploy sync-iphone-calendar` (necesita `SYNC_TOKEN` e `IPHONE_OWNER_IDS`, un JSON como `{"Ines":"<user_id>","Matteo":"<user_id>"}` con los id de Authentication → Users)
    - `supabase functions deploy tuya-lights` (necesita `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET` y, opcionalmente, `TUYA_DEVICE_IDS` con los IDs permitidos separados por comas)
+   - `supabase functions deploy wallet-ingest --no-verify-jwt` (pagos de Apple Pay desde un Atajo del iPhone → gastos personales). Usa los mismos `SYNC_TOKEN` e `IPHONE_OWNER_IDS` que `sync-iphone-calendar`. Los pasos del Atajo están en la app: Cuentas → Mis gastos → Apple Pay.
    - `supabase functions deploy notify-household --no-verify-jwt` (avisos push; la función comprueba la sesión por su cuenta). Necesita `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (`mailto:tu@correo`). Genera las claves una vez con `npx web-push generate-vapid-keys` y guárdalas con `supabase secrets set`. Cada teléfono activa los avisos en Cuenta → Avisos en este teléfono; en iPhone solo funciona con Umbral instalada en la pantalla de inicio (iOS 16.4 o posterior). Para el recordatorio diario de riego necesita también `CRON_SECRET`.
 
 7. Conecta tu flujo de automatización (n8n, Make, Zapier, OAuth con Gmail / Outlook, o una app de backend) para llamar a estas endpoints y autenticar con el usuario real.
