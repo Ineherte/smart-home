@@ -180,6 +180,7 @@ async function addRecipePhoto(recipe) {
     const path = await uploadPhoto(file, 'recipes');
     const [created] = await recipePhotosStore.insert({ recipe_id: recipe.id, path, taken_on: todayISO() });
     recipePhotos.unshift(created);
+    window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'cook' } }));
     renderKitchen();
     if (kitchenSheetState?.kind === 'recipe') openRecipe(recipe.id);
     showToast('¡Foto guardada! 📸');

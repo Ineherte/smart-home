@@ -15,6 +15,50 @@ const genderIndex = (person) => (person === 'Ines' ? 0 : 1);
 const moodLabel = (mood, person) => avatarCatalog()?.MOODS[mood]?.label[genderIndex(person)] || '';
 const avatarLook = (person) => ({ ...avatarCatalog()?.DEFAULT_LOOK[avatarKey(person)], ...(avatarRows[person]?.look || {}) });
 
+// ---------- Necesidades (como en los Sims) ----------
+// Bajan solas con el tiempo (decay = puntos por hora) y suben con lo que hace el muñeco en
+// la casa (sims.js) y con lo que hacéis de verdad en la app (eventos 'umbral:life').
+const NEEDS = {
+  hunger: { label: 'Hambre', emoji: '🍔', decay: 6 },
+  energy: { label: 'Energía', emoji: '⚡', decay: 4 },
+  fun: { label: 'Diversión', emoji: '🎮', decay: 5 },
+  hygiene: { label: 'Higiene', emoji: '🛁', decay: 3 },
+  social: { label: 'Vida social', emoji: '💬', decay: 4 }
+};
+const LIFE_BOOSTS = {
+  task: { hygiene: 15, fun: 5 },
+  water: { fun: 10 },
+  cook: { hunger: 35, fun: 5 },
+  moment: { social: 25, fun: 10 },
+  plan: { fun: 30, social: 15 }
+};
+const clampNeed = (value) => Math.max(0, Math.min(100, Math.round(value)));
+
+function currentNeeds(row) {
+  const base = row?.needs || {};
+  const hours = row?.needs_at ? Math.max(0, (Date.now() - Date.parse(row.needs_at)) / 3600000) : 0;
+  return Object.fromEntries(Object.entries(NEEDS).map(([key, need]) => [key, clampNeed((base[key] ?? 80) - need.decay * hours)]));
+}
+
+function needsLevel(needs) {
+  const values = Object.values(needs);
+  const lowest = Math.min(...values);
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  if (lowest < 15 || average < 35) return 'red';
+  if (lowest < 35 || average < 60) return 'yellow';
+  return 'green';
+}
+
+// Suma (o resta) a tus necesidades y lo guarda; extra son otros cambios de tu fila.
+async function boostNeeds(delta, extra = {}) {
+  const person = myAvatarPerson();
+  if (!person) return null;
+  const needs = currentNeeds(avatarRows[person]);
+  Object.entries(delta).forEach(([key, value]) => { if (key in needs) needs[key] = clampNeed(needs[key] + value); });
+  await saveAvatar({ needs, needs_at: new Date().toISOString(), ...extra });
+  return needs;
+}
+
 function readAvatarSeen() {
   try { return JSON.parse(localStorage.getItem(AVATAR_SEEN_KEY) || '{}'); } catch { return {}; }
 }
@@ -42,7 +86,7 @@ async function saveAvatar(changes) {
   const row = { ...(avatarRows[person] || {}), ...changes, person, updated_at: new Date().toISOString() };
   if (supabaseClient && authUserId) {
     if (!householdReady()) throw new Error('Tu hogar aún se está conectando');
-    const { data, error } = await supabaseClient.from('avatars').upsert({
+    const base = {
       household_id: householdId,
       user_id: authUserId,
       person,
@@ -54,7 +98,11 @@ async function saveAvatar(changes) {
       poke: row.poke || null,
       poke_at: row.poke_at || null,
       updated_at: row.updated_at
-    }, { onConflict: 'household_id,person' }).select().single();
+    };
+    const upsert = (values) => supabaseClient.from('avatars').upsert(values, { onConflict: 'household_id,person' }).select().single();
+    let { data, error } = await upsert({ ...base, needs: row.needs || {}, needs_at: row.needs_at || null, activity: row.activity || null, activity_at: row.activity_at || null });
+    // Sin la parte nueva de avatars.sql (necesidades y actividad) se guarda lo de siempre.
+    if (error && /needs|activity|column/i.test(error.message)) ({ data, error } = await upsert(base));
     if (error) throw new Error(/relation|schema cache|does not exist/i.test(error.message) ? 'Falta ejecutar avatars.sql en Supabase' : error.message);
     avatarRows[person] = data;
   } else {
@@ -71,9 +119,10 @@ function syncAvatars() {
   householdPeople.forEach((person) => {
     const row = avatarRows[person] || {};
     const unread = Boolean(row.message && person !== currentUser && row.message_at && row.message_at > (seen[`message-${person}`] || ''));
-    avatars[avatarKey(person)] = { look: row.look || {}, mood: row.mood || null, message: row.message || '', unread };
+    avatars[avatarKey(person)] = { look: row.look || {}, mood: row.mood || null, message: row.message || '', unread, plumbob: needsLevel(currentNeeds(row)) };
   });
   window.umbralScene?.update({ avatars });
+  window.dispatchEvent(new CustomEvent('umbral:avatars'));
   if (typeof renderUsHero === 'function' && document.querySelector('#usHero')?.children.length) renderUsHero();
 }
 
@@ -99,8 +148,11 @@ function checkPokes() {
   if (Date.now() - new Date(row.poke_at).getTime() > 24 * 3600 * 1000) return;
   const poke = avatarCatalog()?.POKES[row.poke];
   if (!poke) return;
-  window.umbralScene?.play(row.poke);
+  // Si la casa por dentro está abierta, la interacción se ve allí; si no, en la escena.
+  const event = new CustomEvent('umbral:poke', { detail: { kind: row.poke, from: partner }, cancelable: true });
+  if (window.dispatchEvent(event)) window.umbralScene?.play(row.poke);
   showToast(`${poke.emoji} ${partner} ${poke.text}`);
+  boostNeeds({ social: 20 }).catch(() => {});
 }
 
 // Muñeco pequeño para otras pantallas (Nosotros).
@@ -189,7 +241,8 @@ function renderAvatarEditor() {
   const person = myAvatarPerson();
   const row = avatarRows[person] || {};
   const body = document.querySelector('#avatarSheetBody');
-  const scroll = body.scrollTop;
+  const panel = body.closest('.plant-sheet-panel');
+  const scroll = panel.scrollTop;
   const tabs = [['mood', 'Ánimo'], ['clothes', 'Ropa'], ['extras', 'Complementos'], ['hair', 'Pelo'], ['partner', `Para ${otherPerson(person)}`]];
   body.innerHTML = `
     <div class="avatar-editor-head">
@@ -199,7 +252,7 @@ function renderAvatarEditor() {
     <div class="avatar-tabs" role="tablist">${tabs.map(([id, label]) => `<button type="button" role="tab" data-avatar-tab="${id}" aria-selected="${avatarTab === id}">${escapeHtml(label)}</button>`).join('')}</div>
     <div class="avatar-pane">${avatarPane(person)}</div>
     <div class="avatar-save"${lookChanged() ? '' : ' hidden'}><button type="button" class="primary-button" data-avatar-save><i data-lucide="check"></i> Guardar mi look</button><button type="button" class="link-button" data-avatar-undo>Deshacer</button></div>`;
-  body.scrollTop = scroll;
+  panel.scrollTop = scroll;
   lucide.createIcons();
 }
 
@@ -222,7 +275,7 @@ avatarSheet.addEventListener('click', (event) => {
   const tab = target.closest('[data-avatar-tab]');
   if (tab) {
     avatarTab = tab.dataset.avatarTab;
-    document.querySelector('#avatarSheetBody').scrollTop = 0;
+    document.querySelector('#avatarSheet .plant-sheet-panel').scrollTop = 0;
     return renderAvatarEditor();
   }
   const set = target.closest('[data-avatar-set]');
@@ -293,6 +346,14 @@ document.addEventListener('umbral:ready', () => {
     supabaseClient.channel('avatars-live').on('postgres_changes', { event: '*', schema: 'public', table: 'avatars', filter: `household_id=eq.${householdId}` }, () => loadAvatars()).subscribe();
   }
 });
+// Lo que hacéis de verdad (tareas, recetas, fotos, planes, riego) también cuida a tu muñeco.
+window.addEventListener('umbral:life', (event) => {
+  const boost = LIFE_BOOSTS[event.detail?.kind];
+  if (boost && avatarCatalog()) boostNeeds(boost).catch(() => {});
+});
+// Las necesidades bajan con el tiempo: el diamante se actualiza solo.
+setInterval(() => { if (!document.hidden) syncAvatars(); }, 5 * 60 * 1000);
+
 // Al volver a la app, por si llegó un toque mientras estaba en segundo plano.
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadAvatars();

@@ -160,6 +160,7 @@ async function completeTask(id) {
   try {
     const [completion] = await saveWithFallback((row) => completionsStore.insert(row), { task_id: task.id, title: task.title, done_by: doneBy, done_at: new Date().toISOString(), minutes: task.minutes || null });
     taskCompletions.unshift(completion);
+    window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'task' } }));
     if (task.recurrence === 'none') {
       await tasksStore.update(id, { active: false });
       householdTasks = householdTasks.filter((entry) => entry.id !== id);

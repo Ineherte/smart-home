@@ -218,7 +218,10 @@
     kiss: { emoji: '😘', label: 'Un beso', text: 'te manda un beso' },
     hug: { emoji: '🤗', label: 'Un abrazo', text: 'te manda un abrazo' },
     tickle: { emoji: '🤭', label: 'Cosquillas', text: 'te hace cosquillas' },
-    highfive: { emoji: '🙌', label: 'Chocar los cinco', text: 'quiere chocar esos cinco' }
+    highfive: { emoji: '🙌', label: 'Chocar los cinco', text: 'quiere chocar esos cinco' },
+    chat: { emoji: '💬', label: 'Charlar', text: 'quiere charlar contigo' },
+    dance: { emoji: '💃', label: 'Bailar juntos', text: 'te saca a bailar' },
+    compliment: { emoji: '🌹', label: 'Un piropo', text: 'te ha dicho un piropo' }
   };
 
   // Planes posibles. place: 'out' en el jardín, 'in' dentro de casa (room se enciende).
@@ -412,6 +415,7 @@
           <circle class="ch-umbrella-tip" cx="-8.6" cy="-58.6" r=".9"></circle>
         </g>` : ''}
       </g>
+      <g class="ch-plumbob"><path d="M0 -50.5 L2.7 -46.4 L0 -42.3 L-2.7 -46.4 Z"></path><path class="ch-plumbob-shine" d="M0 -50.5 L2.7 -46.4 L0 -46.4 Z"></path></g>
       <text class="ch-mood-badge" x="6.2" y="-35">${badge}</text>
       <text class="ch-unread" x="-11.6" y="-35">💌</text>
       <rect class="ch-hit" x="-9" y="-38" width="18" height="40"></rect>
@@ -846,7 +850,8 @@
       mouth: face.mouth || 'smile',
       brows: face.brows || 'none',
       extra: face.extra || '',
-      unread: String(Boolean(avatar.unread))
+      unread: String(Boolean(avatar.unread)),
+      plumbob: avatar.plumbob || 'none'
     };
   }
 
@@ -889,10 +894,20 @@
     return `<div class="scene avatar-stage" data-act="wave" data-place="out" style="${style}"><svg class="avatar-svg" viewBox="${PREVIEW_VIEW[key]}" aria-hidden="true">${personMarkup(key, { attrs, badge: moodBadge(traits) })}</svg></div>`;
   }
 
+  // Muñeco como grupo SVG para la casa por dentro (sims.js): el dibujo y sus colores.
+  function personSvg(key, avatar = {}, weatherOutfit = 'mild') {
+    const look = lookFor(key, avatar);
+    const traits = traitsFor(key, weatherOutfit, avatar);
+    const colors = colorsFor(key, traits, look);
+    const style = Object.entries(colors).map(([part, color]) => `--${key}-${part}:${color}`).join(';');
+    const attrs = Object.entries(traits).map(([name, value]) => `data-${name}="${escapeText(value)}"`).join(' ');
+    return { style, markup: personMarkup(key, { attrs, badge: moodBadge(traits) }) };
+  }
+
   // Toques entre los dos: un plan especial unos segundos.
   function play(kind) {
     if (!container) return;
-    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive' }[kind] || 'hug';
+    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug' }[kind] || 'hug';
     apply();
     if (kind === 'kiss' || kind === 'hug') {
       container.dataset.love = 'false';
@@ -1034,10 +1049,15 @@
     container = element;
     container.classList.add('scene');
     container.setAttribute('role', 'img');
-    container.innerHTML = `${buildMarkup()}<div class="sc-bubble" hidden aria-live="polite"></div><button type="button" class="sc-wardrobe" aria-label="Personaliza tu muñeco" title="Tu muñeco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg></button>`;
+    container.innerHTML = `${buildMarkup()}<div class="sc-bubble" hidden aria-live="polite"></div><button type="button" class="sc-wardrobe" aria-label="Personaliza tu muñeco" title="Tu muñeco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg></button>
+<button type="button" class="sc-enter" aria-label="Entrar en casa (modo Sims)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20h14V9.5"></path><path d="M10 20v-5h4v5"></path></svg><span>Entrar</span></button>`;
     container.querySelector('.sc-wardrobe').addEventListener('click', (event) => {
       event.stopPropagation();
       window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: { target: 'avatar' } }));
+    });
+    container.querySelector('.sc-enter').addEventListener('click', (event) => {
+      event.stopPropagation();
+      window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: { target: 'house' } }));
     });
     apply();
     // El sol y la luna avanzan con el reloj.
@@ -1049,6 +1069,11 @@
     });
     // Plantas, buzón y nota de la puerta: avisan a la app de qué abrir.
     container.addEventListener('click', (event) => {
+      if (event.target.closest('.sc-door')) {
+        event.stopPropagation();
+        window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: { target: 'house' } }));
+        return;
+      }
       const plant = event.target.closest('[data-plant-id]');
       const target = event.target.closest('[data-scene-target]');
       if (!plant && !target) return;
@@ -1065,5 +1090,5 @@
     }
   }
 
-  window.umbralScene = { mount, update, preview, play, catalog: { DEFAULT_LOOK, HAIRSTYLES, HAIR_COLORS, CLOTH_COLORS, OUTFITS, HEAD_ACC, FACE_ACC, NECK_ACC, MOODS, POKES } };
+  window.umbralScene = { mount, update, preview, play, personSvg, catalog: { DEFAULT_LOOK, HAIRSTYLES, HAIR_COLORS, CLOTH_COLORS, OUTFITS, HEAD_ACC, FACE_ACC, NECK_ACC, MOODS, POKES } };
 })();

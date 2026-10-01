@@ -1,5 +1,6 @@
 -- Muñecos de la escena: una fila por persona del hogar con su look, estado de ánimo,
--- último mensaje para el otro y último «toque» (beso, abrazo…).
+-- último mensaje para el otro, último «toque» (beso, abrazo…), sus necesidades y qué está
+-- haciendo en la casa.
 -- Los dos ven ambos muñecos, pero cada uno solo puede cambiar el suyo: la fila tiene que
 -- ser de su usuario y llevar su nombre de perfil (Ines o Matteo).
 -- Ejecutar después de life.sql. Es idempotente.
@@ -13,11 +14,23 @@ create table if not exists public.avatars (
   mood_at timestamptz,
   message text check (char_length(message) <= 140),
   message_at timestamptz,
-  poke text check (poke in ('kiss', 'hug', 'tickle', 'highfive')),
+  poke text,
   poke_at timestamptz,
   updated_at timestamptz not null default now(),
   primary key (household_id, person)
 );
+
+-- Casa por dentro (sims.js): necesidades, qué está haciendo cada muñeco y más interacciones.
+alter table public.avatars add column if not exists needs jsonb not null default '{}'::jsonb;
+alter table public.avatars add column if not exists needs_at timestamptz;
+alter table public.avatars add column if not exists activity text;
+alter table public.avatars add column if not exists activity_at timestamptz;
+alter table public.avatars drop constraint if exists avatars_activity_check;
+alter table public.avatars add constraint avatars_activity_check check (activity is null or char_length(activity) <= 30);
+alter table public.avatars drop constraint if exists avatars_needs_check;
+alter table public.avatars add constraint avatars_needs_check check (pg_column_size(needs) < 1000);
+alter table public.avatars drop constraint if exists avatars_poke_check;
+alter table public.avatars add constraint avatars_poke_check check (poke is null or poke in ('kiss', 'hug', 'tickle', 'highfive', 'chat', 'dance', 'compliment'));
 
 alter table public.avatars enable row level security;
 alter table public.avatars replica identity full;

@@ -132,7 +132,7 @@ function renderUsHero() {
   const next = upcomingDates()[0];
   document.querySelector('#usHero').innerHTML = `
     <div class="us-hero-names">${householdPeople.map((person, index) => `${index ? '<i data-lucide="heart"></i>' : ''}<button type="button" class="us-doll" data-open-avatar="${escapeHtml(person)}" aria-label="${person === currentUser ? 'Personaliza tu muñeco' : `Muñeco de ${escapeHtml(person)}`}">${typeof avatarPreviewFor === 'function' ? avatarPreviewFor(person) : ''}</button>`).join('')}</div>
-    <div class="us-hero-copy"><p class="eyebrow">Nosotros</p><h2>${escapeHtml(householdPeople.join(' & '))}</h2><p>${together ? `${together.toLocaleString('es-ES')} días juntos` : 'Vuestro rincón: fotos, fechas y planes'}</p></div>
+    <div class="us-hero-copy"><p class="eyebrow">Nosotros</p><h2>${escapeHtml(householdPeople.join(' & '))}</h2><p>${together ? `${together.toLocaleString('es-ES')} días juntos` : 'Vuestro rincón: fotos, fechas y planes'}</p><button type="button" class="us-sims" data-open-sims>🏠 Entrar en casa</button></div>
     ${next ? `<button type="button" class="us-next" data-us-view-jump="dates"><span>${escapeHtml(next.entry.emoji || DATE_KINDS[next.entry.kind].emoji)}</span><strong>${escapeHtml(countdownText(next))}</strong><small>${escapeHtml(next.entry.title)}</small></button>` : ''}`;
 }
 
@@ -302,6 +302,7 @@ async function saveMoment(form) {
     const path = await uploadPhoto(file, 'moments');
     const [created] = await momentsStore.insert({ day: todayISO(), path, caption: form.caption.value.trim().slice(0, 200) || null, author: currentUser });
     moments.unshift(created);
+    window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'moment' } }));
     URL.revokeObjectURL(usSheetState.preview);
     closeUsSheet();
     setUsView('photos');
@@ -402,6 +403,7 @@ function openPlanInPlace(id) {
 
 document.querySelector('#usView').addEventListener('click', async (event) => {
   const target = event.target;
+  if (target.closest('[data-open-sims]')) return openSims();
   const doll = target.closest('[data-open-avatar]');
   if (doll) return openAvatarEditor(doll.dataset.openAvatar === currentUser ? 'mood' : 'partner');
   const view = target.closest('[data-us-view], [data-us-view-jump]');
@@ -491,7 +493,10 @@ usSheet.addEventListener('click', async (event) => {
     return;
   }
   const plan = plans.find((entry) => entry.id === state.id);
-  if (target.closest('[data-plan-done]')) return updatePlan(plan.id, { status: 'done', done_on: todayISO() });
+  if (target.closest('[data-plan-done]')) {
+    window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'plan' } }));
+    return updatePlan(plan.id, { status: 'done', done_on: todayISO() });
+  }
   if (target.closest('[data-plan-undo]')) return updatePlan(plan.id, { status: 'todo', done_on: null });
   const rate = target.closest('[data-rate]');
   if (rate) return updatePlan(plan.id, { ratings: { ...(plan.ratings || {}), [currentUser]: Number(rate.dataset.rate) } });

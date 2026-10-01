@@ -1909,6 +1909,7 @@ window.addEventListener('umbral:scene-tap', (event) => {
   const { plant, target } = event.detail || {};
   if (plant && typeof openPlantSheet === 'function') openPlantSheet(plant);
   else if (target === 'avatar') openAvatarEditor();
+  else if (target === 'house') openSims();
   else if (target === 'avatar-read') markAvatarRead(event.detail.person);
   else if (target) openLinkTarget(target);
 });

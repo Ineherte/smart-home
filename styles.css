@@ -1010,7 +1010,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 
 /* ---------- Modales: estructura común ---------- */
 
-.notes-modal, .calendar-modal, .weather-modal, .finance-modal {
+.notes-modal, .calendar-modal, .weather-modal, .finance-modal, .sims-modal {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -1023,8 +1023,8 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
   pointer-events: none;
   transition: opacity .2s ease;
 }
-:is(.notes-modal, .calendar-modal, .weather-modal, .finance-modal).visible { opacity: 1; pointer-events: auto; }
-.notes-panel, .calendar-panel, .weather-panel, .finance-panel {
+:is(.notes-modal, .calendar-modal, .weather-modal, .finance-modal, .sims-modal).visible { opacity: 1; pointer-events: auto; }
+.notes-panel, .calendar-panel, .weather-panel, .finance-panel, .sims-panel {
   width: min(100%, 580px);
   height: 100%;
   overflow-y: auto;
@@ -1034,7 +1034,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
   transform: translateY(18px);
   transition: transform .25s ease;
 }
-.visible > :is(.notes-panel, .calendar-panel, .weather-panel, .finance-panel) { transform: none; }
+.visible > :is(.notes-panel, .calendar-panel, .weather-panel, .finance-panel, .sims-panel) { transform: none; }
 .modal-heading {
   position: sticky;
   top: 0;
@@ -2279,6 +2279,16 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .ch-pos[data-unread="true"] .ch-unread { display: inline; animation: ch-unread 1.6s ease-in-out infinite; }
 @keyframes ch-unread { 50% { transform: translateY(-1.5px); } }
 
+/* Diamante (plumbob) según cómo estén sus necesidades */
+.ch-plumbob { display: none; transform-box: fill-box; transform-origin: center; animation: ch-plumbob 2.6s linear infinite; }
+.ch-pos:is([data-plumbob="green"], [data-plumbob="yellow"], [data-plumbob="red"]) .ch-plumbob { display: inline; }
+.ch-pos[data-plumbob="green"] .ch-plumbob path:first-child { fill: #3fd46a; }
+.ch-pos[data-plumbob="yellow"] .ch-plumbob path:first-child { fill: #f2c230; }
+.ch-pos[data-plumbob="red"] .ch-plumbob path:first-child { fill: #ef4f4f; }
+.ch-plumbob path:first-child { stroke: rgba(0, 0, 0, .18); stroke-width: .25; }
+.ch-plumbob-shine { fill: rgba(255, 255, 255, .45); }
+@keyframes ch-plumbob { 0% { transform: translateY(0) scaleX(1); } 25% { transform: translateY(-.8px) scaleX(.2); } 50% { transform: translateY(0) scaleX(1); } 75% { transform: translateY(.8px) scaleX(.2); } 100% { transform: translateY(0) scaleX(1); } }
+
 /* Toque: chocar los cinco */
 .scene[data-act="highfive"] .ch-ines { transform: translate(203px, 188px); }
 .scene[data-act="highfive"] .ch-matteo { transform: translate(215px, 188px); }
@@ -2336,8 +2346,245 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .partner-card strong, .partner-card small { display: block; }
 .partner-card small { color: var(--muted); font-size: 13px; }
 .partner-card p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.us-sims { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, .7); color: #8a3a2e; font-size: 13px; font-weight: 800; }
 .us-doll { display: block; width: 46px; height: 72px; margin-top: -6px; border-radius: 16px; }
 .us-doll:focus-visible { box-shadow: var(--focus-ring); }
+
+
+/* ---------- Modo Sims: la casa por dentro ---------- */
+.sc-enter { position: absolute; top: 8px; left: 50px; z-index: 2; display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 12px 0 9px; border-radius: 17px; background: rgba(255, 255, 255, .82); box-shadow: 0 2px 8px rgba(20, 30, 25, .15); color: #1f5a48; font-size: 13px; font-weight: 700; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.sc-enter svg { width: 17px; height: 17px; fill: none; stroke: #1f5a48; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sc-door { cursor: pointer; }
+.sims-heading-actions { display: flex; gap: 8px; }
+.sims-sound { font-size: 16px; }
+.sims-house { position: relative; margin: -18px calc(var(--gutter) * -1) 0; background: #a8d5ef; }
+.sims-svg { display: block; width: 100%; height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.sims-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sh-front { pointer-events: none; }
+
+/* Cielo y luz según la hora */
+.sims-svg { --sim-sky: #a8d5ef; }
+.sims-svg[data-time="dusk"] { --sim-sky: #f4b183; }
+.sims-svg[data-time="night"] { --sim-sky: #1d2b4f; }
+.sh-sky, .sh-window-glass { fill: var(--sim-sky); }
+.sh-stars { display: none; fill: #fff; }
+.sims-svg[data-time="night"] .sh-stars { display: inline; }
+.sh-grass { fill: #8fc27a; }
+.sh-roof { fill: #c96b4b; }
+.sh-attic { fill: #a8533a; }
+.sh-attic-window { fill: #fbe3b0; stroke: #fffaf0; stroke-width: 2; }
+.sh-bedroom { fill: #f6e4ec; }
+.sh-bathroom { fill: #d9eff2; }
+.sh-kitchen { fill: #fbefd5; }
+.sh-living { fill: #e2eedc; }
+.sh-tiles { fill: none; stroke: rgba(255, 255, 255, .75); stroke-width: .8; }
+.sh-stripes { fill: none; stroke: rgba(255, 255, 255, .4); stroke-width: 7; }
+.sh-backsplash { fill: #f1e2c4; }
+.sh-window-bars, .sh-window-frame { fill: none; stroke: #fffaf0; stroke-width: 2.4; }
+.sh-lamp-cord { stroke: #8a6a4a; stroke-width: 1; }
+.sh-lamp { fill: #f2c230; }
+.sh-lamp-glow { fill: rgba(255, 214, 120, .32); opacity: 0; transition: opacity .6s ease; }
+.sims-svg:is([data-time="night"], [data-time="dusk"]) .sh-lamp-glow { opacity: 1; }
+.sims-svg[data-time="night"] :is(.sh-bedroom, .sh-bathroom, .sh-kitchen, .sh-living) { filter: brightness(.88); }
+.sh-wall { fill: #d1b391; }
+.sh-floor { fill: #b07b52; }
+.sh-frame { fill: none; stroke: #8a5d43; stroke-width: 5; }
+.sh-stairs rect { fill: #c99a6b; stroke: #a7774f; stroke-width: .6; }
+.sh-rail { fill: none; stroke: #8a5d43; stroke-width: 1.8; stroke-linecap: round; }
+.sh-hit { fill: transparent; pointer-events: all; cursor: pointer; }
+
+/* Objetos */
+.sh-fridge { fill: #f4f6f8; stroke: #c3ccd2; stroke-width: 1; }
+.sh-fridge-line { fill: none; stroke: #c3ccd2; stroke-width: 1.2; stroke-linecap: round; }
+.sh-fridge-inside, .sh-fridge-food { display: none; }
+.sh-fridge-inside { fill: #fff7c2; }
+.sh-fridge-food { fill: #e07a5f; }
+.sims-svg[data-fridge="on"] :is(.sh-fridge-inside, .sh-fridge-food) { display: inline; }
+.sims-svg[data-fridge="on"] .sh-fridge-line { display: none; }
+.sh-counter { fill: #e9e1d2; stroke: #cfc4b1; stroke-width: .8; }
+.sh-oven { fill: #3c3f46; }
+.sh-oven-glass { fill: #f2a65a; opacity: .25; }
+.sims-svg[data-stove="on"] .sh-oven-glass { opacity: .9; animation: sh-glow 1s ease-in-out infinite alternate; }
+@keyframes sh-glow { to { opacity: .5; } }
+.sh-burner { fill: #2a2a2e; }
+.sh-pot { fill: #5d6875; }
+.sh-pot-handle { stroke: #5d6875; stroke-width: 1.6; stroke-linecap: round; }
+.sh-board { fill: #c99a6b; }
+.sh-steam { display: none; fill: none; stroke: rgba(255, 255, 255, .9); stroke-width: 1.4; stroke-linecap: round; }
+.sims-svg[data-stove="on"] .sh-steam { display: inline; }
+.sh-steam path { animation: sc-steam 1.6s ease-out infinite; }
+.sh-steam path + path { animation-delay: -.8s; }
+.sh-table { fill: #b88a5e; }
+.sh-table-legs { stroke: #8a6a4a; stroke-width: 2; }
+.sh-croissant { fill: #e6a85a; }
+.sh-cup { fill: #fff; stroke: #d9d4c9; stroke-width: .6; }
+.sh-photo { fill: #fff; stroke: #b88a5e; stroke-width: 2; }
+.sh-photo-heart { fill: #ef476f; }
+.sh-side-table { fill: #b88a5e; }
+.sh-radio { fill: #7a4f3a; }
+.sh-record { fill: #1d1d22; }
+.sh-notes { display: none; fill: #7a62b3; font: 700 9px/1 system-ui, sans-serif; }
+.sims-svg[data-radio="on"] .sh-notes { display: inline; }
+.sh-notes text { animation: sh-note 1.6s ease-out infinite; }
+.sh-notes text + text { animation-delay: -.8s; }
+@keyframes sh-note { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translate(4px, -14px); } }
+.sims-svg[data-radio="on"] .sh-record { animation: sh-spin .6s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes sh-spin { 50% { transform: scaleX(.6); } }
+.sh-sofa { fill: #e07a5f; }
+.sh-cushion { fill: #f2a088; }
+.sh-sofa-front { fill: #d76c50; }
+.sh-sofa-arm { fill: #c95f45; }
+.sh-tv-stand { fill: #8a6a4a; }
+.sh-tv { fill: #2a2a2e; }
+.sh-tv-screen { fill: #3d4a5c; }
+.sh-tv-foot { stroke: #2a2a2e; stroke-width: 2; }
+.sims-svg[data-tv="on"] .sh-tv-screen { animation: sc-tv 2.4s steps(1) infinite; }
+.sh-plant-leaf { fill: #4f9a57; }
+.sh-plant-bird { fill: #f08a2c; }
+.sh-pot { fill: #c47a52; }
+.sh-drops { display: none; fill: #7cc4e6; }
+.sims-svg[data-plant="on"] .sh-drops { display: inline; }
+.sh-drops circle { animation: sh-drop .7s linear infinite; }
+.sh-drops circle:nth-child(2) { animation-delay: -.25s; }
+.sh-drops circle:nth-child(3) { animation-delay: -.5s; }
+@keyframes sh-drop { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(14px); } }
+.sh-headboard { fill: #8a5d43; }
+.sh-bed { fill: #a7774f; }
+.sh-mattress { fill: #fff; }
+.sh-pillow { fill: #f4f1ea; stroke: #e2dccf; stroke-width: .6; }
+.sh-duvet { fill: #7aa6d8; }
+.sh-duvet-pattern { fill: none; stroke: rgba(255, 255, 255, .45); stroke-width: 1.4; }
+.sh-nightstand { fill: #b88a5e; }
+.sh-bedlamp { fill: #f2c230; }
+.sh-bedlamp-glow { fill: rgba(255, 214, 120, .35); opacity: 0; }
+.sims-svg:is([data-time="night"], [data-bed="on"]) .sh-bedlamp-glow { opacity: 1; }
+.sh-wardrobe-inside { fill: #5c3d2a; }
+.sh-clothes { fill: #e58fb4; }
+.sh-wardrobe-door { fill: #c99a6b; stroke: #a7774f; stroke-width: .8; transform-box: fill-box; transition: transform .4s ease; }
+.sh-door-l { transform-origin: left center; }
+.sh-door-r { transform-origin: right center; }
+.sims-svg[data-wardrobe="on"] .sh-wardrobe-door { transform: scaleX(.15); }
+.sh-knobs { stroke: #8a5d43; stroke-width: 1.4; stroke-linecap: round; }
+.sims-svg[data-wardrobe="on"] .sh-knobs { display: none; }
+.sh-mirror { fill: #cfe7f0; stroke: #b0c7d0; stroke-width: 1.4; }
+.sh-mirror-shine { stroke: #fff; stroke-width: 1.2; stroke-linecap: round; }
+.sh-sink { fill: #fff; stroke: #c9d4d9; stroke-width: .8; }
+.sh-sink-leg { fill: #eef2f4; }
+.sh-tap { fill: none; stroke: #a0a8ad; stroke-width: 1.4; }
+.sh-shower-pipe { fill: none; stroke: #a0a8ad; stroke-width: 2; }
+.sh-shower-head { fill: #a0a8ad; }
+.sh-tub, .sh-tub-front { fill: #fff; stroke: #c9d4d9; stroke-width: 1; }
+.sh-shower-water { display: none; stroke: #7cc4e6; stroke-width: 1; stroke-dasharray: 3 4; }
+.sims-svg[data-shower="on"] .sh-shower-water { display: inline; animation: sh-water .4s linear infinite; }
+@keyframes sh-water { to { stroke-dashoffset: -14; } }
+.sh-bubbles { display: none; fill: #fff; stroke: #dfe7ec; stroke-width: .6; }
+.sims-svg[data-bath="on"] .sh-bubbles { display: inline; }
+.sh-rod { stroke: #8a8f96; stroke-width: 1.4; }
+.sh-curtain { display: none; fill: #9ad1c9; }
+.sh-curtain-open { fill: #9ad1c9; }
+.sims-svg:is([data-shower="on"], [data-bath="on"]) .sh-curtain { display: inline; }
+.sims-svg:is([data-shower="on"], [data-bath="on"]) .sh-curtain-open { display: none; }
+.sh-steam-cloud { display: none; fill: rgba(255, 255, 255, .75); }
+.sims-svg:is([data-shower="on"], [data-bath="on"]) .sh-steam-cloud { display: inline; }
+.sh-steam-cloud circle { animation: sh-cloud 2.4s ease-in-out infinite alternate; }
+.sh-steam-cloud circle:nth-child(2) { animation-delay: -1.2s; }
+@keyframes sh-cloud { to { transform: translateY(-5px); opacity: .5; } }
+
+/* Muñecos dentro de casa */
+.sim { transition: transform 1s linear; }
+.sim .ch-pos { transform: none !important; opacity: 1 !important; }
+.sim .ch-hit { display: none; }
+.sim-flip { transform: scaleX(var(--flip, 1)); transition: transform .15s ease; }
+.sim-hit { fill: transparent; pointer-events: all; cursor: pointer; }
+.sim-progress { display: none; fill: none; stroke: #3fd46a; stroke-width: 2.6; stroke-dasharray: 31.4; stroke-dashoffset: 31.4; transform: rotate(-90deg); transform-box: fill-box; transform-origin: center; }
+.sim.is-working .sim-progress { display: inline; animation: sim-progress var(--secs, 5s) linear forwards; }
+@keyframes sim-progress { to { stroke-dashoffset: 0; } }
+.sim[data-doing="walk"] .ch-person { animation: sim-walk .34s ease-in-out infinite alternate; }
+.sim[data-doing="walk"] .ch-arm-l { animation: sim-swing-l .34s ease-in-out infinite alternate; }
+.sim[data-doing="walk"] .ch-arm-r { animation: sim-swing-r .34s ease-in-out infinite alternate; }
+@keyframes sim-walk { from { transform: rotate(-4deg); } to { transform: rotate(4deg) translateY(-1px); } }
+@keyframes sim-swing-l { from { transform: rotate(-12deg); } to { transform: rotate(22deg); } }
+@keyframes sim-swing-r { from { transform: rotate(12deg); } to { transform: rotate(-22deg); } }
+.sim[data-doing="cook"] .ch-arm-r { animation: sim-stir .5s ease-in-out infinite alternate; }
+@keyframes sim-stir { from { transform: rotate(-45deg); } to { transform: rotate(-80deg); } }
+.sim:is([data-doing="eat"], [data-doing="teeth"]) .ch-arm-r { animation: sim-eat .6s ease-in-out infinite alternate; }
+@keyframes sim-eat { from { transform: rotate(-135deg); } to { transform: rotate(-160deg); } }
+.sim[data-doing="teeth"] .ch-arm-r { animation-duration: .18s; }
+.sim:is([data-doing="dance"], [data-doing="social-dance"]) .ch-body { animation: ch-bounce .42s ease-in-out infinite alternate; }
+.sim:is([data-doing="dance"], [data-doing="social-dance"]) .ch-arm-l { animation: ch-dance-l .84s ease-in-out infinite alternate; }
+.sim:is([data-doing="dance"], [data-doing="social-dance"]) .ch-arm-r { animation: ch-dance-r .84s ease-in-out -.42s infinite alternate; }
+.sim[data-doing="sing"] .ch-arm-r { transform: rotate(-150deg); }
+.sim[data-doing="sing"] .ch-person { animation: sim-sway 1s ease-in-out infinite alternate; }
+@keyframes sim-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.sim:is([data-doing="nap"], [data-doing="sleep"]) :is(.ch-eyes, .ch-glints, .mv-eyes-heart, .mv-eyes-half, .mv-eyes-closed) { display: none !important; }
+.sim:is([data-doing="nap"], [data-doing="sleep"]) .mv-eyes-sleep { display: inline !important; }
+.sim[data-doing="nap"] .ch-head { transform: rotate(14deg); }
+.sim[data-doing="phone"] .ch-arm-r, .sim[data-doing="look"] .ch-arm-r { transform: rotate(-120deg); }
+.sim[data-doing="phone"] .ch-head { transform: rotate(8deg) translateY(.5px); }
+.sim[data-doing="tv"] .ch-head { animation: sim-laugh 2.4s ease-in-out infinite; }
+@keyframes sim-laugh { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(-6deg); } 90% { transform: rotate(4deg); } }
+.sim[data-doing="water"] .ch-arm-r { transform: rotate(-75deg); }
+.sim[data-doing="talk"] .ch-head, .sim[data-doing="social-chat"] .ch-head { animation: sim-nod .5s ease-in-out infinite alternate; }
+.sim[data-doing="talk"] .ch-arm-r { animation: sim-gesture .8s ease-in-out infinite alternate; }
+@keyframes sim-nod { to { transform: rotate(5deg); } }
+@keyframes sim-gesture { from { transform: rotate(-30deg); } to { transform: rotate(-70deg); } }
+.sim[data-pose="lie"] .sim-flip { transform: rotate(-90deg); }
+.sim[data-pose="bed"] .ch-person { animation: sim-jump .6s cubic-bezier(.3, 0, .7, 1) infinite alternate; }
+.sim[data-pose="bed"] .ch-arm-l { transform: rotate(150deg); }
+.sim[data-pose="bed"] .ch-arm-r { transform: rotate(-150deg); }
+@keyframes sim-jump { from { transform: translateY(0); } to { transform: translateY(-16px); } }
+.sim[data-doing="spin"] .sim-flip { animation: sim-spin .5s linear infinite; }
+@keyframes sim-spin { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+.sim[data-doing="wave"] .ch-arm-r { animation: ch-wave-r .5s ease-in-out infinite alternate; }
+.sim[data-doing="stretch"] .ch-arm-l { transform: rotate(165deg); }
+.sim[data-doing="stretch"] .ch-arm-r { transform: rotate(-165deg); }
+.sim:is([data-doing="social-hug"], [data-doing="social-kiss"], [data-doing="social-compliment"]) .ch-arm-r { transform: rotate(-80deg); }
+.sim:is([data-doing="social-hug"], [data-doing="social-kiss"]) .ch-arm-l { transform: rotate(40deg); }
+.sim[data-doing="social-kiss"] .ch-head { transform: rotate(10deg); }
+.sim:is([data-doing="social-hug"], [data-doing="social-kiss"], [data-doing="social-compliment"])[data-role="target"] .ch-cheek { opacity: .95; fill: #ff6f86; }
+.sim[data-doing="social-highfive"] .ch-arm-r { transform: rotate(-155deg); }
+.sim[data-doing="social-tickle"][data-role="target"] .ch-person { animation: ch-bounce .16s ease-in-out infinite alternate; }
+.sim[data-doing="social-tickle"][data-role="actor"] .ch-arm-r { animation: sim-stir .2s ease-in-out infinite alternate; }
+
+/* Menú circular, bocadillos y números */
+.sims-pie { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.sims-pie-title, .sims-pie-option { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: auto; }
+.sims-pie-title { padding: 4px 10px; border-radius: 999px; background: rgba(20, 34, 60, .85); color: #fff; font-size: 12px; font-weight: 800; pointer-events: none; }
+.sims-pie-option { display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px 7px 8px; border: 2px solid #4a8fe0; border-radius: 999px; background: #f4f9ff; color: #16365e; box-shadow: 0 4px 12px rgba(20, 50, 100, .25); font-size: 13px; font-weight: 700; animation: sims-pop .22s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: calc(var(--i) * 30ms); }
+.sims-pie-option span { font-size: 16px; line-height: 1; }
+.sims-pie-option:active { background: #4a8fe0; color: #fff; }
+@keyframes sims-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(.4); } }
+.sim-bubble { position: absolute; z-index: 2; max-width: 200px; padding: 6px 10px; border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(20, 30, 25, .18); color: #1d2a26; font-size: 13px; font-weight: 700; line-height: 1.3; transform: translate(-50%, -100%); animation: sims-bubble .25s cubic-bezier(.34, 1.56, .64, 1); }
+.sim-bubble::after { position: absolute; top: 100%; left: 50%; border: 6px solid transparent; border-top-color: #fff; content: ""; transform: translateX(-50%); }
+.sim-bubble.is-think { border-radius: 20px; background: #f4f9ff; color: #16365e; }
+.sim-bubble.is-think::after { top: calc(100% + 2px); width: 8px; height: 8px; border: 0; border-radius: 50%; background: #f4f9ff; }
+.sim-bubble.is-emote { padding: 0; background: none; box-shadow: none; font-size: 24px; }
+.sim-bubble.is-emote::after { display: none; }
+@keyframes sims-bubble { from { opacity: 0; transform: translate(-50%, -80%) scale(.6); } }
+.sim-float { position: absolute; z-index: 2; color: #1f9d4c; font-size: 15px; font-weight: 900; text-shadow: 0 1px 0 #fff, 0 0 6px rgba(255, 255, 255, .9); white-space: nowrap; transform: translate(-50%, 0); animation: sims-float 1.8s ease-out forwards; }
+@keyframes sims-float { to { opacity: 0; transform: translate(-50%, -40px); } }
+
+/* Necesidades */
+.sims-needs { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.sims-needs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.sims-needs-head .segmented { margin: 0; }
+.sims-plumbob { width: 16px; height: 16px; flex-shrink: 0; border-radius: 3px; transform: rotate(45deg); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .4); animation: sims-plumbob-ui 2.6s linear infinite; }
+@keyframes sims-plumbob-ui { 50% { transform: rotate(45deg) scale(.55, 1.15); } }
+.sims-plumbob.is-green { background: #3fd46a; }
+.sims-plumbob.is-yellow { background: #f2c230; }
+.sims-plumbob.is-red { background: #ef4f4f; }
+.sims-needs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.sims-need { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sims-need:last-child { grid-column: 1 / -1; }
+.sims-need > div { flex: 1; min-width: 0; }
+.sims-need-emoji { font-size: 20px; }
+.sims-need small { display: block; margin-bottom: 3px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.sims-need-track { display: block; height: 9px; overflow: hidden; border-radius: 5px; background: var(--track); }
+.sims-need-track span { display: block; height: 100%; border-radius: 5px; transition: width .6s ease; }
+.sims-need-track .is-good { background: linear-gradient(90deg, #36c25f, #6be08a); }
+.sims-need-track .is-mid { background: linear-gradient(90deg, #e9b51e, #f6d260); }
+.sims-need-track .is-low { background: linear-gradient(90deg, #e04141, #f27b6b); }
+.sims-tip { display: block; width: 100%; margin-top: 10px; padding: 8px 4px; color: var(--muted); font-size: 13px; line-height: 1.45; text-align: center; }
 
 /* Sin animar cuando la escena no se ve o si se prefiere menos movimiento. */
 .scene.is-paused * { animation-play-state: paused !important; }
@@ -2358,8 +2605,8 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 
 /* En tablet y ordenador los modales se abren como un panel lateral. */
 @media (min-width: 720px) {
-  .notes-modal, .calendar-modal, .weather-modal, .finance-modal { justify-content: flex-end; }
-  .notes-panel, .calendar-panel, .weather-panel, .finance-panel { --gutter: 28px; border-radius: var(--radius-xl) 0 0 var(--radius-xl); box-shadow: var(--shadow-lg); transform: translateX(28px); }
+  .notes-modal, .calendar-modal, .weather-modal, .finance-modal, .sims-modal { justify-content: flex-end; }
+  .notes-panel, .calendar-panel, .weather-panel, .finance-panel, .sims-panel { --gutter: 28px; border-radius: var(--radius-xl) 0 0 var(--radius-xl); box-shadow: var(--shadow-lg); transform: translateX(28px); }
   .modal-heading { border-radius: var(--radius-xl) 0 0 0; }
 }
 

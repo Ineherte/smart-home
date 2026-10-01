@@ -317,6 +317,7 @@ async function waterPlant(id) {
   try {
     await plantsStore.update(id, changes);
     await addPlantLog(plant, { kind: 'water' });
+    window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'water' } }));
     showToast(`${plant.name} regada · próximo riego ${dueLabel(plant.next_water_on).toLowerCase()}`);
     notifyHousehold(`${currentUser} regó ${plant.name}`, `Ya no hace falta regarla. Próximo riego: ${dueLabel(plant.next_water_on).toLowerCase()}.`, { open: 'plantas', tag: 'plants' });
   } catch (error) {
