@@ -502,6 +502,9 @@ svg.spin { animation: spin .6s linear; }
 .settings-block { margin: 2px 0 16px; }
 .settings-label { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
 .settings-label svg.lucide { width: 16px; height: 16px; }
+.push-setting { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.push-setting p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.push-setting .pill-button { flex: none; }
 
 /* ---------- Detalles de movimiento ---------- */
 
@@ -984,6 +987,212 @@ svg.spin { animation: spin .6s linear; }
 .scene[data-condition="storm"] .sc-bolt { animation: sc-bolt 7s linear infinite; }
 @keyframes sc-flash { 0%, 78%, 82%, 86%, 100% { opacity: 0; } 79% { opacity: .45; } 84% { opacity: .3; } }
 @keyframes sc-bolt { 0%, 78%, 83%, 100% { opacity: 0; } 79%, 82% { opacity: 1; } }
+
+/* Ines y Matteo. scene.js elige el plan (data-act), el lugar (data-place) y la ropa
+   (data-outfit); los colores llegan como --ines-* y --matteo-*. */
+.ch-ines { --ch-skin: var(--ines-skin); --ch-hair: var(--ines-hair); --ch-eyes: var(--ines-eyes); --ch-top: var(--ines-top); --ch-sleeve: var(--ines-sleeve); --ch-pants: var(--ines-pants); --ch-shin: var(--ines-shin); --ch-shoe: var(--ines-shoe); --ch-coat: var(--ines-coat); --ch-boot: var(--ines-boot); --ch-scarf: var(--ines-scarf); --ch-hat: var(--ines-hat); }
+.ch-matteo { --ch-skin: var(--matteo-skin); --ch-hair: var(--matteo-hair); --ch-eyes: var(--matteo-eyes); --ch-top: var(--matteo-top); --ch-sleeve: var(--matteo-sleeve); --ch-pants: var(--matteo-pants); --ch-shin: var(--matteo-shin); --ch-shoe: var(--matteo-shoe); --ch-coat: var(--matteo-coat); --ch-boot: var(--matteo-boot); --ch-scarf: var(--matteo-scarf); --ch-hat: var(--matteo-hat); }
+.sc-couple { pointer-events: none; }
+.ch-hit { fill: transparent; pointer-events: all; cursor: pointer; }
+.scene[data-place="in"] .ch-hit { display: none; }
+.ch-pos { transition: transform 1.8s cubic-bezier(.45, .05, .3, 1), opacity .8s ease .3s; }
+.ch-ines { transform: translate(196px, 188px); }
+.ch-matteo { transform: translate(222px, 188px); }
+.scene[data-act="hug"] .ch-ines, .scene[data-act="stargaze"] .ch-ines { transform: translate(203px, 188px); }
+.scene[data-act="hug"] .ch-matteo, .scene[data-act="stargaze"] .ch-matteo { transform: translate(215px, 188px); }
+.scene[data-act="umbrella"] .ch-ines { transform: translate(202px, 188px); }
+.scene[data-act="umbrella"] .ch-matteo { transform: translate(219px, 188px); }
+.scene[data-act="dance"] .ch-ines, .scene[data-act="snowball"] .ch-ines { transform: translate(190px, 188px); }
+.scene[data-act="dance"] .ch-matteo, .scene[data-act="snowball"] .ch-matteo { transform: translate(226px, 188px); }
+.scene[data-act="puddles"] .ch-ines { transform: translate(259px, 189px); }
+.scene[data-act="puddles"] .ch-matteo { transform: translate(282px, 189px); }
+/* Entran por la puerta. */
+.scene[data-place="in"] .ch-pos { transform: translate(208px, 162px) scale(.7); opacity: 0; transition: transform 1.8s cubic-bezier(.45, .05, .3, 1), opacity .6s ease 1.2s; }
+
+.ch-shadow { fill: rgba(20, 30, 25, .22); }
+.ch-face, .ch-neck, .ch-hand { fill: var(--ch-skin); }
+.ch-hair { fill: var(--ch-hair); }
+.ch-eyes { fill: var(--ch-eyes); transform-box: fill-box; transform-origin: center; animation: ch-blink 5.2s infinite; }
+.ch-matteo .ch-eyes { animation-delay: -2.3s; }
+@keyframes ch-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+.ch-glints { fill: #fff; }
+.ch-cheek { fill: #ff8f7e; opacity: .5; }
+.ch-mouth { fill: none; stroke: #7a3b2e; stroke-width: .55; stroke-linecap: round; }
+.ch-torso { fill: var(--ch-top); }
+.ch-cuff { fill: none; stroke: var(--ch-top); stroke-width: 2.9; stroke-linecap: round; }
+.ch-sleeve { fill: none; stroke: var(--ch-sleeve); stroke-width: 2.4; stroke-linecap: round; }
+.ch-thigh { fill: var(--ch-pants); }
+.ch-shin { fill: var(--ch-shin); }
+.ch-shoe { fill: var(--ch-shoe); }
+.ch-boot { fill: var(--ch-boot); }
+.ch-coat, .ch-hood { fill: var(--ch-coat); }
+.ch-coat-line { fill: none; stroke: rgba(0, 0, 0, .18); stroke-width: .5; }
+.ch-scarf { fill: var(--ch-scarf); }
+.ch-hat { fill: var(--ch-hat); }
+.ch-shades { fill: #1f2733; }
+.ch-boot, .ch-coat, .ch-coat-line, .ch-hood, .ch-scarf, .ch-hat, .ch-shades, .ch-umbrella { display: none; }
+.scene[data-outfit="cold"] :is(.ch-coat, .ch-coat-line, .ch-scarf, .ch-hat) { display: inline; }
+.scene[data-outfit="rain"] :is(.ch-coat, .ch-coat-line, .ch-hood, .ch-boot) { display: inline; }
+.scene[data-shades="true"] .ch-shades { display: inline; }
+.ch-umbrella-stick { fill: none; stroke: #4a3a30; stroke-width: .9; stroke-linecap: round; }
+.ch-umbrella-top, .ch-umbrella-tip { fill: #e0533f; }
+
+/* Brazos: giran desde el hombro. Positivo = hacia la izquierda. */
+.ch-arm { transform-origin: 0 0; transition: transform .9s ease; }
+.ch-arm-l { transform: rotate(9deg); }
+.ch-arm-r { transform: rotate(-9deg); }
+.ch-body, .ch-head { transform-origin: 0 0; }
+.ch-body { animation: ch-breathe 3.4s ease-in-out infinite; }
+.ch-matteo .ch-body { animation-delay: -1.2s; }
+@keyframes ch-breathe { 50% { transform: translateY(-.35px); } }
+.ch-head { transform-origin: 0 -23px; transition: transform .9s ease; }
+
+/* Saludan a la cámara */
+.scene[data-act="wave"] .ch-ines .ch-arm-l { animation: ch-wave-l .9s ease-in-out infinite alternate; }
+.scene[data-act="wave"] .ch-matteo .ch-arm-r { animation: ch-wave-r .9s ease-in-out -.3s infinite alternate; }
+.scene[data-act="wave"] .ch-body { animation: ch-hop 3.2s ease-in-out infinite; }
+.scene[data-act="wave"] .ch-matteo .ch-body { animation-delay: -1.6s; }
+@keyframes ch-wave-l { from { transform: rotate(132deg); } to { transform: rotate(168deg); } }
+@keyframes ch-wave-r { from { transform: rotate(-132deg); } to { transform: rotate(-168deg); } }
+@keyframes ch-hop { 0%, 72%, 100% { transform: translateY(0); } 80% { transform: translateY(-3px); } 88% { transform: translateY(0); } }
+
+/* Abrazo */
+.scene[data-act="hug"] .ch-ines .ch-arm-r, .scene[data-act="stargaze"] .ch-ines .ch-arm-r { transform: rotate(-78deg); }
+.scene[data-act="hug"] .ch-matteo .ch-arm-l, .scene[data-act="stargaze"] .ch-matteo .ch-arm-l { transform: rotate(74deg); }
+.scene[data-act="hug"] .ch-ines .ch-head, .scene[data-act="umbrella"] .ch-ines .ch-head { transform: rotate(9deg); }
+.scene[data-act="hug"] .ch-matteo .ch-head { transform: rotate(-6deg); }
+.scene[data-act="hug"] .ch-body, .scene[data-act="umbrella"] .ch-body { animation: ch-rock 2.6s ease-in-out infinite alternate; }
+@keyframes ch-rock { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+
+/* Bailan */
+.scene[data-act="dance"] .ch-body { animation: ch-bounce .48s ease-in-out infinite alternate; }
+.scene[data-act="dance"] .ch-matteo .ch-body { animation-delay: -.24s; }
+.scene[data-act="dance"] .ch-arm-l { animation: ch-dance-l .96s ease-in-out infinite alternate; }
+.scene[data-act="dance"] .ch-arm-r { animation: ch-dance-r .96s ease-in-out -.48s infinite alternate; }
+@keyframes ch-bounce { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-2.6px) rotate(4deg); } }
+@keyframes ch-dance-l { from { transform: rotate(25deg); } to { transform: rotate(155deg); } }
+@keyframes ch-dance-r { from { transform: rotate(-25deg); } to { transform: rotate(-155deg); } }
+.sc-notes { display: none; fill: var(--sc-door); stroke: var(--sc-door); }
+.scene[data-act="dance"] .sc-notes { display: inline; }
+.sc-note path { fill: none; stroke-width: .9; stroke-linecap: round; }
+.sc-note { opacity: 0; animation: sc-note 2.7s ease-out var(--delay) infinite; }
+@keyframes sc-note { 0% { opacity: 0; transform: translate(var(--nx), 0) rotate(-10deg); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(var(--nx) + 5px), -22px) rotate(12deg); } }
+
+/* Charcos */
+.sc-big-puddle { display: none; fill: rgba(150, 182, 210, .7); }
+.scene[data-act="puddles"] .sc-big-puddle { display: inline; }
+.scene[data-act="puddles"] .ch-body { animation: ch-jump 1.3s ease-in-out infinite; }
+.scene[data-act="puddles"] .ch-matteo .ch-body, .scene[data-act="puddles"] .ch-matteo .ch-splash circle { animation-delay: -.65s; }
+.scene[data-act="puddles"] .ch-arm-l { animation: ch-flap-l 1.3s ease-in-out infinite; }
+.scene[data-act="puddles"] .ch-arm-r { animation: ch-flap-r 1.3s ease-in-out infinite; }
+.scene[data-act="puddles"] .ch-matteo .ch-arm-l, .scene[data-act="puddles"] .ch-matteo .ch-arm-r { animation-delay: -.65s; }
+@keyframes ch-jump {
+  0% { transform: translateY(0) scale(1.08, .9); }
+  14% { transform: translateY(-1px) scale(.95, 1.06); }
+  38% { transform: translateY(-9px) scale(1); }
+  62% { transform: translateY(0) scale(1.1, .88); }
+  76%, 100% { transform: translateY(0) scale(1); }
+}
+@keyframes ch-flap-l { 0%, 62%, 100% { transform: rotate(14deg); } 38% { transform: rotate(120deg); } }
+@keyframes ch-flap-r { 0%, 62%, 100% { transform: rotate(-14deg); } 38% { transform: rotate(-120deg); } }
+.ch-splash { display: none; fill: rgba(200, 222, 240, .95); }
+.scene[data-act="puddles"] .ch-splash { display: inline; }
+.ch-splash circle { opacity: 0; animation: ch-splash 1.3s ease-out infinite; }
+@keyframes ch-splash { 0%, 60% { opacity: 0; transform: translate(0, 0); } 64% { opacity: 1; } 92%, 100% { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+
+/* Paraguas */
+.scene[data-act="umbrella"] .ch-umbrella { display: inline; }
+.scene[data-act="umbrella"] .ch-matteo .ch-arm-l { transform: rotate(165deg); }
+.scene[data-act="umbrella"] .ch-ines .ch-arm-r { transform: rotate(-62deg); }
+
+/* Nieve */
+.sc-snowman { display: none; fill: #f6f8fb; }
+.scene[data-act="snowball"] .sc-snowman { display: inline; }
+.sc-snowman-eye { fill: #2a2f36; }
+.sc-snowman-nose { fill: #f08a3c; }
+.sc-snowman-scarf { fill: #c8423b; }
+.sc-snowball { display: none; fill: #fbfcff; opacity: 0; }
+.scene[data-act="snowball"] .sc-snowball { display: inline; animation: sc-snowball 2.8s linear infinite; }
+.scene[data-act="snowball"] .ch-ines .ch-arm-r { animation: ch-throw 2.8s ease-in-out infinite; }
+.scene[data-act="snowball"] .ch-matteo .ch-body { animation: ch-hit 2.8s ease-in-out infinite; }
+.scene[data-act="snowball"] .ch-matteo .ch-arm-l { animation: ch-flinch 2.8s ease-in-out infinite; }
+@keyframes ch-throw { 0%, 100% { transform: rotate(-9deg); } 30% { transform: rotate(-170deg); } 44% { transform: rotate(-100deg); } 60% { transform: rotate(-30deg); } }
+@keyframes sc-snowball {
+  0%, 41% { opacity: 0; transform: translate(194px, 160px); }
+  44% { opacity: 1; transform: translate(198px, 158px); }
+  56% { transform: translate(210px, 151px); }
+  68% { opacity: 1; transform: translate(220px, 158px); }
+  70%, 100% { opacity: 0; transform: translate(222px, 160px) scale(2); }
+}
+@keyframes ch-hit { 0%, 66%, 100% { transform: rotate(0); } 72% { transform: rotate(7deg) translateX(1px); } 84% { transform: rotate(-2deg); } }
+@keyframes ch-flinch { 0%, 66%, 100% { transform: rotate(9deg); } 74%, 86% { transform: rotate(110deg); } }
+
+/* Hojas de otoño */
+.sc-leafpile { display: none; fill: var(--sc-canopy); }
+.sc-tossed { display: none; }
+.scene[data-act="leaves"] :is(.sc-leafpile, .sc-tossed) { display: inline; }
+.sc-toss { fill: var(--sc-canopy); opacity: 0; animation: sc-toss 2.4s ease-out var(--delay) infinite; }
+.sc-toss:nth-child(2n) { fill: var(--sc-canopy-b); }
+.sc-toss:nth-child(3n) { fill: var(--sc-accent); }
+@keyframes sc-toss {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+  10% { opacity: 1; }
+  40% { transform: translate(var(--tx), var(--ty)) rotate(150deg); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--tx) * 1.6), 2px) rotate(340deg); }
+}
+.scene[data-act="leaves"] .ch-arm-l { animation: ch-toss-l 2.4s ease-in-out infinite; }
+.scene[data-act="leaves"] .ch-arm-r { animation: ch-toss-r 2.4s ease-in-out infinite; }
+.scene[data-act="leaves"] .ch-body { animation: ch-hop 2.4s ease-in-out -1.8s infinite; }
+@keyframes ch-toss-l { 0%, 100% { transform: rotate(30deg); } 35% { transform: rotate(160deg); } }
+@keyframes ch-toss-r { 0%, 100% { transform: rotate(-30deg); } 35% { transform: rotate(-160deg); } }
+
+/* Miran las estrellas */
+.scene[data-act="stargaze"] .ch-ines .ch-arm-l { transform: rotate(158deg); }
+.scene[data-act="stargaze"] .ch-head { transform: rotate(-4deg) translateY(-.3px); }
+.scene[data-act="stargaze"] .ch-matteo .ch-head { transform: rotate(-8deg); }
+.scene[data-act="stargaze"] .ch-eyes { transform: translateY(-.7px); animation: none; }
+
+/* Corazones: abrazo, estrellas y al tocarlos */
+.sc-hearts { display: none; fill: #ff6b8a; }
+.scene:is([data-act="hug"], [data-act="stargaze"], [data-love="true"]) .sc-hearts { display: inline; }
+.sc-heart { opacity: 0; animation: sc-heart 2.8s ease-out var(--delay) infinite; }
+@keyframes sc-heart { 0% { opacity: 0; transform: translate(var(--hx), 0) scale(.4); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(var(--hx) * 2.4), -26px) scale(1.1); } }
+.scene[data-love="true"] .sc-heart { animation-duration: 1.6s; animation-iteration-count: 1; }
+.scene[data-love="true"] .ch-person { animation: ch-love-hop .5s ease-out 2; }
+@keyframes ch-love-hop { 50% { transform: translateY(-4px); } }
+
+/* Dentro de casa */
+.sc-inside { opacity: 0; transition: opacity .8s ease; }
+.scene[data-act="movie"] .sc-inside-movie, .scene[data-act="cook"] .sc-inside-cook { opacity: 1; transition-delay: 1.6s; }
+.scene:is([data-act="movie"]) [data-room="salon"] .sc-curtain, .scene[data-act="cook"] [data-room="cocina"] .sc-curtain { opacity: .15; }
+.mi-ines { --mi-skin: var(--ines-skin); --mi-hair: var(--ines-hair); --mi-eyes: var(--ines-eyes); }
+.mi-matteo { --mi-skin: var(--matteo-skin); --mi-hair: var(--matteo-hair); --mi-eyes: var(--matteo-eyes); }
+.mi-face { fill: var(--mi-skin); }
+.mi-hair { fill: var(--mi-hair); }
+.mi-eye { fill: var(--mi-eyes); }
+.mi-top-ines { fill: var(--ines-top); }
+.mi-top-matteo { fill: var(--matteo-top); }
+.sc-sofa { fill: #8a5a4a; }
+.sc-popcorn path { fill: #d9534f; }
+.sc-popcorn circle { fill: #fff6dc; }
+.sc-tv { fill: #cfe4ff; animation: sc-tv 3.2s steps(1) infinite; }
+.sc-tv-light { fill: #9cc3ff; mix-blend-mode: screen; opacity: .18; animation: sc-tv-light 3.2s steps(1) infinite; }
+@keyframes sc-tv { 0%, 100% { fill: #cfe4ff; } 22% { fill: #ffe2b8; } 41% { fill: #b9f0d8; } 63% { fill: #ffffff; } 81% { fill: #c9c4ff; } }
+@keyframes sc-tv-light { 0%, 100% { opacity: .18; } 22% { opacity: .08; } 41% { opacity: .24; } 63% { opacity: .3; } 81% { opacity: .12; } }
+.scene[data-act="movie"] .sc-window[data-room="salon"] .sc-window-glass { fill: #f3c77d; }
+.sc-counter { fill: #c79a6b; }
+.sc-pot { fill: #5d6875; }
+.sc-steam path { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: .8; stroke-linecap: round; animation: sc-steam 2.4s ease-out infinite; }
+.sc-steam path + path { animation-delay: -1.2s; }
+@keyframes sc-steam { from { opacity: 0; transform: translateY(2px); } 30% { opacity: 1; } to { opacity: 0; transform: translateY(-4px); } }
+.sc-zzz { display: none; fill: #fff; font: 700 6px/1 system-ui, sans-serif; }
+.scene[data-act="sleep"] .sc-zzz { display: inline; }
+.sc-zzz text { opacity: 0; animation: sc-zzz 4.5s ease-out infinite; }
+.sc-zzz text:nth-child(2) { animation-delay: -1.5s; font-size: 8px; }
+.sc-zzz text:nth-child(3) { animation-delay: -3s; }
+@keyframes sc-zzz { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: .95; } 100% { opacity: 0; transform: translate(-14px, -24px); } }
+.scene[data-act="sleep"] .sc-window[data-room="dormitorio"]:not(.is-lit) .sc-window-glass { fill: #46588a; }
 
 /* Sin animar cuando la escena no se ve o si se prefiere menos movimiento. */
 .scene.is-paused * { animation-play-state: paused !important; }

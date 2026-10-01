@@ -163,12 +163,14 @@ async function completeTask(id) {
       await tasksStore.update(id, { active: false });
       householdTasks = householdTasks.filter((entry) => entry.id !== id);
       showToast('¡Hecho! Una cosa menos.');
+      notifyHousehold(`${doneBy} completó una tarea`, task.title, { open: 'tareas', tag: 'tasks' });
     } else {
       const changes = { due_date: nextDueDate(task) };
       if (task.rotate) changes.assignee = otherPerson(task.assignee === 'both' ? doneBy : task.assignee);
       await tasksStore.update(id, changes);
       Object.assign(task, changes);
       showToast(`¡Hecho! Próxima vez: ${dueLabel(task.due_date).toLowerCase()}${task.rotate ? ` · le toca a ${task.assignee === currentUser ? 'ti' : task.assignee}` : ''}`);
+      notifyHousehold(`${doneBy} completó una tarea`, `${task.title}${task.rotate && task.assignee !== doneBy ? ' · la próxima vez te toca a ti' : ''}`, { open: 'tareas', tag: 'tasks' });
     }
   } catch (error) {
     showSupabaseError('No se pudo completar la tarea', error);
@@ -183,6 +185,7 @@ async function createTask({ title, recurrence, dueDate, assignee }) {
     householdTasks.push(task);
     renderTasks();
     showToast(`Tarea añadida: ${title}`);
+    notifyHousehold(`${currentUser} añadió una tarea`, `${title}${task.assignee !== currentUser && task.assignee !== 'both' ? ' · te toca a ti' : ''}`, { open: 'tareas', tag: 'tasks' });
     return true;
   } catch (error) {
     showSupabaseError('No se pudo crear la tarea', error);

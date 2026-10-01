@@ -139,6 +139,7 @@ async function addShoppingItems(text) {
     shoppingItems.push(...created);
     renderShopping();
     showToast(fresh.length === 1 ? `${fresh[0].name} añadido` : `${fresh.length} cosas añadidas`);
+    notifyHousehold(`${currentUser} añadió a la compra`, capitalizeFirst(summarizeList(fresh.map((item) => item.name))), { open: 'compra', tag: 'shopping' });
     return true;
   } catch (error) {
     showSupabaseError('No se pudo añadir a la compra', error);
@@ -181,7 +182,7 @@ async function finishShopping({ amount, paidBy }) {
   try {
     if (amount > 0) {
       financeEditing = null;
-      await saveFinanceEntity('expense', { description: `Compra (${inCart.length} ${inCart.length === 1 ? 'artículo' : 'artículos'})`, amount, paid_by: paidBy, category: 'Alimentación', expense_date: dateToISO(new Date()), source: 'manual', settled: false });
+      await saveFinanceEntity('expense', { description: `Compra (${inCart.length} ${inCart.length === 1 ? 'artículo' : 'artículos'})`, amount, paid_by: paidBy, category: 'Alimentación', expense_date: dateToISO(new Date()), source: 'manual', settled: false }, { notify: false });
     }
     const doneAt = new Date().toISOString();
     await shoppingStore.update(inCart.map((item) => item.id), { status: 'done', done_at: doneAt });
@@ -190,6 +191,7 @@ async function finishShopping({ amount, paidBy }) {
     shoppingHistory = [...inCart.map((item) => ({ ...item, status: 'done', done_at: doneAt })), ...shoppingHistory];
     renderShopping();
     showToast(amount > 0 ? `Compra terminada · gasto de ${financeMoney(amount)} registrado` : 'Compra terminada');
+    notifyHousehold(`${currentUser} hizo la compra`, `${inCart.length} ${inCart.length === 1 ? 'artículo' : 'artículos'}${amount > 0 ? ` · ${financeMoney(amount)} pagados por ${paidBy}` : ''}`, { open: 'compra', tag: 'shopping' });
   } catch (error) {
     showSupabaseError('No se pudo terminar la compra', error);
   }

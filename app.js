@@ -401,6 +401,7 @@ document.querySelectorAll('.note-form').forEach((form) => {
       if (!householdReady()) return;
       const { error } = await supabaseClient.from('notes').insert({ content, scope, priority, owner_id: authUserId, household_id: householdId });
       if (error) return showSupabaseError('No se pudo guardar la nota', error);
+      if (scope === 'shared') notifyHousehold(priority === 'urgent' ? `Nota urgente de ${currentUser}` : `${currentUser} dejó una nota`, content, { open: 'notes', tag: 'notes' });
     } else {
       const key = scope === 'shared' ? localSharedNotesKey : localPrivateNotesKey();
       const notes = readNotes(key);
@@ -422,7 +423,7 @@ document.querySelector('#notesModal').addEventListener('click', async (event) =>
       const note = [...notes.shared, ...notes.private].find((item) => item.id === completeButton.dataset.noteId);
       const { error } = await supabaseClient.from('notes').update({ completed: !note.completed }).eq('id', note.id);
       if (error) return showSupabaseError('No se pudo actualizar la nota', error);
-      if (!note.completed && note.scope === 'shared') notifyOtherUser('Nota completada', `${currentUser} ha completado: ${note.content}`);
+      if (!note.completed && note.scope === 'shared') notifyHousehold(`${currentUser} completó una nota`, note.content, { open: 'notes', tag: 'notes' });
     } else {
       const key = completeButton.dataset.noteList === 'sharedNotes' ? localSharedNotesKey : localPrivateNotesKey();
       const notes = readNotes(key);
@@ -574,6 +575,10 @@ document.querySelector('#eventForm').addEventListener('submit', async (event) =>
     if (!householdReady()) return;
     const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId, household_id: householdId });
     if (error) return showSupabaseError('No se pudo guardar el evento', error);
+    if (eventData.scope === 'shared') {
+      const when = new Date(`${eventData.event_date}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      notifyHousehold(`${currentUser} añadió un plan`, `${eventData.title} · ${when}${eventData.event_time ? ` a las ${eventData.event_time.slice(0, 5)}` : ''}`, { open: 'calendar' });
+    }
   } else {
     const events = readEvents();
     events.push({ ...eventData, id: createLocalId() });
@@ -626,11 +631,6 @@ function parseDuration(duration) {
   const hours = Number(String(duration).match(/(\d+(?:[.,]\d+)?)\s*h/i)?.[1]?.replace(',', '.') || 1);
   const minutes = Number(String(duration).match(/(\d+)\s*min/i)?.[1] || 0);
   return (hours * 60 + minutes) * 60 * 1000;
-}
-
-function notifyOtherUser(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
-  showToast(body);
 }
 
 const drawingCanvas = document.querySelector('#sharedCanvas');
@@ -709,10 +709,6 @@ async function initDrawing() {
 
 document.querySelector('#clearDrawing').addEventListener('click', () => { drawingStrokes = []; drawStrokes(); saveDrawing(); showToast('Pizarra borrada'); });
 
-async function enableNotifications() {
-  if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
-}
-
 async function connectNotes() {
   const status = document.querySelector('#notesConnectionStatus');
   if (!supabaseClient) {
@@ -770,10 +766,9 @@ async function connectNotes() {
   renderCalendarData();
   loadLightStates();
   document.dispatchEvent(new CustomEvent('umbral:ready'));
-  await enableNotifications();
   supabaseClient.channel('notes-live').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload) => {
     if (payload.eventType === 'UPDATE' && payload.new.completed && payload.new.owner_id !== authUserId && payload.new.scope === 'shared') {
-      notifyOtherUser('Nota completada', 'La otra persona ha completado una nota compartida.');
+      showToast(`${otherPerson(currentUser)} ha completado: ${payload.new.content}`);
     }
     renderNotes();
   }).subscribe();
@@ -882,6 +877,8 @@ document.querySelector('#userAvatar').addEventListener('click', () => {
 });
 document.querySelector('#closeAccount').addEventListener('click', () => document.querySelector('#accountModal').classList.remove('visible'));
 document.querySelector('#signOutButton').addEventListener('click', async () => {
+  const subscription = await currentPushSubscription().catch(() => null);
+  if (subscription && supabaseClient && authUserId) await supabaseClient.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
   if (supabaseClient) await supabaseClient.auth.signOut();
   window.location.reload();
 });
@@ -1418,7 +1415,13 @@ function readLocalFinanceKind(kind) {
   return kind === 'fixed' ? getLocalFixedCosts() : readFinanceRecords(financeLocalKeys[kind]);
 }
 
-async function saveFinanceEntity(kind, values) {
+const financeNotices = {
+  expense: (item) => [`${currentUser} añadió un gasto`, `${item.description} · ${financeMoney(item.amount)}`],
+  bill: (item) => [`${currentUser} añadió una factura`, `${item.description || item.provider} · ${financeMoney(item.amount)}`],
+  fixed: (item) => [`${currentUser} añadió un gasto fijo`, `${item.description} · ${financeMoney(item.amount)} al mes`]
+};
+
+async function saveFinanceEntity(kind, values, { notify = true } = {}) {
   const editingId = financeEditing?.kind === kind ? financeEditing.id : null;
   // Al editar no se pisa el origen (Tricount, correo) ni el estado de pago.
   const { source, status, settled, ...changes } = values;
@@ -1428,6 +1431,7 @@ async function saveFinanceEntity(kind, values) {
       ? await supabaseClient.from(table).update(changes).eq('id', editingId)
       : await supabaseClient.from(table).insert({ ...values, household_id: householdId, created_by: authUserId });
     if (error) throw error;
+    if (!editingId && notify) notifyHousehold(...financeNotices[kind](values), { open: 'finance' });
   } else {
     const records = readLocalFinanceKind(kind);
     const index = editingId ? records.findIndex((item) => item.id === editingId) : -1;
@@ -1455,6 +1459,7 @@ async function saveSettlementPayment(payment) {
   if (financeInCloud()) {
     const { error } = await supabaseClient.from('shared_settlements').insert({ from_person: payment.from, to_person: payment.to, amount: payment.amount, payment_date: payment.payment_date, note: payment.note, household_id: householdId, created_by: authUserId });
     if (error) throw error;
+    notifyHousehold(`${currentUser} registró un pago`, `${payment.from} → ${payment.to} · ${financeMoney(payment.amount)}`, { open: 'finance' });
   } else {
     const payments = readFinanceRecords(localSettlementsKey);
     payments.unshift({ ...payment, id: createLocalId() });
@@ -1514,6 +1519,7 @@ async function saveImportedExpenses(rows) {
       .upsert(rows.map((row) => ({ ...row, household_id: householdId, created_by: authUserId })), { onConflict: 'source_reference', ignoreDuplicates: true })
       .select('id');
     if (error) throw error;
+    if (data.length) notifyHousehold(`${currentUser} importó gastos`, importResultMessage(data.length), { open: 'finance' });
     await refreshFinance();
     return data.length;
   }
@@ -1873,6 +1879,24 @@ function renderGreeting() {
   document.querySelector('#greetingWord').textContent = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 21 ? 'Buenas tardes' : 'Buenas noches';
   document.querySelector('#todayLabel').textContent = formatToday();
 }
+
+// Enlaces de los avisos: ?abrir=compra|tareas|casa|personal|notes|calendar|finance.
+const linkTargets = ['home', 'compra', 'casa', 'tareas', 'personal', 'notes', 'calendar', 'finance'];
+function openLinkTarget(target) {
+  if (!linkTargets.includes(target)) return;
+  if (document.querySelector(`[data-space="${target}"]`)) showView(target);
+  else document.querySelector(`[data-action="${target}"]`)?.click();
+}
+const startTarget = new URLSearchParams(window.location.search).get('abrir');
+if (startTarget) {
+  document.addEventListener('umbral:ready', () => openLinkTarget(startTarget), { once: true });
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.searchParams.delete('abrir');
+  window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+}
+navigator.serviceWorker?.addEventListener('message', (event) => {
+  if (event.data?.type === 'umbral:open') openLinkTarget(event.data.target);
+});
 
 applyTheme((() => { try { return localStorage.getItem('umbral-theme'); } catch { return null; } })());
 window.umbralScene?.mount(document.querySelector('#homeStateVisual'));

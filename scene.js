@@ -3,7 +3,9 @@
 // - el tiempo de Turín (nubes, lluvia, nieve, niebla, tormenta, viento),
 // - la estación del año y la fase real de la luna,
 // - el estado de la casa: luces encendidas por habitación, facturas pendientes
-//   (bandera del buzón) y notas urgentes (pósit en la puerta).
+//   (bandera del buzón) y notas urgentes (pósit en la puerta),
+// - y a Ines y Matteo, que van cambiando de plan según la hora y el tiempo,
+//   vestidos según la temperatura (ver PEOPLE, WARDROBE y eligibleActs).
 // Uso: umbralScene.mount(elemento) y umbralScene.update({ ...datos parciales }).
 (function () {
   'use strict';
@@ -119,15 +121,200 @@
     'M0 18 a9 9 0 0 1 9 -10 a13 13 0 0 1 24 -2 a9 9 0 0 1 12 8 a7 7 0 0 1 -1 14 h-38 a7 7 0 0 1 -6 -10z'
   ];
 
-  function windowMarkup(room, x, y, width, height) {
+  function windowMarkup(room, x, y, width, height, inside = '') {
     const cx = x + width / 2;
     const cy = y + height / 2;
     return `<g class="sc-window" data-room="${room}">
       <rect class="sc-window-glass" x="${x}" y="${y}" width="${width}" height="${height}" rx="2"></rect>
+      ${inside}
       <path class="sc-curtain" d="M${x} ${y} h${width * 0.28} q${-width * 0.12} ${height * 0.5} 0 ${height} h${-width * 0.28}z M${x + width} ${y} h${-width * 0.28} q${width * 0.12} ${height * 0.5} 0 ${height} h${width * 0.28}z"></path>
       <path class="sc-window-bars" d="M${cx} ${y} V${y + height} M${x} ${cy} H${x + width}"></path>
       <rect class="sc-window-frame" x="${x}" y="${y}" width="${width}" height="${height}" rx="2"></rect>
       <rect class="sc-trim" x="${x - 2}" y="${y + height}" width="${width + 4}" height="3" rx="1"></rect>
+    </g>`;
+  }
+
+  // ---------- Ines y Matteo ----------
+  // Ines: pelo castaño oscuro, ojos marrones. Matteo: castaño claro, ojos claros y más alto.
+  const PEOPLE = {
+    ines: { name: 'Ines', scale: 1, skin: '#dca07a', hair: '#2b1a12', eyes: '#5a3420' },
+    matteo: { name: 'Matteo', scale: 1.14, skin: '#f0c7a3', hair: '#9b6b3f', eyes: '#4f97b8' }
+  };
+
+  // Ropa según la temperatura. sleeve/shin 'skin' = manga corta / pantalón corto.
+  const WARDROBE = {
+    hot: {
+      ines: { top: '#f28b74', sleeve: 'skin', pants: '#86a9d4', shin: 'skin', shoe: '#f6f0e6' },
+      matteo: { top: '#f5f1e6', sleeve: 'skin', pants: '#7f9a6f', shin: 'skin', shoe: '#3d4a5c' }
+    },
+    warm: {
+      ines: { top: '#f28b74', sleeve: 'skin', pants: '#46679a', shoe: '#f6f0e6' },
+      matteo: { top: '#f5f1e6', sleeve: 'skin', pants: '#4b5d78', shoe: '#3d4a5c' }
+    },
+    mild: {
+      ines: { top: '#c9674a', pants: '#3f5c8a', shoe: '#6a4a3a' },
+      matteo: { top: '#4c79a8', pants: '#6b5a48', shoe: '#3d4a5c' }
+    },
+    cold: {
+      ines: { top: '#b8834f', coat: '#b8834f', scarf: '#c8423b', hat: '#a33d5b', pants: '#2f3a4f', shoe: '#5a3e30' },
+      matteo: { top: '#34466b', coat: '#34466b', scarf: '#e0a83e', hat: '#707a86', pants: '#2f2f36', shoe: '#2f2f36' }
+    },
+    rain: {
+      ines: { top: '#f2c230', coat: '#f2c230', boot: '#e05a4f', pants: '#3f5c8a', shoe: '#e05a4f' },
+      matteo: { top: '#3f8f6b', coat: '#3f8f6b', boot: '#2e3b4e', pants: '#4b5d78', shoe: '#2e3b4e' }
+    }
+  };
+
+  // Planes posibles. place: 'out' en el jardín, 'in' dentro de casa (room se enciende).
+  const ACTS = {
+    wave: { place: 'out', label: 'saludan desde el jardín' },
+    hug: { place: 'out', label: 'se abrazan en el jardín' },
+    dance: { place: 'out', label: 'bailan en el jardín' },
+    leaves: { place: 'out', label: 'juegan con las hojas' },
+    puddles: { place: 'out', label: 'saltan en los charcos' },
+    umbrella: { place: 'out', label: 'pasean bajo el paraguas' },
+    snowball: { place: 'out', label: 'juegan con la nieve' },
+    stargaze: { place: 'out', label: 'miran las estrellas' },
+    movie: { place: 'in', room: 'salon', label: 'ven una película en el salón' },
+    cook: { place: 'in', room: 'cocina', label: 'cocinan juntos' },
+    sleep: { place: 'in', label: 'duermen' }
+  };
+
+  // Lista con pesos (repetir = más probable) de lo que tiene sentido ahora.
+  function eligibleActs({ condition, nightness, temperature, minutes, season }) {
+    if (minutes >= 30 && minutes < 7 * 60) return ['sleep'];
+    const mealtime = (minutes >= 12 * 60 + 30 && minutes <= 14 * 60 + 30) || (minutes >= 19 * 60 + 30 && minutes <= 21 * 60 + 30);
+    const indoor = ['movie', 'movie', ...(mealtime ? ['cook', 'cook'] : [])];
+    const wet = ['drizzle', 'rain'].includes(condition);
+    if (condition === 'storm') return indoor;
+    if (nightness > 0.55) {
+      const niceNight = ['clear', 'partly'].includes(condition) && temperature >= 12 && minutes < 23 * 60 + 30;
+      return niceNight ? ['stargaze', 'stargaze', ...indoor] : indoor;
+    }
+    if (wet) return ['puddles', 'puddles', 'umbrella', ...(mealtime ? ['cook'] : [])];
+    if (condition === 'snow') return ['snowball', 'snowball', 'wave', 'hug'];
+    const sunny = ['clear', 'partly'].includes(condition);
+    const out = [...(sunny ? ['wave', 'wave'] : ['wave']), 'hug', 'dance'];
+    if (season === 'autumn') out.push('leaves', 'leaves');
+    if (mealtime) out.push('cook');
+    if (temperature < 2) out.push('movie', 'movie');
+    return out;
+  }
+
+  function outfitFor({ condition, temperature, place }) {
+    if (place === 'out' && ['drizzle', 'rain', 'storm'].includes(condition)) return 'rain';
+    if (condition === 'snow' || temperature < 9) return 'cold';
+    if (temperature < 17) return 'mild';
+    if (temperature < 25) return 'warm';
+    return 'hot';
+  }
+
+  const armMarkup = (side, x, y) => `<g transform="translate(${x} ${y})"><g class="ch-arm ch-arm-${side}">
+      <path class="ch-sleeve" d="M0 0 V8"></path><path class="ch-cuff" d="M0 0 V2.6"></path><circle class="ch-hand" cx="0" cy="9" r="1.3"></circle>
+    </g></g>`;
+
+  const HAIR_FRONT = {
+    ines: 'M-5.3 -26.4 q-.6 -7.4 5.3 -7.4 q5.9 0 5.3 7.4 q-1.4 -3.9 -4.4 -4.7 q-2.6 2.9 -6.2 4.7 z',
+    matteo: 'M-5.1 -27.4 q-.4 -6.4 5.1 -6.4 q5.7 0 5.2 6.2 q-1.6 -2.6 -4 -2.8 q-.7 1.3 -2.5 1.5 q-.4 -1.1 -1.4 -1.3 q-1.4 1.7 -2.4 2.8 z'
+  };
+
+  function personMarkup(key) {
+    const person = PEOPLE[key];
+    const splash = [[-6, -2, -5, -5], [-3, -1, -2, -7], [3, -1, 2, -7], [6, -2, 5, -5]]
+      .map(([x, y, dx, dy]) => `<circle cx="${x}" cy="${y}" r=".8" style="--dx:${dx}px;--dy:${dy}px"></circle>`).join('');
+    return `<g class="ch-pos ch-${key}"><g class="ch-person"><g transform="scale(${person.scale})">
+      <ellipse class="ch-shadow" cx="0" cy="0" rx="6.5" ry="1.4"></ellipse>
+      <g class="ch-splash">${splash}</g>
+      <g class="ch-body">
+        ${key === 'ines' ? '<path class="ch-hair" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.7 9.4 q-6 2.2 -12 0 z"></path>' : ''}
+        <rect class="ch-thigh" x="-3.5" y="-12.5" width="3" height="6.5" rx=".8"></rect><rect class="ch-thigh" x=".5" y="-12.5" width="3" height="6.5" rx=".8"></rect>
+        <rect class="ch-shin" x="-3.3" y="-6.6" width="2.6" height="5.4"></rect><rect class="ch-shin" x=".7" y="-6.6" width="2.6" height="5.4"></rect>
+        <rect class="ch-shoe" x="-4.1" y="-1.9" width="3.7" height="1.9" rx=".9"></rect><rect class="ch-shoe" x=".4" y="-1.9" width="3.7" height="1.9" rx=".9"></rect>
+        <rect class="ch-boot" x="-3.9" y="-4.6" width="3.5" height="4.6" rx=".9"></rect><rect class="ch-boot" x=".4" y="-4.6" width="3.5" height="4.6" rx=".9"></rect>
+        <path class="ch-torso" d="M-4.4 -11.6 v-8.4 q0 -2.2 2.2 -2.2 h4.4 q2.2 0 2.2 2.2 v8.4 z"></path>
+        <path class="ch-coat" d="M-4.9 -8.6 v-11.4 q0 -2.4 2.4 -2.4 h5 q2.4 0 2.4 2.4 v11.4 z"></path>
+        <path class="ch-coat-line" d="M0 -21.6 V-8.8"></path>
+        <rect class="ch-neck" x="-1" y="-23.6" width="2" height="2"></rect>
+        <g class="ch-scarf"><rect x="-3.4" y="-23.2" width="6.8" height="2.4" rx="1.1"></rect><rect x="1" y="-21.6" width="2" height="5" rx=".8"></rect></g>
+        ${armMarkup('l', -4.2, -20.4)}
+        ${armMarkup('r', 4.2, -20.4)}
+        <g class="ch-head">
+          <circle class="ch-face" cx="0" cy="-27" r="4.8"></circle>
+          <g class="ch-eyes"><circle cx="-1.7" cy="-26.6" r=".9"></circle><circle cx="1.7" cy="-26.6" r=".9"></circle></g>
+          <g class="ch-glints"><circle cx="-1.4" cy="-26.95" r=".3"></circle><circle cx="2" cy="-26.95" r=".3"></circle></g>
+          <circle class="ch-cheek" cx="-3" cy="-25" r=".9"></circle><circle class="ch-cheek" cx="3" cy="-25" r=".9"></circle>
+          <path class="ch-mouth" d="M-1.1 -24.5 q1.1 1 2.2 0"></path>
+          <path class="ch-hair" d="${HAIR_FRONT[key]}"></path>
+          <g class="ch-shades"><rect x="-3.2" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x=".3" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x="-.4" y="-27.1" width=".8" height=".45"></rect></g>
+          <g class="ch-hat"><path d="M-5 -28.8 q0 -6 5 -6 q5 0 5 6 z"></path><rect x="-5.4" y="-29.6" width="10.8" height="2.1" rx="1"></rect><circle cx="0" cy="-35" r="1.4"></circle></g>
+          <path class="ch-hood" d="M-6 -24.6 q-.7 -9.6 6 -9.6 q6.7 0 6 9.6 q-.9 -4.9 -6 -5.2 q-5.1 .3 -6 5.2 z"></path>
+        </g>
+        ${key === 'matteo' ? `<g class="ch-umbrella">
+          <path class="ch-umbrella-stick" d="M-6.6 -29.2 L-8.6 -49"></path>
+          <path class="ch-umbrella-top" d="M-28 -46 q19.4 -17 38.8 0 q-3.23 -2.6 -6.47 0 q-3.23 -2.6 -6.47 0 q-3.23 -2.6 -6.47 0 q-3.23 -2.6 -6.47 0 q-3.23 -2.6 -6.47 0 q-3.23 -2.6 -6.45 0 z"></path>
+          <circle class="ch-umbrella-tip" cx="-8.6" cy="-58.6" r=".9"></circle>
+        </g>` : ''}
+      </g>
+      <rect class="ch-hit" x="-9" y="-38" width="18" height="40"></rect>
+    </g></g></g>`;
+  }
+
+  const HEART = 'M0 0 c-1.7 -1.7 -4.2 -.4 -3.1 1.7 l3.1 3.1 l3.1 -3.1 c1.1 -2.1 -1.4 -3.4 -3.1 -1.7 z';
+
+  function coupleMarkup() {
+    const hearts = [[-4, 0], [3, -.6], [0, -.3], [-2, -.9], [4, .4]].map(([x, delay], index) => `<path class="sc-heart" d="${HEART}" style="--hx:${x}px;--delay:${(delay - index * 0.55).toFixed(2)}s"></path>`).join('');
+    const notes = [0, 1, 2].map((index) => `<g class="sc-note" style="--delay:${(-index * 0.9).toFixed(1)}s;--nx:${[-14, 2, 16][index]}px"><path d="M1.4 -6.4 v6 M1.4 -6.4 l3 -1 v1.6 l-3 1"></path><circle cx=".2" cy="-.4" r="1.3"></circle></g>`).join('');
+    const tossed = Array.from({ length: 7 }, (_, index) => `<path class="sc-toss" d="M0 0 q2.6 -3 5.6 0 q-2.6 3 -5.6 0z" style="--tx:${[-16, -9, -3, 3, 9, 15, 0][index]}px;--ty:${[-22, -30, -26, -32, -24, -20, -36][index]}px;--delay:${(-index * 0.3).toFixed(1)}s"></path>`).join('');
+    return `<g class="sc-couple">
+      <ellipse class="sc-big-puddle" cx="270" cy="189" rx="25" ry="3.4"></ellipse>
+      <g class="sc-snowman" transform="translate(252 188)">
+        <circle cx="0" cy="-5" r="5.6"></circle><circle cx="0" cy="-13.4" r="4"></circle><circle cx="0" cy="-19.6" r="3"></circle>
+        <circle class="sc-snowman-eye" cx="-1" cy="-20.2" r=".45"></circle><circle class="sc-snowman-eye" cx="1.1" cy="-20.2" r=".45"></circle>
+        <path class="sc-snowman-nose" d="M0 -19.4 l3.4 .6 l-3.4 .7 z"></path>
+        <rect class="sc-snowman-scarf" x="-3.6" y="-17.2" width="7.2" height="1.6" rx=".8"></rect>
+      </g>
+      <path class="sc-leafpile" d="M197 189 q2 -6 7 -5.5 q3 -3 7 -.5 q4 -1.6 6 2 q3 1.4 2 4 z"></path>
+      ${personMarkup('ines')}
+      ${personMarkup('matteo')}
+      <circle class="sc-snowball" r="1.5"></circle>
+      <g class="sc-tossed" transform="translate(206 184)">${tossed}</g>
+      <g class="sc-notes" transform="translate(209 154)">${notes}</g>
+      <g class="sc-hearts" transform="translate(209 158)">${hearts}</g>
+    </g>`;
+  }
+
+  // Caras pequeñas para verlos a través de las ventanas.
+  function miniHead(key, cx, cy, r, from = 'front') {
+    const fringe = `M${cx - r} ${cy - 0.2} A${r} ${r} 0 0 1 ${cx + r} ${cy - 0.2} Q${cx} ${cy - r * 0.62} ${cx - r} ${cy - 0.2} Z`;
+    const backHair = key === 'ines' ? `<rect class="mi-hair" x="${cx - r - 0.4}" y="${cy - r - 0.2}" width="${2 * r + 0.8}" height="${r * 2.7}" rx="${r}"></rect>` : '';
+    if (from === 'back') return `<g class="mi mi-${key}">${backHair}<circle class="mi-hair" cx="${cx}" cy="${cy}" r="${r}"></circle></g>`;
+    return `<g class="mi mi-${key}">${backHair}<circle class="mi-face" cx="${cx}" cy="${cy}" r="${r}"></circle>
+      <circle class="mi-eye" cx="${cx - r * 0.36}" cy="${cy + 0.2}" r=".55"></circle><circle class="mi-eye" cx="${cx + r * 0.36}" cy="${cy + 0.2}" r=".55"></circle>
+      <path class="mi-hair" d="${fringe}"></path></g>`;
+  }
+
+  function movieMarkup() {
+    return `<g class="sc-inside sc-inside-movie" clip-path="url(#sc-clip-salon)">
+      <rect class="sc-tv" x="170" y="127.5" width="8" height="5" rx=".6"></rect>
+      <g transform="rotate(16 169.8 145)">${miniHead('ines', 169.8, 139.8, 3.2, 'back')}</g>
+      ${miniHead('matteo', 179.6, 139, 3.6, 'back')}
+      <ellipse class="mi-top mi-top-ines" cx="170" cy="147.6" rx="4.4" ry="3"></ellipse>
+      <ellipse class="mi-top mi-top-matteo" cx="179.6" cy="147.2" rx="5" ry="3.4"></ellipse>
+      <rect class="sc-sofa" x="160" y="145.6" width="28" height="3" rx="1.2"></rect>
+      <g class="sc-popcorn"><path d="M172.4 145.6 h4.6 l-.6 2.2 h-3.4 z"></path><circle cx="173.4" cy="145.2" r=".7"></circle><circle cx="174.8" cy="144.8" r=".7"></circle><circle cx="176" cy="145.3" r=".7"></circle></g>
+      <rect class="sc-tv-light" x="160" y="124" width="28" height="24"></rect>
+    </g>`;
+  }
+
+  function cookMarkup() {
+    return `<g class="sc-inside sc-inside-cook" clip-path="url(#sc-clip-cocina)">
+      <ellipse class="mi-top mi-top-ines" cx="235.4" cy="148.6" rx="4.2" ry="3.2"></ellipse>
+      ${miniHead('ines', 235.4, 140.8, 3.2)}
+      <ellipse class="mi-top mi-top-matteo" cx="249.4" cy="148" rx="4.8" ry="3.6"></ellipse>
+      ${miniHead('matteo', 249.4, 139.4, 3.5)}
+      <rect class="sc-counter" x="228" y="145.6" width="28" height="3"></rect>
+      <rect class="sc-pot" x="240.4" y="141.8" width="6" height="3.8" rx=".8"></rect>
+      <g class="sc-steam"><path d="M242 140.6 q-1 -1.6 0 -3.2 q1 -1.6 0 -3.2"></path><path d="M244.8 140.6 q1 -1.6 0 -3.2 q-1 -1.6 0 -3.2"></path></g>
     </g>`;
   }
 
@@ -170,6 +357,8 @@
         </linearGradient>
         <filter id="sc-blur" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="4"></feGaussianBlur></filter>
         <filter id="sc-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter>
+        <clipPath id="sc-clip-salon"><rect x="160" y="124" width="28" height="24" rx="2"></rect></clipPath>
+        <clipPath id="sc-clip-cocina"><rect x="228" y="124" width="28" height="24" rx="2"></rect></clipPath>
         <mask id="sc-moon-mask"><circle r="10" fill="#fff"></circle><circle class="sc-moon-shadow" r="10.4" fill="#000"></circle></mask>
       </defs>
 
@@ -245,9 +434,9 @@
         </g>
         ${windowMarkup('dormitorio', 164, 99, 22, 18)}
         ${windowMarkup('bano', 230, 99, 22, 18)}
-        ${windowMarkup('salon', 160, 124, 28, 24)}
-        ${windowMarkup('cocina', 228, 124, 28, 24)}
-        <g class="sc-plant"><rect x="167" y="144" width="8" height="5" rx="1"></rect><path d="M171 144 q-5 -6 -2 -9 M171 144 q1 -8 5 -8 M171 144 q-1 -5 -5 -5"></path></g>
+        ${windowMarkup('salon', 160, 124, 28, 24, movieMarkup())}
+        ${windowMarkup('cocina', 228, 124, 28, 24, cookMarkup())}
+        <g class="sc-plant"><rect x="188.5" y="154" width="8" height="6" rx="1"></rect><path d="M192.5 154 q-5 -6 -2 -9 M192.5 154 q1 -8 5 -8 M192.5 154 q-1 -5 -5 -5"></path></g>
         <path class="sc-door" d="M198 160 V135 a10 10 0 0 1 20 0 V160 Z"></path>
         <circle class="sc-knob" cx="213.5" cy="147" r="1.3"></circle>
         <g class="sc-door-note"><rect x="202.5" y="136" width="7" height="7" rx=".6" transform="rotate(-7 206 139.5)"></rect></g>
@@ -256,10 +445,13 @@
       </g>
 
       <g class="sc-mailbox">
-        <rect class="sc-mailbox-post" x="178.5" y="152" width="3" height="14"></rect>
-        <rect class="sc-mailbox-box" x="171" y="143" width="18" height="10" rx="4"></rect>
-        <g class="sc-flag"><rect x="188" y="137" width="1.6" height="11"></rect><rect x="188" y="137" width="7" height="4.2" rx=".6"></rect></g>
+        <rect class="sc-mailbox-post" x="140.5" y="152" width="3" height="14"></rect>
+        <rect class="sc-mailbox-box" x="133" y="143" width="18" height="10" rx="4"></rect>
+        <g class="sc-flag"><rect x="150" y="137" width="1.6" height="11"></rect><rect x="150" y="137" width="7" height="4.2" rx=".6"></rect></g>
       </g>
+
+      <g class="sc-zzz"><text x="180" y="110">z</text><text x="180" y="110">Z</text><text x="180" y="110">z</text></g>
+      ${coupleMarkup()}
 
       <g class="sc-leaves">${leaves}</g>
       <g class="sc-fireflies">${fireflies}</g>
@@ -282,7 +474,10 @@
 
   let container = null;
   let lastSignature = '';
-  const state = { weatherCode: 1, temperature: 16, windSpeed: 6, sunrise: null, sunset: null, lights: [], pendingBills: 0, urgentNotes: 0 };
+  let currentAct = null;
+  let actOptions = [];
+  let loveTimer = null;
+  const state = { weatherCode: 1, temperature: 16, windSpeed: 6, sunrise: null, sunset: null, lights: [], pendingBills: 0, urgentNotes: 0, act: null };
 
   function atTime(base, hours, minutes) {
     const date = new Date(base);
@@ -368,7 +563,18 @@
     const flakeCount = condition === 'snow' ? (Number(state.weatherCode) === 71 ? 22 : Number(state.weatherCode) === 75 ? 46 : 34) : 0;
     svg.querySelectorAll('.sc-flake').forEach((flake, index) => flake.classList.toggle('is-on', index < flakeCount));
 
+    // Plan de la pareja: se mantiene mientras siga teniendo sentido con la hora y el tiempo.
+    const temperature = Number.isFinite(Number(state.temperature)) ? Number(state.temperature) : 16;
+    const options = eligibleActs({ condition, nightness, temperature, minutes: minutesOf(now), season });
+    actOptions = options;
+    if (state.act && ACTS[state.act]) currentAct = state.act;
+    else if (!options.includes(currentAct)) currentAct = pick(options);
+    const act = ACTS[currentAct];
+    const outfit = outfitFor({ condition, temperature, place: act.place });
+    dressCouple(outfit, act.place === 'out' ? nightness * (nightness > 0.55 ? 0.38 : 0.5) : 0);
+
     const litRooms = new Set(state.lights.map(normalizeRoom).map((room) => (WINDOW_ROOMS.includes(room) ? room : 'salon')));
+    if (act.room) litRooms.add(act.room);
     svg.querySelectorAll('[data-room]').forEach((element) => element.classList.toggle('is-lit', litRooms.has(element.dataset.room)));
 
     const clearish = condition === 'clear' || condition === 'partly';
@@ -382,12 +588,60 @@
       fireflies: String(season === 'summer' && nightness > 0.7 && clearish),
       shooting: String(nightness > 0.8 && condition === 'clear'),
       mail: String(Number(state.pendingBills) > 0),
-      note: String(Number(state.urgentNotes) > 0)
+      note: String(Number(state.urgentNotes) > 0),
+      act: currentAct,
+      place: act.place,
+      outfit,
+      shades: String(outfit === 'hot' && clearish && nightness < 0.3)
     });
 
     const momentLabel = nightness > 0.7 ? 'Noche' : moment.from === 'dawn' || moment.to === 'dawn' ? 'Amanecer' : moment.from === 'dusk' || moment.to === 'dusk' ? 'Atardecer' : 'Día';
     const roomsLabel = litRooms.size ? `, luz encendida en ${[...litRooms].map((room) => ({ salon: 'el salón', cocina: 'la cocina', dormitorio: 'el dormitorio', bano: 'el baño', estudio: 'el estudio' })[room]).join(' y ')}` : '';
-    container.setAttribute('aria-label', `${momentLabel} de ${seasonConfig.label} ${conditionConfig.label} en Turín${roomsLabel}`);
+    container.setAttribute('aria-label', `${momentLabel} de ${seasonConfig.label} ${conditionConfig.label} en Turín${roomsLabel}. Ines y Matteo ${act.label}`);
+  }
+
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+  // Colores de ropa y piel como variables --ines-* y --matteo-*; de noche, en el jardín, se oscurecen.
+  function dressCouple(outfit, shade) {
+    Object.entries(PEOPLE).forEach(([key, person]) => {
+      const clothes = WARDROBE[outfit][key];
+      const tone = (hex) => mix(hex, '#141d2e', shade);
+      const colors = {
+        skin: person.skin,
+        hair: person.hair,
+        eyes: person.eyes,
+        top: clothes.top,
+        sleeve: clothes.sleeve === 'skin' ? person.skin : clothes.top,
+        pants: clothes.pants,
+        shin: clothes.shin === 'skin' ? person.skin : clothes.pants,
+        shoe: clothes.shoe,
+        coat: clothes.coat || clothes.top,
+        boot: clothes.boot || clothes.shoe,
+        scarf: clothes.scarf || clothes.top,
+        hat: clothes.hat || person.hair
+      };
+      Object.entries(colors).forEach(([part, color]) => container.style.setProperty(`--${key}-${part}`, tone(color)));
+    });
+  }
+
+  // Cada cierto tiempo cambian de plan (entre los que encajan con el momento).
+  function changeAct() {
+    if (!container || state.act) return;
+    const others = actOptions.filter((option) => option !== currentAct);
+    if (others.length) currentAct = pick(others);
+    apply();
+  }
+
+  // Al tocarlos: corazones y un saltito.
+  function cheer(event) {
+    event.stopPropagation();
+    event.preventDefault();
+    container.dataset.love = 'false';
+    void container.getBoundingClientRect();
+    container.dataset.love = 'true';
+    clearTimeout(loveTimer);
+    loveTimer = setTimeout(() => { container.dataset.love = 'false'; }, 2600);
   }
 
   function update(partial = {}) {
@@ -407,6 +661,11 @@
     apply();
     // El sol y la luna avanzan con el reloj.
     setInterval(apply, 5 * 60 * 1000);
+    setInterval(changeAct, 45 * 1000);
+    container.querySelectorAll('.ch-hit').forEach((target) => {
+      target.addEventListener('click', cheer);
+      target.addEventListener('keydown', (event) => event.stopPropagation());
+    });
     // Sin animar cuando no se ve: ahorra batería.
     const setPaused = (paused) => container.classList.toggle('is-paused', paused);
     document.addEventListener('visibilitychange', () => setPaused(document.hidden));

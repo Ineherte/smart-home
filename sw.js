@@ -1,13 +1,14 @@
-const CACHE_NAME = 'umbral-shell-v42';
+const CACHE_NAME = 'umbral-shell-v43';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=24',
-  './scene.js?v=2',
+  './styles.css?v=25',
+  './scene.js?v=3',
   './store.js?v=1',
-  './shopping.js?v=1',
-  './tasks.js?v=1',
-  './app.js?v=34',
+  './push.js?v=1',
+  './shopping.js?v=2',
+  './tasks.js?v=2',
+  './app.js?v=35',
   './smart-lights-config.js',
   './supabase-config.js',
   './mobile-bridge.js',
@@ -37,4 +38,34 @@ self.addEventListener('fetch', (event) => {
     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
     return response;
   }))).catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html'))));
+});
+
+// Avisos push enviados por la función notify-household.
+self.addEventListener('push', (event) => {
+  let message = {};
+  try {
+    message = event.data ? event.data.json() : {};
+  } catch {
+    message = { body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(self.registration.showNotification(message.title || 'Umbral', {
+    body: message.body || '',
+    icon: './icon.svg',
+    badge: './icon.svg',
+    tag: message.tag,
+    renotify: Boolean(message.tag),
+    data: { url: message.url || './' }
+  }));
+});
+
+// Al tocar el aviso: abre Umbral (o la trae al frente) en la sección correspondiente.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || './', self.registration.scope);
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+    const open = windows.find((client) => client.url.startsWith(self.registration.scope));
+    if (!open) return self.clients.openWindow(url.href);
+    open.postMessage({ type: 'umbral:open', target: url.searchParams.get('abrir') });
+    return open.focus();
+  }));
 });

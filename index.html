@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=24" />
+    <link rel="stylesheet" href="styles.css?v=25" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -269,6 +269,10 @@
             <button type="button" data-theme-choice="dark" aria-pressed="false"><i data-lucide="moon"></i> Oscuro</button>
           </div>
         </div>
+        <div class="settings-block">
+          <p class="settings-label"><i data-lucide="bell"></i> Avisos en este teléfono</p>
+          <div class="push-setting"><p id="pushStatus">Comprobando…</p><button type="button" class="pill-button" id="pushToggle" aria-pressed="false" hidden><i data-lucide="bell-ring"></i> Activar avisos</button></div>
+        </div>
         <div id="accountMembersMount"></div>
         <button class="account-signout" type="button" id="signOutButton"><i data-lucide="log-out"></i> Cerrar sesión</button>
       </div>
@@ -350,10 +354,11 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="scene.js?v=2"></script>
+    <script src="scene.js?v=3"></script>
     <script src="store.js?v=1"></script>
-    <script src="shopping.js?v=1"></script>
-    <script src="tasks.js?v=1"></script>
-    <script src="app.js?v=34"></script>
+    <script src="push.js?v=1"></script>
+    <script src="shopping.js?v=2"></script>
+    <script src="tasks.js?v=2"></script>
+    <script src="app.js?v=35"></script>
   </body>
 </html>
