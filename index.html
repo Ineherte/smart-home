@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=26" />
+    <link rel="stylesheet" href="styles.css?v=28" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -119,6 +119,7 @@
           <div class="casa-tabs" role="tablist" aria-label="Secciones de casa">
             <button type="button" role="tab" data-casa-tab="pendientes" aria-selected="true" aria-controls="tasksView"><i data-lucide="list-todo"></i><span>Pendientes</span><b class="tab-count" id="pendingTabCount" hidden></b></button>
             <button type="button" role="tab" data-casa-tab="compra" aria-selected="false" aria-controls="shoppingView"><i data-lucide="shopping-basket"></i><span>Compra</span><b class="tab-count" id="shoppingTabCount" hidden></b></button>
+            <button type="button" role="tab" data-casa-tab="plantas" aria-selected="false" aria-controls="plantsView"><i data-lucide="sprout"></i><span>Plantas</span><b class="tab-count" id="plantsTabCount" hidden></b></button>
             <button type="button" role="tab" data-casa-tab="luces" aria-selected="false" aria-controls="lightsView"><i data-lucide="lightbulb"></i><span>Luces</span><b class="tab-count" id="lightsTabCount" hidden></b></button>
           </div>
 
@@ -201,6 +202,17 @@
                 </form>
                 <div id="shoppingCartList"></div>
               </div>
+            </section>
+          </div>
+
+          <div class="casa-panel" data-casa-panel="plantas" id="plantsView" role="tabpanel" hidden>
+            <section class="panel plants-panel" aria-labelledby="plantsTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Vuestro jardín</p><h2 id="plantsTitle">Plantas</h2></div>
+                <div class="heading-actions"><button type="button" class="pill-button is-quiet" id="plantGuideButton"><i data-lucide="book-open"></i> Guía</button><button type="button" class="pill-button" id="addPlantButton"><i data-lucide="plus"></i> Añadir</button></div>
+              </div>
+              <p class="plants-summary" id="plantsSummary" hidden></p>
+              <div class="plant-grid" id="plantGrid"></div>
             </section>
           </div>
 
@@ -327,6 +339,12 @@
         <p class="notes-local-warning" id="eventsConnectionStatus"><i data-lucide="info"></i> Selecciona el icono de calendario de un evento para añadirlo al iPhone.</p>
       </div>
     </div>
+    <div class="plant-sheet" id="plantSheet" role="dialog" aria-modal="true" aria-labelledby="plantSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" id="closePlantSheet" aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body"></div>
+      </div>
+    </div>
     <div class="urgent-modal" id="urgentModal" role="dialog" aria-modal="true" aria-labelledby="urgentTitle">
       <div class="urgent-panel"><span class="urgent-mark"><i data-lucide="siren"></i></span><p class="eyebrow urgent-eyebrow">Importante</p><h2 id="urgentTitle">Tienes notas urgentes</h2><div id="urgentList"></div><button type="button" class="urgent-close" id="closeUrgent">Ver notas</button></div>
     </div>
@@ -373,6 +391,7 @@
     <script src="shopping.js?v=3"></script>
     <script src="tasks.js?v=3"></script>
     <script src="pending.js?v=1"></script>
-    <script src="app.js?v=36"></script>
+    <script src="plants.js?v=2"></script>
+    <script src="app.js?v=37"></script>
   </body>
 </html>

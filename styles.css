@@ -277,6 +277,7 @@ svg.spin { animation: spin .6s linear; }
 .attention-item.is-tasks .attention-item-icon { background: var(--amber-soft); color: var(--amber-ink); }
 .attention-item.is-bills .attention-item-icon { background: var(--lilac-soft); color: var(--lilac-ink); }
 .attention-item.is-money .attention-item-icon { background: var(--green-soft); color: var(--accent); }
+.attention-item.is-plants .attention-item-icon { background: var(--blue-soft); color: var(--blue-ink); }
 .attention-item-icon svg.lucide { width: 18px; height: 18px; }
 .attention-item > span:nth-child(2) { flex: 1; min-width: 0; }
 .attention-item strong, .attention-item small { display: block; }
@@ -413,12 +414,12 @@ svg.spin { animation: spin .6s linear; }
 
 /* ---------- Casa: pestañas Pendientes, Compra y Luces ---------- */
 
-.casa-tabs { position: sticky; top: calc(8px + env(safe-area-inset-top)); z-index: 5; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 5px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper-glass); box-shadow: var(--shadow-sm); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-.casa-tabs button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 10px 4px; border-radius: 13px; color: var(--muted); font-size: 14px; font-weight: 600; transition: background .15s ease, color .15s ease; }
+.casa-tabs { position: sticky; top: calc(8px + env(safe-area-inset-top)); z-index: 5; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 5px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper-glass); box-shadow: var(--shadow-sm); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.casa-tabs button { position: relative; display: grid; justify-items: center; gap: 3px; min-width: 0; padding: 8px 2px 7px; border-radius: 13px; color: var(--muted); font-size: 12.5px; font-weight: 600; transition: background .15s ease, color .15s ease; }
 .casa-tabs button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.casa-tabs svg.lucide { width: 17px; height: 17px; flex-shrink: 0; }
+.casa-tabs svg.lucide { width: 19px; height: 19px; }
 .casa-tabs button[aria-selected="true"] { background: var(--green); color: #fff; box-shadow: var(--shadow-sm); }
-.tab-count { flex-shrink: 0; min-width: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--coral); color: #fff; font-size: 10.5px; font-weight: 800; line-height: 18px; text-align: center; }
+.tab-count { position: absolute; top: 3px; left: calc(50% + 6px); min-width: 17px; padding: 0 4px; border-radius: var(--radius-pill); background: var(--coral); color: #fff; font-size: 10px; font-weight: 800; line-height: 17px; text-align: center; }
 .casa-tabs button[aria-selected="true"] .tab-count { background: var(--lime); color: var(--green-deep); }
 .casa-panel { display: grid; gap: 20px; align-content: start; min-width: 0; }
 .casa-panel[hidden] { display: none; }
@@ -453,12 +454,9 @@ svg.spin { animation: spin .6s linear; }
 .pending-filters button { flex: 1; padding: 7px 4px; font-size: 13.5px; white-space: nowrap; }
 #pendingList .list-group:first-child { margin-top: 6px; }
 /* En móviles estrechos, sin iconos en las pestañas y textos algo más compactos. */
-@media (max-width: 520px) {
-  .casa-tabs svg.lucide { display: none; }
-}
 @media (max-width: 380px) {
   .casa-tabs { gap: 2px; padding: 4px; }
-  .casa-tabs button { gap: 4px; padding: 10px 2px; font-size: 12.5px; }
+  .casa-tabs button { font-size: 11.5px; }
   .kind-switch svg.lucide { display: none; }
   .pending-options { grid-template-columns: 1fr; }
   .pending-filters { gap: 2px; }
@@ -483,6 +481,181 @@ svg.spin { animation: spin .6s linear; }
 .done-group summary svg.lucide { width: 16px; height: 16px; }
 .done-group summary span { padding: 1px 7px; border-radius: var(--radius-pill); background: var(--neutral-soft); letter-spacing: 0; }
 .done-group[open] summary { margin-bottom: 4px; }
+
+/* ---------- Plantas ---------- */
+
+.plants-summary { margin: -4px 0 14px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.plant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.plant-card { display: grid; gap: 8px; justify-items: center; padding: 12px 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-soft); text-align: center; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.plant-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.plant-card:focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.plant-card .plant-avatar { width: 100%; max-width: 150px; }
+.plant-card-copy strong { display: block; font-size: 16px; font-weight: 600; }
+.plant-card-copy small { display: block; margin-top: 1px; color: var(--muted); font-size: 12.5px; }
+.plant-water-level { width: 100%; height: 6px; overflow: hidden; border-radius: var(--radius-pill); background: var(--track); }
+.plant-water-level span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8ccdf1, #4a9be0); transition: width .8s ease; }
+.plant-card:is(.is-thirsty, .is-parched) .plant-water-level span { background: var(--coral); }
+.plant-status { margin: 0; color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.plant-card.is-thirsty .plant-status { color: var(--amber-ink); }
+.plant-card.is-parched .plant-status { color: var(--coral-ink); }
+.plant-water-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 9px 10px; border-radius: var(--radius-pill); background: var(--blue-soft); color: var(--blue-ink); font-size: 13.5px; font-weight: 700; transition: transform .15s ease, background .15s ease; }
+.plant-water-button svg.lucide { width: 16px; height: 16px; }
+.plant-water-button.is-due { background: #3f8fd6; color: #fff; box-shadow: 0 6px 16px rgba(63, 143, 214, .3); }
+.plant-water-button:active { transform: scale(.97); }
+
+.plants-empty { display: grid; grid-column: 1 / -1; justify-items: center; gap: 8px; padding: 6px 8px 10px; color: var(--muted); font-size: 14px; line-height: 1.45; text-align: center; }
+.plants-empty strong { color: var(--ink); font-size: 17px; font-weight: 600; }
+.plants-empty .primary-button { margin-top: 6px; }
+.plants-empty-art { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: min(100%, 330px); margin-bottom: 4px; }
+
+/* Avatar: hojas y cara cambian con data-mood; los colores salen de la especie. */
+.plant-avatar { --droop: 0deg; --yellow: 0%; --leaf-base: #3f8f55; --leaf-dark: #2a6b3d; --halo: var(--green-soft); --soil: #6e4c33; --drop-end: 82px; position: relative; aspect-ratio: 120 / 132; border-radius: 50% 50% 18px 18px / 46% 46% 18px 18px; background: radial-gradient(circle at 50% 42%, var(--halo) 0 58%, transparent 59%); }
+.plant-avatar[data-species="monstera"] { --leaf-base: #2f8150; --leaf-dark: #1f6039; }
+.plant-avatar[data-species="strelitzia"] { --leaf-base: #3f8a6a; --leaf-dark: #2a6a50; }
+.plant-avatar[data-species="pothos"] { --leaf-base: #4f9d4c; --leaf-dark: #357a35; --drop-end: 56px; }
+.plant-avatar[data-mood="watered"] { --droop: -5deg; --soil: #4a3122; --halo: var(--blue-soft); }
+.plant-avatar[data-mood="happy"] { --droop: -2deg; --soil: #5a3d2a; }
+.plant-avatar[data-mood="ok"] { --droop: 3deg; --soil: #7a5638; }
+.plant-avatar[data-mood="thirsty"] { --droop: 13deg; --yellow: 16%; --soil: #9d7a52; --halo: var(--amber-soft); }
+.plant-avatar[data-mood="parched"] { --droop: 26deg; --yellow: 40%; --soil: #b59468; --halo: var(--coral-soft); }
+.plant-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.pl-shadow { fill: rgba(30, 40, 30, .12); }
+.pl-blade { fill: color-mix(in oklab, var(--leaf-base) calc(100% - var(--yellow)), #c9a548); transition: fill 1s ease; }
+.pl-stem, .pl-vine { fill: none; stroke: color-mix(in oklab, var(--leaf-dark) calc(100% - var(--yellow)), #9f8a3c); stroke-width: 2.2; stroke-linecap: round; }
+.pl-vine { stroke-width: 1.5; }
+.pl-vein { fill: none; stroke: rgba(255, 255, 255, .28); stroke-width: .9; stroke-linecap: round; }
+.pl-tear { fill: none; stroke: var(--surface-soft); stroke-width: 1.2; stroke-linecap: round; }
+.pl-variegation { fill: none; stroke: #f1e9a8; stroke-width: 1.2; stroke-linecap: round; opacity: .9; }
+.pl-leaf { transform: rotate(calc(var(--droop) * var(--dir, 1))); transition: transform 1.2s cubic-bezier(.34, 1.56, .64, 1); }
+.pl-foliage { transform-origin: 60px 88px; animation: pl-sway 4.5s ease-in-out infinite alternate; }
+.plant-avatar[data-species="pothos"] .pl-foliage { transform-origin: 60px 58px; }
+@keyframes pl-sway { from { transform: rotate(-1.3deg); } to { transform: rotate(1.3deg); } }
+.plant-avatar[data-mood="parched"] .pl-foliage { animation-duration: 7s; }
+.pl-shelf { fill: #c49a6c; }
+.pl-bracket { fill: none; stroke: #9a7550; stroke-width: 2; stroke-linecap: round; }
+.pl-soil { fill: var(--soil); transition: fill 1s ease; }
+.pl-rim { fill: #c96f4a; }
+.pl-body { fill: #df8a60; }
+.pl-face :is(.pl-eyes-open circle, .pl-mouth-open, .pl-mouth-gasp) { fill: #3b2a22; }
+.pl-face .pl-glint { fill: #fff; }
+.pl-face :is(.pl-eyes-happy path, .pl-eyes-dizzy path, .pl-brows, .pl-mouth-smile, .pl-mouth-wavy) { fill: none; stroke: #3b2a22; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.pl-cheek { fill: #f6a99e; opacity: .75; }
+.pl-sweat { fill: #9fd3f5; }
+.pl-face > *, .pl-sweat, .pl-drops, .pl-sparkles { display: none; }
+.pl-cheek { display: inline !important; }
+.plant-avatar:is([data-mood="watered"], [data-mood="happy"]) :is(.pl-eyes-happy) { display: inline; }
+.plant-avatar[data-mood="watered"] .pl-mouth-open,
+.plant-avatar[data-mood="happy"] .pl-mouth-smile,
+.plant-avatar[data-mood="ok"] :is(.pl-eyes-open, .pl-mouth-smile),
+.plant-avatar[data-mood="thirsty"] :is(.pl-eyes-open, .pl-brows, .pl-mouth-wavy, .pl-sweat),
+.plant-avatar[data-mood="parched"] :is(.pl-eyes-dizzy, .pl-brows, .pl-mouth-gasp, .pl-sweat) { display: inline; }
+.plant-avatar[data-mood="parched"] .pl-cheek { opacity: .25; }
+.plant-avatar[data-mood="watered"] .pl-sparkles, .plant-avatar.is-watering :is(.pl-drops, .pl-sparkles) { display: inline; }
+.pl-sweat { animation: pl-sweat 2.4s ease-in infinite; }
+@keyframes pl-sweat { 0%, 20% { opacity: 0; transform: translateY(0); } 35% { opacity: 1; } 100% { opacity: 0; transform: translateY(9px); } }
+.pl-spark { fill: #ffd76a; transform-box: fill-box; transform-origin: center; animation: pl-spark 1.8s ease-in-out var(--delay) infinite; }
+@keyframes pl-spark { 0%, 100% { opacity: 0; transform: scale(.3); } 50% { opacity: 1; transform: scale(1); } }
+.pl-drop { fill: #5aaee8; opacity: 0; }
+.plant-avatar.is-watering .pl-drop { animation: pl-drop .9s ease-in var(--delay) 2; }
+@keyframes pl-drop { 0% { opacity: 0; transform: translate(var(--x), 4px); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), var(--drop-end)); } }
+.plant-avatar.is-watering .plant-svg { animation: pl-hop .5s ease 1.2s 2; }
+@keyframes pl-hop { 50% { transform: translateY(-5px); } }
+
+/* Ficha de la planta: hoja que sube desde abajo en el móvil. */
+.plant-sheet { position: fixed; inset: 0; z-index: 22; display: flex; align-items: flex-end; justify-content: center; background: rgba(21, 34, 30, .32); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.plant-sheet.visible { opacity: 1; pointer-events: auto; }
+.plant-sheet-panel { position: relative; width: min(100%, 560px); max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; padding: 20px var(--gutter) calc(28px + env(safe-area-inset-bottom)); border-radius: var(--radius-xl) var(--radius-xl) 0 0; background: var(--paper); box-shadow: var(--shadow-lg); transform: translateY(40px); transition: transform .3s cubic-bezier(.2, .9, .3, 1); }
+.plant-sheet.visible .plant-sheet-panel { transform: none; }
+.plant-sheet-panel::before { display: block; width: 40px; height: 4px; margin: -8px auto 12px; border-radius: 4px; background: var(--line-strong); content: ''; }
+.plant-sheet-close { position: absolute; top: 16px; right: 16px; z-index: 2; }
+.plant-hero { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; padding-right: 40px; }
+.plant-avatar.is-large { width: 132px; flex-shrink: 0; }
+.plant-hero-copy h2 { margin: 2px 0 8px; font-size: 26px; font-weight: 600; letter-spacing: -.03em; }
+.plant-mood-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: var(--radius-pill); background: var(--green-soft); color: var(--accent); font-size: 13px; font-weight: 700; }
+.plant-mood-chip svg.lucide { width: 15px; height: 15px; }
+.plant-mood-chip.is-watered { background: var(--blue-soft); color: var(--blue-ink); }
+.plant-mood-chip.is-thirsty { background: var(--amber-soft); color: var(--amber-ink); }
+.plant-mood-chip.is-parched { background: var(--coral-soft); color: var(--coral-ink); }
+.plant-next { display: grid; gap: 12px; margin-bottom: 18px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.plant-next > div:first-child span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.plant-next > div:first-child strong { display: block; margin: 2px 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.plant-next > div:first-child small { color: var(--muted); font-size: 13px; }
+.plant-next-actions { display: grid; gap: 4px; }
+.plant-next-actions .primary-button { background: #3f8fd6; color: #fff; }
+.plant-next-actions .primary-button:hover { background: #3479b8; }
+.plant-check { display: flex; gap: 8px; margin: 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-soft); color: var(--ink-soft); font-size: 13.5px; line-height: 1.45; }
+.plant-check svg.lucide { width: 17px; height: 17px; flex-shrink: 0; margin-top: 1px; color: var(--amber-ink); }
+.plant-section { margin-bottom: 18px; }
+.plant-section h3 { margin-bottom: 10px; font-size: 17px; font-weight: 600; }
+.plant-settings summary { display: flex; align-items: center; gap: 6px; color: var(--accent); font-size: 14px; font-weight: 600; cursor: pointer; list-style: none; }
+.plant-settings summary::-webkit-details-marker { display: none; }
+.plant-settings summary svg.lucide { width: 16px; height: 16px; }
+.heading-actions { display: flex; flex-shrink: 0; gap: 6px; }
+.pill-button.is-quiet { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); }
+
+/* Guía: pestañas Cuidados, Problemas y Cómo regar */
+.guide-tabs button { gap: 5px; padding: 9px 4px; font-size: 13.5px; }
+.guide-pane[hidden] { display: none; }
+.guide-intro { margin: 0 0 12px; color: var(--ink-soft); font-size: 14.5px; line-height: 1.5; }
+.guide-calendar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.guide-calendar div { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: var(--radius-md); background: var(--blue-soft); color: var(--blue-ink); text-align: center; }
+.guide-calendar svg.lucide { width: 17px; height: 17px; }
+.guide-calendar strong { color: var(--ink); font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.guide-calendar small { font-size: 11.5px; font-weight: 600; line-height: 1.2; }
+.guide-search { width: 100%; margin-bottom: 10px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; }
+.guide-search:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.problem-list { display: grid; gap: 6px; }
+.problem-item { border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
+.problem-item[hidden] { display: none; }
+.problem-item summary { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-size: 14.5px; font-weight: 600; cursor: pointer; list-style: none; }
+.problem-item summary::-webkit-details-marker { display: none; }
+.problem-item summary span { flex: 1; }
+.problem-item summary em { padding: 2px 8px; border-radius: var(--radius-pill); background: var(--green-soft); color: var(--accent); font-size: 11px; font-style: normal; font-weight: 700; }
+.problem-item summary svg.lucide { width: 17px; height: 17px; color: var(--muted); transition: transform .2s ease; }
+.problem-item[open] summary svg.lucide { transform: rotate(180deg); }
+.problem-item p { margin: 0; padding: 0 14px 10px; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
+.problem-item p:last-child { padding-bottom: 14px; }
+.problem-item b { color: var(--ink); }
+.guide-picker { margin-bottom: 14px; }
+.care-list { display: grid; gap: 2px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--line); }
+.care-item { display: flex; gap: 12px; padding: 12px 14px; background: var(--surface); }
+.care-item > span { display: grid; width: 34px; height: 34px; flex-shrink: 0; place-items: center; border-radius: 11px; background: var(--green-soft); color: var(--accent); }
+.care-item > span svg.lucide { width: 17px; height: 17px; }
+.care-item strong { font-size: 14.5px; }
+.care-item p { margin: 2px 0 0; color: var(--ink-soft); font-size: 13.5px; line-height: 1.45; }
+.plant-history { display: grid; gap: 6px; }
+.plant-history-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-md); background: var(--surface); }
+.plant-history-item > svg.lucide { width: 18px; height: 18px; flex-shrink: 0; color: var(--blue-ink); }
+.plant-history-item strong, .plant-history-item small { display: block; }
+.plant-history-item strong { overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.plant-history-item > span { min-width: 0; }
+.plant-history-item small { color: var(--muted); font-size: 12.5px; }
+.plant-add-heading { margin-bottom: 14px; padding-right: 40px; }
+.plant-add-heading h2 { margin-top: 2px; font-size: 24px; font-weight: 600; }
+.plant-form { display: grid; gap: 12px; margin-top: 12px; }
+.species-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.species-option { cursor: pointer; }
+.species-option input { position: absolute; opacity: 0; pointer-events: none; }
+.species-option > span { display: grid; justify-items: center; gap: 2px; padding: 6px 4px 8px; border: 1.5px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink-soft); font-size: 12.5px; font-weight: 600; transition: border-color .15s ease, background .15s ease; }
+.species-option input:checked + span { border-color: var(--accent); background: var(--green-soft); color: var(--accent); }
+.species-option input:focus-visible + span { box-shadow: var(--focus-ring); }
+.plant-avatar.is-mini { width: 100%; max-width: 64px; }
+.plant-avatar.is-mini .pl-foliage { animation: none; }
+.plant-field { display: grid; gap: 5px; min-width: 0; margin: 0; padding: 0; border: 0; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.plant-field legend { margin-bottom: 6px; padding: 0; }
+.plant-field :is(input, select) { width: 100%; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; }
+.plant-field :is(input, select):focus { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.choice-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.plant-form-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.link-button.is-danger { color: var(--coral-ink); }
+@media (min-width: 720px) {
+  .plant-sheet { align-items: center; }
+  .plant-sheet-panel { border-radius: var(--radius-xl); max-height: 88vh; }
+  .plant-sheet-panel::before { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plant-avatar * { animation: none !important; }
+}
 
 /* ---------- Listas: compra y tareas ---------- */
 

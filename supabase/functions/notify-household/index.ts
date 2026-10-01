@@ -2,13 +2,15 @@
 // GET  -> { publicKey }: la clave pública VAPID que necesita el navegador para suscribirse.
 // POST { title, body, url?, tag? } con la sesión del usuario -> avisa a los demás miembros
 //      de su hogar en todos sus dispositivos con los avisos activados.
-// Secretos: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY y VAPID_SUBJECT (mailto:tu@correo).
+// POST { job: 'plant-reminders' } con la cabecera x-cron-secret -> recordatorio diario de
+//      riego para todo el hogar (lo lanza pg_cron, ver supabase/sql/plant-reminders-cron.sql).
+// Secretos: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:tu@correo) y CRON_SECRET.
 // Cifrado según RFC 8291 (aes128gcm) y firma VAPID según RFC 8292, solo con WebCrypto.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
 };
 
@@ -23,6 +25,13 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return json({ error: 'Método no admitido' }, 405);
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const vapid = { publicKey, privateKey, subject };
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  if (request.headers.has('x-cron-secret')) {
+    if (!cronSecret || request.headers.get('x-cron-secret') !== cronSecret) return json({ error: 'Secreto inválido' }, 401);
+    return json(await sendPlantReminders(admin, vapid));
+  }
+
   const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   const { data: userData, error: userError } = await admin.auth.getUser(token);
   const user = userData?.user;
@@ -53,20 +62,64 @@ Deno.serve(async (request) => {
     .neq('user_id', user.id);
   if (subscriptionError) return json({ error: subscriptionError.message }, 500);
 
-  const vapid = { publicKey, privateKey, subject };
+  return json(await deliver(admin, subscriptions || [], message, vapid));
+});
+
+type Admin = ReturnType<typeof createClient>;
+interface StoredSubscription extends Subscription { id: string }
+
+async function deliver(admin: Admin, subscriptions: StoredSubscription[], message: Record<string, unknown>, vapid: Vapid) {
   const payload = new TextEncoder().encode(JSON.stringify(message));
-  const results = await Promise.allSettled((subscriptions || []).map((subscription) => sendPush(subscription, payload, vapid)));
+  const results = await Promise.allSettled(subscriptions.map((subscription) => sendPush(subscription, payload, vapid)));
 
   // El servicio de push responde 404/410 cuando el teléfono ya no existe o quitó el permiso.
-  const gone = (subscriptions || []).filter((_, index) => {
+  const gone = subscriptions.filter((_, index) => {
     const result = results[index];
     return result.status === 'fulfilled' && (result.value === 404 || result.value === 410);
   });
   if (gone.length) await admin.from('push_subscriptions').delete().in('id', gone.map((subscription) => subscription.id));
 
   const sent = results.filter((result) => result.status === 'fulfilled' && result.value >= 200 && result.value < 300).length;
-  return json({ sent, removed: gone.length, total: results.length });
-});
+  return { sent, removed: gone.length, total: results.length };
+}
+
+// Plantas que tocan hoy (o siguen sin regar): un aviso por hogar a todos sus teléfonos.
+// Se repite cada dos días mientras nadie la riegue; al regar, la app borra reminded_on.
+async function sendPlantReminders(admin: Admin, vapid: Vapid) {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+  const twoDaysAgo = new Date(`${today}T12:00:00Z`);
+  twoDaysAgo.setUTCDate(twoDaysAgo.getUTCDate() - 2);
+  const repeatBefore = twoDaysAgo.toISOString().slice(0, 10);
+
+  const { data: plants, error } = await admin
+    .from('plants')
+    .select('id, household_id, name, next_water_on, reminded_on')
+    .eq('active', true)
+    .lte('next_water_on', today)
+    .or(`reminded_on.is.null,reminded_on.lte.${repeatBefore}`);
+  if (error) return { error: error.message };
+
+  const byHousehold = new Map<string, { id: string; name: string; next_water_on: string }[]>();
+  (plants || []).forEach((plant) => byHousehold.set(plant.household_id, [...(byHousehold.get(plant.household_id) || []), plant]));
+
+  let sent = 0;
+  for (const [householdId, due] of byHousehold) {
+    const names = due.map((plant) => plant.name);
+    const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names.at(-1)}` : names[0];
+    const overdue = due.some((plant) => plant.next_water_on < today);
+    const message = {
+      title: overdue ? 'Tus plantas tienen sed 🥀' : 'Hoy toca regar 🌱',
+      body: `${list} ${names.length > 1 ? 'necesitan' : 'necesita'} agua. Toca para marcarlo al regar.`,
+      url: './?abrir=plantas',
+      tag: 'plants'
+    };
+    const { data: subscriptions } = await admin.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('household_id', householdId);
+    const result = await deliver(admin, subscriptions || [], message, vapid);
+    sent += result.sent;
+    await admin.from('plants').update({ reminded_on: today }).in('id', due.map((plant) => plant.id));
+  }
+  return { households: byHousehold.size, plants: plants?.length || 0, sent };
+}
 
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

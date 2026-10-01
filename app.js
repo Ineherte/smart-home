@@ -267,11 +267,11 @@ function showUrgentNotes(notes) {
   lucide.createIcons();
 }
 
-const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0, overdueTasks: 0 };
+const attentionState = { urgentCount: 0, pendingBills: 0, settlementAmount: 0, overdueTasks: 0, thirstyPlants: [] };
 
 function renderAttention(nextState = {}) {
   Object.assign(attentionState, nextState);
-  const { urgentCount, pendingBills, settlementAmount, overdueTasks } = attentionState;
+  const { urgentCount, pendingBills, settlementAmount, overdueTasks, thirstyPlants } = attentionState;
   window.umbralScene?.update({ pendingBills, urgentNotes: urgentCount });
   const section = document.querySelector('.attention-section');
   const list = document.querySelector('#attentionList');
@@ -279,6 +279,7 @@ function renderAttention(nextState = {}) {
   const items = [];
   if (urgentCount) items.push({ tone: 'urgent', icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Casa · Pendientes', action: 'notes' });
   if (overdueTasks) items.push({ tone: 'tasks', icon: 'alarm-clock', title: `${overdueTasks} tarea${overdueTasks === 1 ? '' : 's'} atrasada${overdueTasks === 1 ? '' : 's'}`, detail: 'Revisar en Casa · Pendientes', action: 'tasks' });
+  if (thirstyPlants.length) items.push({ tone: 'plants', icon: 'sprout', title: thirstyPlants.length === 1 ? `${thirstyPlants[0]} tiene sed` : `${thirstyPlants.length} plantas tienen sed`, detail: 'Toca regar hoy · Casa · Plantas', action: 'plantas' });
   if (pendingBills) items.push({ tone: 'bills', icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Cuentas de casa', action: 'finance' });
   if (settlementAmount > 0.009) items.push({ tone: 'money', icon: 'arrow-right-left', title: `Falta saldar ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
   section?.classList.toggle('has-items', items.length > 0);
@@ -306,36 +307,40 @@ document.querySelector('#attentionList').addEventListener('click', (event) => {
   if (!action) return;
   if (action === 'notes' || action === 'tasks') openPending({ filter: 'all' });
   if (action === 'finance') openFinance();
+  if (action === 'plantas') showView('plantas');
 });
 
 // Resumen del día bajo el saludo: tareas, compra y eventos de hoy.
-const daySummaryState = { tasks: null, shopping: null, events: null };
+const daySummaryState = { tasks: null, shopping: null, events: null, plants: null };
 
 function updateDaySummary(partial) {
   Object.assign(daySummaryState, partial);
   const summary = document.querySelector('#daySummary');
   if (!summary) return;
-  const { tasks, shopping, events } = daySummaryState;
-  if ([tasks, shopping, events].every((value) => value === null)) return;
+  const { tasks, shopping, events, plants } = daySummaryState;
+  if ([tasks, shopping, events, plants].every((value) => value === null)) return;
   const parts = [];
   if (tasks) parts.push(`<b>${tasks} tarea${tasks === 1 ? '' : 's'}</b>`);
   if (events) parts.push(`<b>${events} evento${events === 1 ? '' : 's'}</b>`);
   if (shopping) parts.push(`<b>${shopping} ${shopping === 1 ? 'cosa' : 'cosas'}</b> en la compra`);
+  if (plants) parts.push(`<b>${plants} ${plants === 1 ? 'planta' : 'plantas'}</b> que regar`);
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}` : parts[0];
   summary.innerHTML = parts.length ? `Hoy tienes ${list}.` : 'Hoy no tienes nada pendiente. Disfrutad del día.';
 }
 
 // Contadores de Casa: la pestaña muestra su número y la navegación avisa de lo que corre prisa.
+const casaCounts = { compra: 0, tareas: 0, plantas: 0 };
 function setNavBadge(view, count) {
-  const tabCount = document.querySelector({ compra: '#shoppingTabCount', tareas: '#pendingTabCount' }[view]);
+  casaCounts[view] = count;
+  const tabCount = document.querySelector({ compra: '#shoppingTabCount', tareas: '#pendingTabCount', plantas: '#plantsTabCount' }[view]);
   if (tabCount) {
     tabCount.textContent = count > 99 ? '99+' : String(count);
     tabCount.hidden = !count;
   }
-  if (view !== 'tareas') return;
+  const urgent = casaCounts.tareas + casaCounts.plantas;
   const badge = document.querySelector('.nav-item[data-view-target="casa"] .nav-badge');
-  badge.textContent = count > 9 ? '9+' : String(count);
-  badge.hidden = !count;
+  badge.textContent = urgent > 9 ? '9+' : String(urgent);
+  badge.hidden = !urgent;
 }
 
 // La pizarra compartida vive en su propio panel; las notas están en Casa → Pendientes.
@@ -1774,7 +1779,7 @@ document.querySelector('#smartLightsList').addEventListener('click', (event) => 
 // Muestra un espacio: en el móvil cambia de pestaña; en escritorio, donde se ven
 // todos, lleva hasta él.
 // Casa agrupa Pendientes, Compra y Luces en pestañas; esos nombres llevan a su pestaña.
-const casaTabAliases = { pendientes: 'pendientes', tareas: 'pendientes', compra: 'compra', luces: 'luces' };
+const casaTabAliases = { pendientes: 'pendientes', tareas: 'pendientes', compra: 'compra', plantas: 'plantas', luces: 'luces' };
 function showView(view) {
   const casaTab = casaTabAliases[view];
   if (casaTab) {
@@ -1858,7 +1863,7 @@ function renderGreeting() {
 }
 
 // Enlaces de los avisos: ?abrir=compra|tareas|casa|personal|notes|calendar|finance.
-const linkTargets = ['home', 'casa', 'personal', 'pendientes', 'tareas', 'compra', 'luces', 'notes', 'calendar', 'finance'];
+const linkTargets = ['home', 'casa', 'personal', 'pendientes', 'tareas', 'compra', 'plantas', 'luces', 'notes', 'calendar', 'finance'];
 function openLinkTarget(target) {
   if (!linkTargets.includes(target)) return;
   if (target === 'notes') openPending({ filter: 'notes' });
