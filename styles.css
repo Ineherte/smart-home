@@ -1847,8 +1847,8 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 
 /* Ines y Matteo. scene.js elige el plan (data-act), el lugar (data-place) y la ropa
    (data-outfit); los colores llegan como --ines-* y --matteo-*. */
-.ch-ines { --ch-skin: var(--ines-skin); --ch-hair: var(--ines-hair); --ch-eyes: var(--ines-eyes); --ch-top: var(--ines-top); --ch-sleeve: var(--ines-sleeve); --ch-pants: var(--ines-pants); --ch-shin: var(--ines-shin); --ch-shoe: var(--ines-shoe); --ch-coat: var(--ines-coat); --ch-boot: var(--ines-boot); --ch-scarf: var(--ines-scarf); --ch-hat: var(--ines-hat); }
-.ch-matteo { --ch-skin: var(--matteo-skin); --ch-hair: var(--matteo-hair); --ch-eyes: var(--matteo-eyes); --ch-top: var(--matteo-top); --ch-sleeve: var(--matteo-sleeve); --ch-pants: var(--matteo-pants); --ch-shin: var(--matteo-shin); --ch-shoe: var(--matteo-shoe); --ch-coat: var(--matteo-coat); --ch-boot: var(--matteo-boot); --ch-scarf: var(--matteo-scarf); --ch-hat: var(--matteo-hat); }
+.ch-ines { --ch-skin: var(--ines-skin); --ch-hair: var(--ines-hair); --ch-eyes: var(--ines-eyes); --ch-top: var(--ines-top); --ch-sleeve: var(--ines-sleeve); --ch-pants: var(--ines-pants); --ch-shin: var(--ines-shin); --ch-shoe: var(--ines-shoe); --ch-coat: var(--ines-coat); --ch-boot: var(--ines-boot); --ch-scarf: var(--ines-scarf); --ch-hat: var(--ines-hat); --ch-accent: var(--ines-accent); --ch-cape: var(--ines-cape); }
+.ch-matteo { --ch-skin: var(--matteo-skin); --ch-hair: var(--matteo-hair); --ch-eyes: var(--matteo-eyes); --ch-top: var(--matteo-top); --ch-sleeve: var(--matteo-sleeve); --ch-pants: var(--matteo-pants); --ch-shin: var(--matteo-shin); --ch-shoe: var(--matteo-shoe); --ch-coat: var(--matteo-coat); --ch-boot: var(--matteo-boot); --ch-scarf: var(--matteo-scarf); --ch-hat: var(--matteo-hat); --ch-accent: var(--matteo-accent); --ch-cape: var(--matteo-cape); }
 .sc-couple { pointer-events: none; }
 .ch-hit { fill: transparent; pointer-events: all; cursor: pointer; }
 .scene[data-place="in"] .ch-hit { display: none; }
@@ -1888,11 +1888,11 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .ch-hat { fill: var(--ch-hat); }
 .ch-shades { fill: #1f2733; }
 .ch-boot, .ch-coat, .ch-coat-line, .ch-hood, .ch-scarf, .ch-hat, .ch-shades, .ch-umbrella { display: none; }
-.scene[data-outfit="cold"] :is(.ch-coat, .ch-coat-line, .ch-scarf, .ch-hat) { display: inline; }
-.scene[data-outfit="rain"] :is(.ch-coat, .ch-coat-line, .ch-hood, .ch-boot) { display: inline; }
-.scene[data-shades="true"] .ch-shades { display: inline; }
+.ch-pos[data-wear="cold"] :is(.ch-coat, .ch-coat-line, .ch-scarf, .ch-hat), .ch-pos[data-neck="scarf"] .ch-scarf { display: inline; }
+.ch-pos[data-wear="rain"] :is(.ch-coat, .ch-coat-line, .ch-hood, .ch-boot) { display: inline; }
+.scene[data-shades="true"] .ch-pos[data-wear="hot"][data-face="none"] .ch-shades, .ch-pos[data-face="sunglasses"] .ch-shades { display: inline; }
 /* Con gorro o capucha, el pelo de Matteo queda debajo. */
-.scene:is([data-outfit="cold"], [data-outfit="rain"]) .ch-matteo .ch-head > .ch-hair { display: none; }
+.ch-pos.ch-matteo[data-covered="true"] .hs-front { display: none; }
 .ch-umbrella-stick { fill: none; stroke: #4a3a30; stroke-width: .9; stroke-linecap: round; }
 .ch-umbrella-top, .ch-umbrella-tip { fill: #e0533f; }
 
@@ -2056,9 +2056,9 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 /* Aspecto de su foto: aros dorados y vaqueros anchos de Ines. */
 .ch-earrings { fill: none; stroke: #e2b250; stroke-width: .5; }
 .ch-wide { display: none; fill: var(--ch-pants); }
-.scene[data-ines-wide="true"] .ch-ines .ch-wide { display: inline; }
-.scene[data-ines-wide="true"] .ch-ines :is(.ch-thigh, .ch-shin) { display: none; }
-.scene[data-outfit="rain"] .ch-earrings { display: none; }
+.ch-pos[data-wide="true"] .ch-wide { display: inline; }
+.ch-pos[data-wide="true"] :is(.ch-thigh, .ch-shin) { display: none; }
+.ch-pos:is([data-wear="rain"], [data-style="dino"], [data-style="bear"]) .ch-earrings { display: none; }
 
 /* Vuestras plantas junto a la puerta: tocarlas abre su ficha. */
 .scene[data-my-plants="true"] .sc-plant { display: none; }
@@ -2172,8 +2172,8 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sc-cobweb circle { fill: #2a2a2e; stroke: none; }
 .sc-bat { fill: #24202a; animation: sc-bird var(--dur) linear var(--delay) infinite; }
 .scene[data-decor="christmas"] :is(.sc-wreath, .sc-xmas-lights, .sc-xmas-tree) { display: inline; }
-.scene[data-decor="christmas"]:not([data-outfit="rain"]) .ch-santa { display: inline; }
-.scene[data-decor="christmas"] .ch-hat, .scene[data-decor="christmas"] .ch-matteo .ch-head > .ch-hair { display: none; }
+.scene[data-decor="christmas"] .ch-pos[data-head="none"]:not([data-wear="rain"]):not([data-wear="fun"]) .ch-santa { display: inline; }
+.scene[data-decor="christmas"] .ch-hat, .scene[data-decor="christmas"] .ch-pos.ch-matteo[data-head="none"]:not([data-wear="rain"]):not([data-wear="fun"]) .hs-front { display: none; }
 .scene[data-decor="christmas"][data-act="birthday"] .ch-santa { display: none; }
 .ch-santa path { fill: #d6333f; }
 .ch-santa rect, .ch-santa circle { fill: #fff; }
@@ -2196,6 +2196,148 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sc-bubble { position: absolute; z-index: 2; max-width: min(240px, calc(100% - 16px)); padding: 7px 11px; border-radius: 14px; background: #fffdf8; box-shadow: 0 6px 18px rgba(20, 30, 25, .18); color: #2a2f2b; font-size: 13px; font-weight: 600; line-height: 1.3; pointer-events: none; opacity: 0; transform: translate(-50%, calc(-100% + 6px)) scale(.9); transform-origin: 50% 100%; transition: opacity .2s ease, transform .25s cubic-bezier(.34, 1.56, .64, 1); }
 .sc-bubble::after { position: absolute; top: 100%; left: var(--tail, 50%); width: 0; height: 0; border: 6px solid transparent; border-top-color: #fffdf8; content: ""; transform: translateX(-50%); }
 .sc-bubble.is-on { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+
+
+/* ---------- Muñecos personalizables ---------- */
+/* Peinados */
+.hs { display: none; }
+.ch-pos[data-hair="loose"] .hs-loose, .ch-pos[data-hair="ponytail"] .hs-ponytail, .ch-pos[data-hair="bun"] .hs-bun,
+.ch-pos[data-hair="fluffy"] .hs-fluffy, .ch-pos[data-hair="short"] .hs-short, .ch-pos[data-hair="curly"] .hs-curly { display: inline; }
+.hs-curly circle { fill: var(--ch-hair); }
+.ch-pos:is([data-style="dino"], [data-style="bear"]) .ch-back { display: none; }
+
+/* Conjuntos */
+.ow-cape, .ow-dress, .ow-belly, .ow-dots, .ow-emblem, .ow-apron, .ow-apron-straps, .ow-stripes, .ow-shirt, .ow-mask, .ow, .acc { display: none; }
+.ch-pos[data-style="hero"] :is(.ow-cape, .ow-emblem, .ow-mask) { display: inline; }
+.ch-pos:is([data-style="dino"], [data-style="bear"]) :is(.ow-belly, .ow-hood) { display: inline; }
+.ch-pos[data-style="pajamas"] :is(.ow-dots, .ow-nightcap) { display: inline; }
+.ch-pos[data-style="chef"] :is(.ow-apron, .ow-apron-straps, .ow-chef) { display: inline; }
+.ch-pos[data-style="sport"] .ow-stripes { display: inline; }
+.ch-ines[data-style="elegant"] .ow-dress, .ch-matteo[data-style="elegant"] :is(.ow-shirt, .acc-bowtie) { display: inline; }
+.ch-ines[data-style="elegant"] :is(.ch-thigh, .ch-wide) { display: none; }
+.ow-cape { fill: var(--ch-cape); }
+.ow-dress { fill: var(--ch-top); }
+.ow-belly { fill: var(--ch-accent); }
+.ow-dots { fill: #fff; opacity: .85; }
+.ow-emblem circle { fill: var(--ch-accent); }
+.ow-emblem path { fill: var(--ch-cape); }
+.ow-apron { fill: #fff; stroke: #d9d4c9; stroke-width: .3; }
+.ow-apron-straps { fill: none; stroke: #d9d4c9; stroke-width: .6; }
+.ow-stripes { fill: none; stroke: var(--ch-accent); stroke-width: .7; }
+.ow-shirt { fill: #f7f5f0; }
+.ow-mask { fill: #1d2a52; }
+.ow-hood path:first-child { fill: var(--ch-top); }
+.ow-spikes { display: none; fill: #3f8a3c; }
+.ch-pos[data-style="dino"] .ow-spikes { display: inline; }
+.ow-ears, .ow-ears-inner { display: none; }
+.ch-pos[data-style="bear"] :is(.ow-ears, .ow-ears-inner) { display: inline; }
+.ow-ears { fill: var(--ch-top); }
+.ow-ears-inner { fill: var(--ch-accent); }
+.ow-chef :is(circle, rect) { fill: #fff; stroke: #e2ddd2; stroke-width: .3; }
+.ow-nightcap path { fill: #6f8fd0; }
+.ow-nightcap :is(rect, circle) { fill: #fff; }
+
+/* Accesorios */
+.ch-pos[data-head="beanie"] .acc-beanie, .ch-pos[data-head="cap"] .acc-cap, .ch-pos[data-head="crown"] .acc-crown, .ch-pos[data-head="flowers"] .acc-flowers,
+.ch-pos[data-head="bow"] .acc-bow, .ch-pos[data-head="headphones"] .acc-headphones, .ch-pos[data-head="catears"] .acc-catears,
+.ch-pos[data-face="glasses"] .acc-glasses, .ch-pos[data-neck="bowtie"] .acc-bowtie, .ch-pos[data-neck="necklace"] .acc-necklace { display: inline; }
+.scene[data-act="birthday"] .ch-headwear { display: none !important; }
+.acc-beanie path, .acc-beanie rect { fill: #e07a5f; }
+.acc-beanie circle { fill: #fff3e8; }
+.acc-cap path { fill: #3d6fb0; }
+.acc-crown { fill: #f2c230; stroke: #c99a1a; stroke-width: .3; }
+.acc-bow { fill: #e8578a; }
+.acc-band { fill: none; stroke: #2a2a2e; stroke-width: 1; }
+.acc-headphones rect { fill: #e04f4f; }
+.acc-catears path { fill: var(--ch-hair); }
+.acc-catears .acc-inner { fill: #f4a6b8; }
+.acc-glasses { fill: rgba(255, 255, 255, .25); stroke: #2a2a2e; stroke-width: .45; }
+.acc-bowtie { fill: #d6333f; }
+.ch-matteo[data-style="elegant"] .acc-bowtie { fill: #1d1d22; stroke: #f7f5f0; stroke-width: .2; }
+.acc-necklace path { fill: none; stroke: #e2b250; stroke-width: .45; }
+.acc-necklace circle { fill: #e2b250; }
+
+/* Caras según el ánimo */
+.mv { display: none; }
+.mv:is([class*="mv-eyes"], [class*="mv-mouth"]:not(.mv-mouth-open):not(.mv-mouth-o), [class*="mv-brows"]) { fill: none; stroke: #4a2a20; stroke-width: .55; stroke-linecap: round; }
+.mv-eyes-heart { fill: #e0455c !important; stroke: none !important; }
+.mv-mouth-open, .mv-mouth-o { fill: #8a3328; }
+.mv-tear, .mv-sweat { fill: #7cc4e6; }
+.mv-sparkle { fill: #ffd166; }
+.ch-pos:not([data-eyes="open"]) :is(.ch-eyes, .ch-glints) { display: none; }
+.ch-pos[data-eyes="closed"] .mv-eyes-closed, .ch-pos[data-eyes="sleep"] .mv-eyes-sleep, .ch-pos[data-eyes="half"] .mv-eyes-half, .ch-pos[data-eyes="heart"] .mv-eyes-heart { display: inline; }
+.ch-pos:not([data-mouth="smile"]) .ch-mouth { display: none; }
+.ch-pos[data-mouth="big"] .mv-mouth-big, .ch-pos[data-mouth="open"] .mv-mouth-open, .ch-pos[data-mouth="flat"] .mv-mouth-flat, .ch-pos[data-mouth="sad"] .mv-mouth-sad, .ch-pos[data-mouth="o"] .mv-mouth-o, .ch-pos[data-mouth="wavy"] .mv-mouth-wavy { display: inline; }
+.ch-pos[data-brows="angry"] .mv-brows-angry, .ch-pos[data-brows="sad"] .mv-brows-sad { display: inline; }
+.ch-pos[data-extra="tear"] .mv-tear, .ch-pos[data-extra="sweat"] .mv-sweat, .ch-pos[data-extra="sparkle"] .mv-sparkle { display: inline; }
+.ch-pos[data-extra="sparkle"] .mv-sparkle { animation: mp-sparkle 1.4s ease-in-out infinite; }
+.ch-pos[data-extra="blush"] .ch-cheek { opacity: .95; fill: #ff6f86; }
+.ch-pos[data-extra="sick"] .ch-cheek { opacity: .8; fill: #9bc46a; }
+.ch-pos[data-mood="sleepy"] .ch-body { animation-duration: 6s; }
+.ch-mood-badge, .ch-unread { font: 5px/1 system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+.ch-unread { display: none; }
+.ch-pos[data-unread="true"] .ch-unread { display: inline; animation: ch-unread 1.6s ease-in-out infinite; }
+@keyframes ch-unread { 50% { transform: translateY(-1.5px); } }
+
+/* Toque: chocar los cinco */
+.scene[data-act="highfive"] .ch-ines { transform: translate(203px, 188px); }
+.scene[data-act="highfive"] .ch-matteo { transform: translate(215px, 188px); }
+.scene[data-act="highfive"] .ch-ines .ch-arm-r { transform: rotate(-150deg); }
+.scene[data-act="highfive"] .ch-matteo .ch-arm-l { transform: rotate(150deg); }
+.scene[data-act="highfive"] .ch-body { animation: ch-hop 1.2s ease-in-out infinite; }
+
+/* Botón para personalizar el muñeco */
+.sc-wardrobe { position: absolute; top: 8px; left: 8px; z-index: 2; display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .82); box-shadow: 0 2px 8px rgba(20, 30, 25, .15); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.sc-wardrobe svg { width: 17px; height: 17px; fill: none; stroke: #1f5a48; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Muñeco suelto en el editor */
+.avatar-stage { position: relative; display: block; width: 100%; height: 100%; }
+.avatar-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.avatar-stage .ch-hit, .avatar-stage .ch-shadow { pointer-events: none; }
+
+
+/* ---------- Editor del muñeco ---------- */
+.avatar-editor-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.avatar-preview { width: 104px; height: 168px; flex-shrink: 0; padding: 4px 0; border-radius: 22px; background: radial-gradient(circle at 50% 85%, #cfe8c0 0 30%, transparent 31%), linear-gradient(180deg, #dff0fa, #f3f9ec); }
+.avatar-editor-head h2 { margin: 2px 0 4px; font-size: 26px; }
+.avatar-status { margin: 0; color: var(--muted); font-size: 14px; }
+.avatar-tabs { display: flex; gap: 6px; margin: 0 calc(var(--gutter) * -1) 14px; padding: 0 var(--gutter) 2px; overflow-x: auto; scrollbar-width: none; }
+.avatar-tabs::-webkit-scrollbar { display: none; }
+.avatar-tabs button { flex-shrink: 0; padding: 8px 14px; border-radius: var(--radius-pill); background: var(--neutral-soft); color: var(--ink-soft); font-size: 14px; font-weight: 600; }
+.avatar-tabs button[aria-selected="true"] { background: var(--green); color: var(--lime); }
+.avatar-pane { min-height: 220px; padding-bottom: 76px; }
+.avatar-label { margin: 14px 0 8px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.avatar-label:first-child { margin-top: 0; }
+.avatar-hint { margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.avatar-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.avatar-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 600; }
+.avatar-chip span { font-size: 16px; line-height: 1; }
+.avatar-chip[aria-pressed="true"], .mood-option[aria-pressed="true"], .outfit-option[aria-pressed="true"] { border-color: var(--accent); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.avatar-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.avatar-swatch { width: 34px; height: 34px; border: 2px solid var(--surface); border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px var(--line-strong); }
+.avatar-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); transform: scale(1.08); }
+.mood-grid, .poke-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mood-option, .poke-option { display: grid; justify-items: center; gap: 4px; padding: 10px 4px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font-size: 12.5px; font-weight: 600; line-height: 1.2; text-align: center; }
+.mood-option span, .poke-option span { font-size: 26px; line-height: 1; }
+.mood-option.is-none span { color: var(--muted); }
+.poke-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.poke-option { grid-template-columns: auto 1fr; justify-items: start; align-items: center; padding: 12px; font-size: 14px; text-align: left; }
+.poke-option:active { transform: scale(.97); }
+.outfit-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.outfit-option { display: grid; min-width: 0; justify-items: center; gap: 2px; padding: 6px 2px 8px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 360px) { .outfit-option { font-size: 10.5px; } }
+.avatar-sheet .plant-sheet-body { overflow-x: hidden; }
+.outfit-thumb { display: block; width: 100%; height: 74px; }
+.avatar-save { position: sticky; bottom: 0; display: flex; align-items: center; gap: 10px; margin: 0 calc(var(--gutter) * -1) calc(var(--gutter) * -1); padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); }
+.avatar-save[hidden] { display: none; }
+.avatar-save .primary-button { flex: 1; justify-content: center; }
+.partner-card { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px; border-radius: var(--radius-md); background: var(--surface-soft); }
+.partner-doll { display: block; width: 56px; height: 90px; flex-shrink: 0; }
+.partner-card strong, .partner-card small { display: block; }
+.partner-card small { color: var(--muted); font-size: 13px; }
+.partner-card p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.us-doll { display: block; width: 46px; height: 72px; margin-top: -6px; border-radius: 16px; }
+.us-doll:focus-visible { box-shadow: var(--focus-ring); }
 
 /* Sin animar cuando la escena no se ve o si se prefiere menos movimiento. */
 .scene.is-paused * { animation-play-state: paused !important; }

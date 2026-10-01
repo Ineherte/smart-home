@@ -1903,10 +1903,13 @@ navigator.serviceWorker?.addEventListener('message', (event) => {
   if (event.data?.type === 'umbral:open') openLinkTarget(event.data.target);
 });
 
-// Toques en la escena de la casa: una planta abre su ficha; el buzón y la nota, su sección.
+// Toques en la escena de la casa: una planta abre su ficha; el buzón y la nota, su sección;
+// el botón de la camiseta, el editor de tu muñeco.
 window.addEventListener('umbral:scene-tap', (event) => {
   const { plant, target } = event.detail || {};
   if (plant && typeof openPlantSheet === 'function') openPlantSheet(plant);
+  else if (target === 'avatar') openAvatarEditor();
+  else if (target === 'avatar-read') markAvatarRead(event.detail.person);
   else if (target) openLinkTarget(target);
 });
 

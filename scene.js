@@ -174,6 +174,53 @@
     }
   };
 
+  // ---------- Muñecos personalizables (cada uno edita el suyo en avatars.js) ----------
+  const DEFAULT_LOOK = {
+    ines: { outfit: 'casual', hair: 'loose', hairColor: '#4a2a1a', top: '#1f1e24', bottom: '#a9c7e3', shoes: '#f4f1ea', head: 'none', face: 'none', neck: 'none', weather: true },
+    matteo: { outfit: 'casual', hair: 'fluffy', hairColor: '#33221a', top: '#1f1e24', bottom: '#3d4f6e', shoes: '#f4f1ea', head: 'none', face: 'none', neck: 'none', weather: true }
+  };
+  const HAIRSTYLES = {
+    ines: [['loose', 'Suelto'], ['ponytail', 'Coleta'], ['bun', 'Moño']],
+    matteo: [['fluffy', 'Con volumen'], ['short', 'Corto'], ['curly', 'Rizado']]
+  };
+  const HAIR_COLORS = ['#1c120d', '#33221a', '#4a2a1a', '#6b4529', '#9a6a3f', '#d2ab72', '#b8432f', '#8a8f96', '#e58fb4', '#6aa0d8'];
+  const CLOTH_COLORS = ['#1f1e24', '#f4f1ea', '#a9c7e3', '#3d4f6e', '#5f7f4f', '#c9b48f', '#e07a5f', '#f2c230', '#e58fb4', '#8e1f3a', '#7a62b3', '#3f8f6b'];
+  // Conjuntos: los que no son «casual» son disfraces y no cambian con el tiempo.
+  const OUTFITS = {
+    casual: { label: 'Mi ropa', emoji: '👕' },
+    pajamas: { label: 'Pijama', emoji: '🌙', head: 'nightcap', colors: { top: '#9cc7ea', pants: '#9cc7ea', shoe: '#f0eef5' } },
+    dino: { label: 'Dino', emoji: '🦖', head: 'hood', colors: { top: '#5fb35a', pants: '#5fb35a', shoe: '#3f8a3c', accent: '#cde8a8' } },
+    bear: { label: 'Osito', emoji: '🧸', head: 'hood', colors: { top: '#a8754f', pants: '#a8754f', shoe: '#7a5236', accent: '#ecd2ae' } },
+    hero: { label: 'Superhéroe', emoji: '🦸', colors: { top: '#2f6fd6', pants: '#2f6fd6', shoe: '#d6333f', cape: '#d6333f', accent: '#ffd166' } },
+    chef: { label: 'Chef', emoji: '🍳', head: 'chef', colors: { top: '#f7f5f0', pants: '#3c3f46', shoe: '#2a2a2e' } },
+    elegant: { label: 'De gala', emoji: '✨', colors: { ines: { top: '#8e1f3a', pants: '#8e1f3a', shin: 'skin', shoe: '#1d1d22' }, matteo: { top: '#1d1d22', pants: '#1d1d22', shoe: '#1d1d22' } } },
+    sport: { label: 'Chándal', emoji: '🏃', colors: { top: '#e04f4f', pants: '#e04f4f', shoe: '#f2f2f2', accent: '#ffffff' } }
+  };
+  const HEAD_ACC = [['none', 'Nada', '·'], ['beanie', 'Gorro', '🧶'], ['cap', 'Gorra', '🧢'], ['crown', 'Corona', '👑'], ['flowers', 'Flores', '🌼'], ['bow', 'Lazo', '🎀'], ['headphones', 'Cascos', '🎧'], ['catears', 'Orejas de gato', '🐱']];
+  const FACE_ACC = [['none', 'Nada', '·'], ['glasses', 'Gafas', '👓'], ['sunglasses', 'Gafas de sol', '🕶️']];
+  const NECK_ACC = [['none', 'Nada', '·'], ['necklace', 'Collar', '📿'], ['bowtie', 'Pajarita', '🎀'], ['scarf', 'Bufanda', '🧣']];
+  // label: [femenino, masculino]. eyes/mouth/brows/extra cambian la cara.
+  const MOODS = {
+    happy: { emoji: '😊', label: ['Feliz', 'Feliz'], mouth: 'big' },
+    love: { emoji: '🥰', label: ['Enamorada', 'Enamorado'], eyes: 'heart', extra: 'blush' },
+    excited: { emoji: '🤩', label: ['Con muchas ganas', 'Con muchas ganas'], mouth: 'open', extra: 'sparkle' },
+    relaxed: { emoji: '😌', label: ['Tranquila', 'Tranquilo'], eyes: 'closed' },
+    party: { emoji: '🥳', label: ['De fiesta', 'De fiesta'], eyes: 'closed', mouth: 'open', extra: 'sparkle' },
+    hungry: { emoji: '🤤', label: ['Con hambre', 'Con hambre'], mouth: 'open' },
+    busy: { emoji: '💻', label: ['Liada', 'Liado'], mouth: 'flat', extra: 'sweat' },
+    tired: { emoji: '😮‍💨', label: ['Cansada', 'Cansado'], eyes: 'half', mouth: 'flat', extra: 'sweat' },
+    sleepy: { emoji: '😴', label: ['Con sueño', 'Con sueño'], eyes: 'sleep', mouth: 'o' },
+    sad: { emoji: '😢', label: ['Triste', 'Triste'], mouth: 'sad', brows: 'sad', extra: 'tear' },
+    grumpy: { emoji: '😤', label: ['Enfadada', 'Enfadado'], mouth: 'sad', brows: 'angry' },
+    sick: { emoji: '🤒', label: ['Malita', 'Malito'], eyes: 'half', mouth: 'wavy', extra: 'sick' }
+  };
+  const POKES = {
+    kiss: { emoji: '😘', label: 'Un beso', text: 'te manda un beso' },
+    hug: { emoji: '🤗', label: 'Un abrazo', text: 'te manda un abrazo' },
+    tickle: { emoji: '🤭', label: 'Cosquillas', text: 'te hace cosquillas' },
+    highfive: { emoji: '🙌', label: 'Chocar los cinco', text: 'quiere chocar esos cinco' }
+  };
+
   // Planes posibles. place: 'out' en el jardín, 'in' dentro de casa (room se enciende).
   const ACTS = {
     wave: { place: 'out', label: 'saludan desde el jardín' },
@@ -191,7 +238,8 @@
     birthday: { place: 'out', label: 'celebran un cumpleaños' },
     anniversary: { place: 'out', label: 'celebran su aniversario' },
     pack: { place: 'out', label: 'preparan las maletas' },
-    away: { place: 'in', label: 'están de viaje' }
+    away: { place: 'in', label: 'están de viaje' },
+    highfive: { place: 'out', label: 'chocan los cinco' }
   };
 
   // Días especiales: mandan sobre el plan del momento (salvo de madrugada).
@@ -261,40 +309,102 @@
     matteo: 'M-5.7 -25.6 Q-7 -29.8 -5 -32.6 Q-4.6 -35.6 -1.6 -35.3 Q.1 -37 2.2 -35.5 Q5.1 -35.4 5.5 -32.4 Q7.2 -29.8 5.7 -25.6 Q5.2 -28.4 3.6 -29.2 Q2.7 -27.9 1 -28.8 Q-.3 -27.8 -1.7 -28.9 Q-3.1 -28 -3.9 -29.3 Q-5.2 -28.3 -5.7 -25.6 Z'
   };
 
-  function personMarkup(key) {
+  // Peinados: se dibujan todos y el CSS enseña el elegido (data-hair).
+  const HAIR_BACK = {
+    ines: '<path class="ch-hair hs hs-loose" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.9 11.4 q-6.2 2.2 -12.4 0 z"></path>'
+      + '<path class="ch-hair hs hs-ponytail hs-bun" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.4 3.2 q-5.7 1.4 -11.4 0 z"></path>'
+      + '<path class="ch-hair hs hs-ponytail" d="M3.6 -32 q5.4 -.4 5 5.6 q-.2 3.4 -1.8 5.8 q-.2 -3.8 -1.6 -6.4 q-.6 -2.4 -1.6 -5 z"></path>',
+    matteo: ''
+  };
+  const HAIR_TOP = {
+    ines: `<circle class="ch-hair hs hs-bun" cx="0" cy="-34.6" r="2.5"></circle><path class="ch-hair" d="${HAIR_FRONT.ines}"></path>`,
+    matteo: `<path class="ch-hair hs hs-fluffy hs-front" d="${HAIR_FRONT.matteo}"></path>`
+      + '<path class="ch-hair hs hs-short hs-front" d="M-5.2 -26.4 Q-5.8 -32.6 0 -32.9 Q5.8 -32.6 5.2 -26.4 Q4.6 -29.4 2.6 -29.9 Q.2 -29 -2.4 -29.9 Q-4.6 -29.4 -5.2 -26.4 Z"></path>'
+      + `<g class="ch-hair hs hs-curly hs-front">${[[-4.5, -29.4, 1.9], [-2.7, -32.3, 2.1], [0.1, -33.4, 2.2], [2.9, -32.3, 2.1], [4.6, -29.4, 1.9], [-1.4, -30.2, 1.9], [1.6, -30.2, 1.9]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"></circle>`).join('')}</g>`
+  };
+
+  // Caras según el estado de ánimo (data-eyes, data-mouth, data-brows, data-extra).
+  const MOOD_EYES = '<path class="mv mv-eyes-closed" d="M-2.6 -26.4 q.9 -1.1 1.8 0 M.8 -26.4 q.9 -1.1 1.8 0"></path>'
+    + '<path class="mv mv-eyes-sleep" d="M-2.6 -26.8 q.9 1 1.8 0 M.8 -26.8 q.9 1 1.8 0"></path>'
+    + '<path class="mv mv-eyes-half" d="M-2.7 -26.4 h1.9 M.8 -26.4 h1.9"></path>'
+    + '<g class="mv mv-eyes-heart"><path transform="translate(-1.7 -27.5) scale(.34)" d="M0 0 c-1.7 -1.7 -4.2 -.4 -3.1 1.7 l3.1 3.1 l3.1 -3.1 c1.1 -2.1 -1.4 -3.4 -3.1 -1.7 z"></path><path transform="translate(1.7 -27.5) scale(.34)" d="M0 0 c-1.7 -1.7 -4.2 -.4 -3.1 1.7 l3.1 3.1 l3.1 -3.1 c1.1 -2.1 -1.4 -3.4 -3.1 -1.7 z"></path></g>';
+  const MOOD_MOUTH = '<path class="mv mv-mouth-big" d="M-1.7 -24.7 q1.7 2 3.4 0"></path>'
+    + '<path class="mv mv-mouth-open" d="M-1.3 -24.8 q1.3 2.5 2.6 0 z"></path>'
+    + '<path class="mv mv-mouth-flat" d="M-1 -24.2 h2"></path>'
+    + '<path class="mv mv-mouth-sad" d="M-1.1 -23.6 q1.1 -1.1 2.2 0"></path>'
+    + '<ellipse class="mv mv-mouth-o" cx="0" cy="-24.1" rx=".55" ry=".8"></ellipse>'
+    + '<path class="mv mv-mouth-wavy" d="M-1.4 -24.2 q.35 -.5 .7 0 q.35 .5 .7 0 q.35 -.5 .7 0 q.35 .5 .7 0"></path>';
+  const MOOD_OVER = '<path class="mv mv-brows-angry" d="M-2.9 -28.7 l2 .8 M2.9 -28.7 l-2 .8"></path>'
+    + '<path class="mv mv-brows-sad" d="M-2.9 -28 l2 -.7 M2.9 -28 l-2 -.7"></path>'
+    + '<path class="mv mv-tear" d="M-2.5 -25.6 q-.7 1.1 0 1.6 q.7 -.5 0 -1.6 z"></path>'
+    + '<path class="mv mv-sweat" d="M4.7 -30.6 q-.9 1.4 0 2 q.9 -.6 0 -2 z"></path>'
+    + '<path class="mv mv-sparkle" d="M-7.4 -31 l.4 1 l1 .4 l-1 .4 l-.4 1 l-.4 -1 l-1 -.4 l1 -.4 z M7.6 -27.6 l.3 .8 l.8 .3 l-.8 .3 l-.3 .8 l-.3 -.8 l-.8 -.3 l.8 -.3 z"></path>';
+
+  // Accesorios y piezas de los conjuntos.
+  const HEADWEAR = '<g class="ch-headwear acc acc-beanie"><path d="M-5 -28.8 q0 -6 5 -6 q5 0 5 6 z"></path><rect x="-5.4" y="-29.6" width="10.8" height="2.1" rx="1"></rect><circle cx="0" cy="-35" r="1.4"></circle></g>'
+    + '<g class="ch-headwear acc acc-cap"><path d="M-5.2 -28.6 q0 -5.8 5.2 -5.8 q5.2 0 5.2 5.8 z"></path><path class="acc-cap-brim" d="M1.6 -29.4 h6.6 q.9 0 .9 .8 v.5 h-7.5 z"></path></g>'
+    + '<path class="ch-headwear acc acc-crown" d="M-4 -30.4 v-4.4 l2 2 l2 -3.2 l2 3.2 l2 -2 v4.4 z"></path>'
+    + `<g class="ch-headwear acc acc-flowers">${[[-4.4, -30.6, '#f28bb0'], [-2.4, -32.9, '#ffd166'], [.2, -33.7, '#ffffff'], [2.7, -32.9, '#f28bb0'], [4.6, -30.6, '#ffd166']].map(([x, y, color]) => `<circle cx="${x}" cy="${y}" r="1.15" fill="${color}"></circle><circle cx="${x}" cy="${y}" r=".4" fill="#e58a2f"></circle>`).join('')}</g>`
+    + '<g class="ch-headwear acc acc-bow" transform="translate(3.9 -32.3) rotate(18)"><path d="M0 0 l-2.7 -1.7 v3.4 z M0 0 l2.7 -1.7 v3.4 z"></path><circle r=".85"></circle></g>'
+    + '<g class="ch-headwear acc acc-headphones"><path class="acc-band" d="M-5.4 -26.8 q0 -8.8 5.4 -8.8 q5.4 0 5.4 8.8"></path><rect x="-6.7" y="-28.8" width="2.3" height="3.9" rx="1"></rect><rect x="4.4" y="-28.8" width="2.3" height="3.9" rx="1"></rect></g>'
+    + '<g class="ch-headwear acc acc-catears"><path d="M-4.9 -30.2 l.4 -4.8 l3.3 2.9 z M4.9 -30.2 l-.4 -4.8 l-3.3 2.9 z"></path><path class="acc-inner" d="M-4.3 -30.9 l.3 -2.9 l1.9 1.7 z M4.3 -30.9 l-.3 -2.9 l-1.9 1.7 z"></path></g>'
+    + '<g class="ch-headwear ow ow-hood"><path d="M-6 -24.6 q-.7 -9.6 6 -9.6 q6.7 0 6 9.6 q-.9 -4.9 -6 -5.2 q-5.1 .3 -6 5.2 z"></path><path class="ow-spikes" d="M-4 -32.9 l.9 -2.6 l1.3 2 z M-1.1 -34 l1.1 -2.8 l1.1 2.8 z M2 -33.4 l1.3 -2.3 l.8 2.7 z"></path><circle class="ow-ears" cx="-4.7" cy="-32.6" r="2"></circle><circle class="ow-ears" cx="4.7" cy="-32.6" r="2"></circle><circle class="ow-ears-inner" cx="-4.7" cy="-32.6" r="1"></circle><circle class="ow-ears-inner" cx="4.7" cy="-32.6" r="1"></circle></g>'
+    + '<g class="ch-headwear ow ow-chef"><circle cx="-2.6" cy="-33.6" r="2.4"></circle><circle cx="2.6" cy="-33.6" r="2.4"></circle><circle cx="0" cy="-35.2" r="2.9"></circle><rect x="-4.3" y="-31.8" width="8.6" height="2.8" rx=".7"></rect></g>'
+    + '<g class="ch-headwear ow ow-nightcap"><path d="M-5.2 -29.4 q1.4 -7.4 6.6 -6.8 q3.4 .6 5.6 4.6 l-1.6 .8 q-1.4 -2.2 -3.2 -2.6 l3.6 4 z"></path><rect x="-5.6" y="-30.2" width="11.2" height="2.2" rx="1.1"></rect><circle cx="6.6" cy="-31.2" r="1.3"></circle></g>';
+  const FACEWEAR = '<g class="acc acc-glasses"><circle cx="-1.75" cy="-26.6" r="1.55"></circle><circle cx="1.75" cy="-26.6" r="1.55"></circle><path d="M-.2 -26.7 h.4 M-3.3 -26.9 l-1.5 -.4 M3.3 -26.9 l1.5 -.4"></path></g>';
+  const OUTFIT_BODY = '<path class="ow-belly" d="M-2.7 -19.6 q2.7 -1.6 5.4 0 v6.6 q-2.7 1.5 -5.4 0 z"></path>'
+    + '<g class="ow-dots"><circle cx="-2.6" cy="-19.4" r=".5"></circle><circle cx="1.8" cy="-18.2" r=".5"></circle><circle cx="-1" cy="-15.2" r=".5"></circle><circle cx="2.6" cy="-13.6" r=".5"></circle><circle cx="-2.4" cy="-9.6" r=".5"></circle><circle cx="2.2" cy="-8.4" r=".5"></circle></g>'
+    + '<g class="ow-emblem"><circle cx="0" cy="-18.2" r="2"></circle><path d="M0 -19.6 l.5 1 1.1 .15 -.8 .75 .2 1.1 -1 -.5 -1 .5 .2 -1.1 -.8 -.75 1.1 -.15z"></path></g>'
+    + '<path class="ow-apron" d="M-3.5 -19 h7 v12.4 q-3.5 1.1 -7 0 z"></path><path class="ow-apron-straps" d="M-2.4 -19 l-.9 -3.2 M2.4 -19 l.9 -3.2"></path>'
+    + '<path class="ow-stripes" d="M-3.7 -21.4 V-12.2 M3.7 -21.4 V-12.2"></path>'
+    + '<path class="ow-shirt" d="M-1.9 -22.2 L0 -16.8 L1.9 -22.2 Z"></path>';
+  const NECKWEAR = '<path class="acc acc-bowtie" d="M0 -21.5 l-1.9 -1.1 v2.2 z M0 -21.5 l1.9 -1.1 v2.2 z"></path>'
+    + '<g class="acc acc-necklace"><path d="M-2.3 -22.7 q2.3 3.2 4.6 0"></path><circle cx="0" cy="-20.9" r=".65"></circle></g>';
+
+  function personMarkup(key, { attrs = '', badge = '' } = {}) {
     const person = PEOPLE[key];
     const splash = [[-6, -2, -5, -5], [-3, -1, -2, -7], [3, -1, 2, -7], [6, -2, 5, -5]]
       .map(([x, y, dx, dy]) => `<circle cx="${x}" cy="${y}" r=".8" style="--dx:${dx}px;--dy:${dy}px"></circle>`).join('');
-    return `<g class="ch-pos ch-${key}"><g class="ch-person"><g transform="scale(${person.scale})">
+    return `<g class="ch-pos ch-${key}" ${attrs}><g class="ch-person"><g transform="scale(${person.scale})">
       <ellipse class="ch-shadow" cx="0" cy="0" rx="6.5" ry="1.4"></ellipse>
       <g class="ch-splash">${splash}</g>
       <g class="ch-body">
-        ${key === 'ines' ? '<path class="ch-hair" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.9 11.4 q-6.2 2.2 -12.4 0 z"></path>' : ''}
+        <path class="ow-cape" d="M-4.2 -22 h8.4 l3.4 19 q-7.6 2.2 -15.2 0 z"></path>
+        <g class="ch-back">${HAIR_BACK[key]}</g>
         <rect class="ch-thigh" x="-3.5" y="-12.5" width="3" height="6.5" rx=".8"></rect><rect class="ch-thigh" x=".5" y="-12.5" width="3" height="6.5" rx=".8"></rect>
         <rect class="ch-shin" x="-3.3" y="-6.6" width="2.6" height="5.4"></rect><rect class="ch-shin" x=".7" y="-6.6" width="2.6" height="5.4"></rect>
         <rect class="ch-shoe" x="-4.1" y="-1.9" width="3.7" height="1.9" rx=".9"></rect><rect class="ch-shoe" x=".4" y="-1.9" width="3.7" height="1.9" rx=".9"></rect>
         <path class="ch-wide" d="M-3.7 -12.6 H-.3 L.1 -1.2 H-5 Z M.3 -12.6 H3.7 L5 -1.2 H-.1 Z"></path>
         <rect class="ch-boot" x="-3.9" y="-4.6" width="3.5" height="4.6" rx=".9"></rect><rect class="ch-boot" x=".4" y="-4.6" width="3.5" height="4.6" rx=".9"></rect>
+        <path class="ow-dress" d="M-4.6 -15.6 h9.2 l3.2 10.8 h-15.6 z"></path>
         <path class="ch-torso" d="M-4.4 -11.6 v-8.4 q0 -2.2 2.2 -2.2 h4.4 q2.2 0 2.2 2.2 v8.4 z"></path>
+        ${OUTFIT_BODY}
         <path class="ch-coat" d="M-4.9 -8.6 v-11.4 q0 -2.4 2.4 -2.4 h5 q2.4 0 2.4 2.4 v11.4 z"></path>
         <path class="ch-coat-line" d="M0 -21.6 V-8.8"></path>
+        ${NECKWEAR}
         <rect class="ch-neck" x="-1" y="-23.6" width="2" height="2"></rect>
         <g class="ch-scarf"><rect x="-3.4" y="-23.2" width="6.8" height="2.4" rx="1.1"></rect><rect x="1" y="-21.6" width="2" height="5" rx=".8"></rect></g>
         ${armMarkup('l', -4.2, -20.4)}
         ${armMarkup('r', 4.2, -20.4, key === 'ines' ? CAN : '')}
         <g class="ch-head">
           <circle class="ch-face" cx="0" cy="-27" r="4.8"></circle>
+          <path class="ow-mask" d="M-4.7 -27.9 h9.4 v2.4 h-9.4 z"></path>
           <g class="ch-eyes"><circle cx="-1.7" cy="-26.6" r=".9"></circle><circle cx="1.7" cy="-26.6" r=".9"></circle></g>
           <g class="ch-glints"><circle cx="-1.4" cy="-26.95" r=".3"></circle><circle cx="2" cy="-26.95" r=".3"></circle></g>
+          ${MOOD_EYES}
           <circle class="ch-cheek" cx="-3" cy="-25" r=".9"></circle><circle class="ch-cheek" cx="3" cy="-25" r=".9"></circle>
           <path class="ch-mouth" d="M-1.1 -24.5 q1.1 1 2.2 0"></path>
-          <path class="ch-hair" d="${HAIR_FRONT[key]}"></path>
+          ${MOOD_MOUTH}
+          ${HAIR_TOP[key]}
+          ${MOOD_OVER}
+          ${FACEWEAR}
           ${key === 'ines' ? '<g class="ch-earrings"><circle cx="-4.9" cy="-25.2" r=".8"></circle><circle cx="4.9" cy="-25.2" r=".8"></circle></g>' : ''}
           <g class="ch-shades"><rect x="-3.2" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x=".3" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x="-.4" y="-27.1" width=".8" height=".45"></rect></g>
           <g class="ch-hat"><path d="M-5 -28.8 q0 -6 5 -6 q5 0 5 6 z"></path><rect x="-5.4" y="-29.6" width="10.8" height="2.1" rx="1"></rect><circle cx="0" cy="-35" r="1.4"></circle></g>
           <path class="ch-hood" d="M-6 -24.6 q-.7 -9.6 6 -9.6 q6.7 0 6 9.6 q-.9 -4.9 -6 -5.2 q-5.1 .3 -6 5.2 z"></path>
           <g class="ch-santa"><path d="M-5.2 -29.4 q1.4 -7.4 6.6 -6.8 q3.4 .6 5.6 4.6 l-1.6 .8 q-1.4 -2.2 -3.2 -2.6 l3.6 4 z"></path><rect x="-5.6" y="-30.2" width="11.2" height="2.2" rx="1.1"></rect><circle cx="6.6" cy="-31.2" r="1.3"></circle></g>
           <g class="ch-party"><path d="M-2.8 -31.2 L0 -39.6 L2.8 -31.2 Z"></path><path class="ch-party-stripe" d="M-1.9 -33.8 L1.9 -33.8 M-1 -36.6 L1 -36.6"></path><circle cx="0" cy="-40" r="1"></circle></g>
+          ${HEADWEAR}
         </g>
         ${key === 'matteo' ? `<g class="ch-umbrella">
           <path class="ch-umbrella-stick" d="M-6.6 -29.2 L-8.6 -49"></path>
@@ -302,6 +412,8 @@
           <circle class="ch-umbrella-tip" cx="-8.6" cy="-58.6" r=".9"></circle>
         </g>` : ''}
       </g>
+      <text class="ch-mood-badge" x="6.2" y="-35">${badge}</text>
+      <text class="ch-unread" x="-11.6" y="-35">💌</text>
       <rect class="ch-hit" x="-9" y="-38" width="18" height="40"></rect>
     </g></g></g>`;
   }
@@ -562,6 +674,9 @@
   let plantsSignature = '';
   let bubbleTimer = null;
   const saidCount = { ines: 0, matteo: 0 };
+  const lastMessage = { ines: '', matteo: '' };
+  let tempAct = null;
+  let tempTimer = null;
 
   function atTime(base, hours, minutes) {
     const date = new Date(base);
@@ -654,11 +769,12 @@
     const special = specialAct({ minutes: minutesOf(now), condition, nightness });
     const options = special ? [special] : eligibleActs({ condition, nightness, temperature, minutes: minutesOf(now), season, thirsty });
     actOptions = options;
-    if (state.act && ACTS[state.act]) currentAct = state.act;
+    if (tempAct) currentAct = tempAct;
+    else if (state.act && ACTS[state.act]) currentAct = state.act;
     else if (!options.includes(currentAct)) currentAct = pick(options);
     const act = ACTS[currentAct];
     const outfit = outfitFor({ condition, temperature, place: act.place });
-    dressCouple(outfit, act.place === 'out' ? nightness * (nightness > 0.55 ? 0.38 : 0.5) : 0);
+    dressPeople(outfit, act.place === 'out' ? nightness * (nightness > 0.55 ? 0.38 : 0.5) : 0);
 
     const litRooms = new Set(state.lights.map(normalizeRoom).map((room) => (WINDOW_ROOMS.includes(room) ? room : 'salon')));
     if (act.room) litRooms.add(act.room);
@@ -681,7 +797,6 @@
       place: act.place,
       outfit,
       shades: String(outfit === 'hot' && clearish && nightness < 0.3),
-      inesWide: String(Boolean(WARDROBE[outfit].ines.wide)),
       decor,
       fireworks: String(isNewYearNight(now) || state.decor === 'newyear'),
       bats: String(decor === 'halloween' && nightness > 0.3),
@@ -698,27 +813,98 @@
 
   const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
-  // Colores de ropa y piel como variables --ines-* y --matteo-*; de noche, en el jardín, se oscurecen.
-  function dressCouple(outfit, shade) {
-    Object.entries(PEOPLE).forEach(([key, person]) => {
-      const clothes = WARDROBE[outfit][key];
-      const tone = (hex) => mix(hex, '#141d2e', shade);
-      const colors = {
-        skin: person.skin,
-        hair: person.hair,
-        eyes: person.eyes,
-        top: clothes.top,
-        sleeve: clothes.sleeve === 'skin' ? person.skin : clothes.top,
-        pants: clothes.pants,
-        shin: clothes.shin === 'skin' ? person.skin : clothes.pants,
-        shoe: clothes.shoe,
-        coat: clothes.coat || clothes.top,
-        boot: clothes.boot || clothes.shoe,
-        scarf: clothes.scarf || clothes.top,
-        hat: clothes.hat || person.hair
-      };
-      Object.entries(colors).forEach(([part, color]) => container.style.setProperty(`--${key}-${part}`, tone(color)));
+  // Rasgos de cada muñeco para el CSS (data-*): ropa según su elección y el tiempo, peinado,
+  // accesorios y cara según el estado de ánimo.
+  const OUTFIT_HEAD = { pajamas: 'nightcap', dino: 'hood', bear: 'hood', chef: 'chef' };
+  function lookFor(key, avatar) {
+    const look = { ...DEFAULT_LOOK[key], ...(avatar?.look || {}) };
+    if (!HAIRSTYLES[key].some(([id]) => id === look.hair)) look.hair = DEFAULT_LOOK[key].hair;
+    if (!OUTFITS[look.outfit]) look.outfit = 'casual';
+    return look;
+  }
+
+  function traitsFor(key, weatherOutfit, avatar = {}) {
+    const look = lookFor(key, avatar);
+    const casual = look.outfit === 'casual';
+    const wear = !casual ? 'fun' : !look.weather && ['cold', 'rain'].includes(weatherOutfit) ? 'mild' : weatherOutfit;
+    const outfitHead = casual ? '' : OUTFIT_HEAD[look.outfit] || '';
+    const weatherHead = wear === 'cold' || wear === 'rain';
+    const head = weatherHead || outfitHead ? 'none' : look.head;
+    const mood = MOODS[avatar.mood] ? avatar.mood : 'none';
+    const face = MOODS[mood] || {};
+    return {
+      wear,
+      style: look.outfit,
+      hair: look.hair,
+      head,
+      face: look.face,
+      neck: wear === 'cold' && look.neck === 'scarf' ? 'none' : look.neck,
+      wide: String(key === 'ines' && casual && ['warm', 'mild', 'cold'].includes(wear)),
+      covered: String(weatherHead || ['hood', 'chef', 'nightcap'].includes(outfitHead) || ['beanie', 'cap'].includes(head)),
+      mood,
+      eyes: face.eyes || 'open',
+      mouth: face.mouth || 'smile',
+      brows: face.brows || 'none',
+      extra: face.extra || '',
+      unread: String(Boolean(avatar.unread))
+    };
+  }
+
+  function colorsFor(key, traits, look) {
+    const person = PEOPLE[key];
+    const skin = person.skin;
+    if (traits.wear === 'fun') {
+      const spec = OUTFITS[look.outfit].colors;
+      const colors = spec[key] || spec;
+      return { skin, hair: look.hairColor, eyes: person.eyes, top: colors.top, sleeve: colors.top, pants: colors.pants, shin: colors.shin === 'skin' ? skin : colors.pants, shoe: colors.shoe, coat: colors.top, boot: colors.shoe, scarf: colors.top, hat: look.hairColor, accent: colors.accent || '#ffffff', cape: colors.cape || colors.top };
+    }
+    const base = WARDROBE[traits.wear][key];
+    return { skin, hair: look.hairColor, eyes: person.eyes, top: look.top, sleeve: base.sleeve === 'skin' ? skin : look.top, pants: look.bottom, shin: base.shin === 'skin' ? skin : look.bottom, shoe: look.shoes, coat: base.coat || look.top, boot: base.boot || look.shoes, scarf: base.scarf || look.top, hat: base.hat || look.hairColor, accent: '#ffffff', cape: look.top };
+  }
+
+  const moodBadge = (traits) => (traits.mood !== 'none' ? MOODS[traits.mood].emoji : '');
+
+  // Colores como variables --ines-* y --matteo-*; de noche, en el jardín, se oscurecen.
+  function dressPeople(outfit, shade) {
+    Object.keys(PEOPLE).forEach((key) => {
+      const avatar = state.avatars?.[key] || {};
+      const traits = traitsFor(key, outfit, avatar);
+      const look = lookFor(key, avatar);
+      const pos = container.querySelector(`.ch-pos.ch-${key}`);
+      Object.assign(pos.dataset, traits);
+      pos.querySelector('.ch-mood-badge').textContent = moodBadge(traits);
+      const colors = colorsFor(key, traits, look);
+      Object.entries(colors).forEach(([part, color]) => container.style.setProperty(`--${key}-${part}`, mix(color, '#141d2e', shade)));
     });
+  }
+
+  // Muñeco suelto para el editor: mismo dibujo y CSS que en la escena.
+  const PREVIEW_VIEW = { ines: '180 138 32 54', matteo: '206 136 32 56' };
+  function preview(key, avatar = {}) {
+    const look = lookFor(key, avatar);
+    const traits = traitsFor(key, look.outfit === 'casual' ? 'mild' : 'fun', { ...avatar, unread: false });
+    const colors = colorsFor(key, traits, look);
+    const style = Object.entries(colors).map(([part, color]) => `--${key}-${part}:${color}`).join(';');
+    const attrs = Object.entries(traits).map(([name, value]) => `data-${name}="${escapeText(value)}"`).join(' ');
+    return `<div class="scene avatar-stage" data-act="wave" data-place="out" style="${style}"><svg class="avatar-svg" viewBox="${PREVIEW_VIEW[key]}" aria-hidden="true">${personMarkup(key, { attrs, badge: moodBadge(traits) })}</svg></div>`;
+  }
+
+  // Toques entre los dos: un plan especial unos segundos.
+  function play(kind) {
+    if (!container) return;
+    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive' }[kind] || 'hug';
+    apply();
+    if (kind === 'kiss' || kind === 'hug') {
+      container.dataset.love = 'false';
+      void container.getBoundingClientRect();
+      container.dataset.love = 'true';
+    }
+    clearTimeout(tempTimer);
+    tempTimer = setTimeout(() => {
+      tempAct = null;
+      container.dataset.love = 'false';
+      apply();
+    }, 9000);
   }
 
   // Cada cierto tiempo cambian de plan (entre los que encajan con el momento).
@@ -785,6 +971,9 @@
     const night = container.dataset.night === 'true';
     const thirsty = (state.plants || []).filter((plant) => ['thirsty', 'parched'].includes(plant.mood));
     const lines = [];
+    const avatar = state.avatars?.[key] || {};
+    if (avatar.message) lines.push(`💌 «${avatar.message}»`);
+    if (MOODS[avatar.mood]) lines.push(`Hoy estoy ${MOODS[avatar.mood].label[key === 'ines' ? 0 : 1].toLowerCase()} ${MOODS[avatar.mood].emoji}`);
     if (state.birthday) lines.push(state.birthday === PEOPLE[key].name ? '¡Hoy es mi cumple! 🎂' : `¡Feliz cumple, ${state.birthday}! 🎂`);
     if (state.anniversary) lines.push(`¡Feliz aniversario, ${partner}! 💞`);
     if (state.trip === 'leaving') lines.push(`¡Nos vamos a ${state.tripName || 'viajar'}! 🧳`);
@@ -806,7 +995,13 @@
   }
 
   function say(key, hit) {
+    const message = state.avatars?.[key]?.message || '';
+    if (message !== lastMessage[key]) {
+      lastMessage[key] = message;
+      saidCount[key] = 0;
+    }
     const lines = phrasesFor(key);
+    if (message && saidCount[key] % lines.length === 0) window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: { target: 'avatar-read', person: key } }));
     const text = lines[saidCount[key] % lines.length];
     saidCount[key] += 1;
     const bubble = container.querySelector('.sc-bubble');
@@ -839,7 +1034,11 @@
     container = element;
     container.classList.add('scene');
     container.setAttribute('role', 'img');
-    container.innerHTML = `${buildMarkup()}<div class="sc-bubble" hidden aria-live="polite"></div>`;
+    container.innerHTML = `${buildMarkup()}<div class="sc-bubble" hidden aria-live="polite"></div><button type="button" class="sc-wardrobe" aria-label="Personaliza tu muñeco" title="Tu muñeco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg></button>`;
+    container.querySelector('.sc-wardrobe').addEventListener('click', (event) => {
+      event.stopPropagation();
+      window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: { target: 'avatar' } }));
+    });
     apply();
     // El sol y la luna avanzan con el reloj.
     setInterval(apply, 5 * 60 * 1000);
@@ -866,5 +1065,5 @@
     }
   }
 
-  window.umbralScene = { mount, update };
+  window.umbralScene = { mount, update, preview, play, catalog: { DEFAULT_LOOK, HAIRSTYLES, HAIR_COLORS, CLOTH_COLORS, OUTFITS, HEAD_ACC, FACE_ACC, NECK_ACC, MOODS, POKES } };
 })();

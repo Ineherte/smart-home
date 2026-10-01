@@ -131,7 +131,7 @@ function renderUsHero() {
   const together = anniversary && Number(anniversary.date.slice(0, 4)) < new Date().getFullYear() ? daysBetween(anniversary.date, todayISO()) : null;
   const next = upcomingDates()[0];
   document.querySelector('#usHero').innerHTML = `
-    <div class="us-hero-names"><span class="us-avatar is-a">${escapeHtml(initialsOf(householdPeople[0]))}</span><i data-lucide="heart"></i><span class="us-avatar is-b">${escapeHtml(initialsOf(householdPeople[1]))}</span></div>
+    <div class="us-hero-names">${householdPeople.map((person, index) => `${index ? '<i data-lucide="heart"></i>' : ''}<button type="button" class="us-doll" data-open-avatar="${escapeHtml(person)}" aria-label="${person === currentUser ? 'Personaliza tu muñeco' : `Muñeco de ${escapeHtml(person)}`}">${typeof avatarPreviewFor === 'function' ? avatarPreviewFor(person) : ''}</button>`).join('')}</div>
     <div class="us-hero-copy"><p class="eyebrow">Nosotros</p><h2>${escapeHtml(householdPeople.join(' & '))}</h2><p>${together ? `${together.toLocaleString('es-ES')} días juntos` : 'Vuestro rincón: fotos, fechas y planes'}</p></div>
     ${next ? `<button type="button" class="us-next" data-us-view-jump="dates"><span>${escapeHtml(next.entry.emoji || DATE_KINDS[next.entry.kind].emoji)}</span><strong>${escapeHtml(countdownText(next))}</strong><small>${escapeHtml(next.entry.title)}</small></button>` : ''}`;
 }
@@ -402,6 +402,8 @@ function openPlanInPlace(id) {
 
 document.querySelector('#usView').addEventListener('click', async (event) => {
   const target = event.target;
+  const doll = target.closest('[data-open-avatar]');
+  if (doll) return openAvatarEditor(doll.dataset.openAvatar === currentUser ? 'mood' : 'partner');
   const view = target.closest('[data-us-view], [data-us-view-jump]');
   if (view) return setUsView(view.dataset.usView || view.dataset.usViewJump);
   const momentSource = target.closest('[data-new-moment]');
