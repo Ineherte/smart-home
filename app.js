@@ -251,7 +251,7 @@ function escapeHtml(value) {
 
 async function getNotes() {
   if (supabaseClient && authUserId) {
-    const { data, error } = await supabaseClient.from('notes').select('id, content, scope, priority, completed, owner_id, created_at').order('created_at', { ascending: false });
+    const { data, error } = await supabaseClient.from('notes').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     return { shared: data.filter((note) => note.scope === 'shared'), private: data.filter((note) => note.scope === 'private') };
   }

@@ -1,41 +1,58 @@
-// Tareas de casa: puntuales o que se repiten, asignadas a una persona, a los dos o
-// por turnos (al completarla le toca a la otra persona). Sirve también para
-// vencimientos como la revisión de la caldera. Guarda quién hizo qué para mostrar
-// un reparto justo del último mes.
+// Tareas de casa: datos y acciones. Pueden ser puntuales o repetirse, son de una persona,
+// de los dos o por turnos (al completarla le toca a la otra), y tienen prioridad, detalles
+// y duración estimada. Guarda quién hizo qué para el reparto. La interfaz está en pending.js.
 const tasksStore = createHouseholdStore({ table: 'household_tasks', localKey: 'umbral-tasks' });
 const completionsStore = createHouseholdStore({ table: 'task_completions', localKey: 'umbral-task-completions' });
 
 const RECURRENCE_LABELS = { none: 'Una vez', daily: 'Cada día', weekly: 'Cada semana', biweekly: 'Cada 2 semanas', monthly: 'Cada mes', yearly: 'Cada año' };
+const PRIORITIES = {
+  high: { label: 'Alta', short: 'Importante', icon: 'flag', rank: 0 },
+  normal: { label: 'Normal', short: 'Normal', icon: 'flag', rank: 1 },
+  low: { label: 'Sin prisa', short: 'Sin prisa', icon: 'coffee', rank: 2 }
+};
+const DURATIONS = [5, 15, 30, 60, 120];
 
 const TASK_ICONS = [
   [/basura|reciclaj|contenedor|spazzatura|rifiuti/, 'trash-2'],
-  [/plant|regar|jardin|cesped/, 'sprout'],
+  [/\bplant|\bregar|jardin|cesped/, 'sprout'],
   [/ropa|lavadora|tender|plancha|sabana|toalla|bucato/, 'shirt'],
   [/compra|super|mercado|spesa/, 'shopping-cart'],
-  [/caldera|revision|mantenimiento|filtro|arregl|reparar|caldaia/, 'wrench'],
-  [/factura|pagar|recibo|seguro|impuesto|papeles|banco|alquiler|bolletta/, 'receipt-text'],
+  [/caldera|revision|mantenimiento|filtro|arregl|reparar|caldaia|bombilla/, 'wrench'],
+  [/factura|pagar|recibo|seguro|impuesto|papeles|banco|alquiler|bolletta|gestion|cita/, 'receipt-text'],
   [/perro|gato|mascota|veterin|arena/, 'paw-print'],
-  [/cena|comida|cocinar|menu|recet/, 'chef-hat'],
+  [/cena|comida|cocinar|menu|recet|nevera|congelador/, 'chef-hat'],
   [/coche|itv|taller|gasolina|revisione auto/, 'car'],
-  [/bano|limpi|fregar|aspira|polvo|cristales|horno|nevera|pulire/, 'sparkles']
+  [/llamar|telefon|escribir|mail|correo/, 'phone'],
+  [/bano|limpi|fregar|aspira|polvo|cristales|horno|pulire|barrer|lavavajillas|platos/, 'sparkles']
 ];
 
 const TASK_PRESETS = [
-  { title: 'Sacar la basura', recurrence: 'weekly', assignee: 'rotate' },
-  { title: 'Limpiar el baño', recurrence: 'weekly', assignee: 'rotate' },
-  { title: 'Regar las plantas', recurrence: 'weekly', assignee: 'both' },
-  { title: 'Cambiar las sábanas', recurrence: 'biweekly', assignee: 'both' },
-  { title: 'Limpieza a fondo de la cocina', recurrence: 'monthly', assignee: 'rotate' },
-  { title: 'Revisión de la caldera', recurrence: 'yearly', assignee: 'both' }
+  { title: 'Sacar la basura', recurrence: 'weekly', assignee: 'rotate', minutes: 5 },
+  { title: 'Limpiar el baño', recurrence: 'weekly', assignee: 'rotate', minutes: 30 },
+  { title: 'Regar las plantas', recurrence: 'weekly', assignee: 'both', minutes: 10 },
+  { title: 'Cambiar las sábanas', recurrence: 'biweekly', assignee: 'both', minutes: 15 },
+  { title: 'Aspirar la casa', recurrence: 'weekly', assignee: 'rotate', minutes: 30 },
+  { title: 'Limpieza a fondo de la cocina', recurrence: 'monthly', assignee: 'rotate', minutes: 60 },
+  { title: 'Revisión de la caldera', recurrence: 'yearly', assignee: 'both', minutes: 60 }
 ];
 
 let householdTasks = [];
 let taskCompletions = [];
 let tasksReloadTimer;
+// Si aún no se ha ejecutado tasks-notes-v2.sql, se guardan las tareas sin los campos nuevos.
+let tasksV2Available = true;
 
 const taskIcon = (title) => TASK_ICONS.find(([pattern]) => pattern.test(normalizeText(title)))?.[1] || 'circle-check-big';
 const isoToDate = (iso) => new Date(`${iso}T12:00:00`);
 const daysBetween = (fromISO, toISO) => Math.round((isoToDate(toISO) - isoToDate(fromISO)) / 86400000);
+const todayISO = () => dateToISO(new Date());
+const taskPriority = (task) => (PRIORITIES[task.priority] ? task.priority : 'normal');
+
+function addDaysToISO(iso, days) {
+  const date = isoToDate(iso);
+  date.setDate(date.getDate() + days);
+  return dateToISO(date);
+}
 
 function addRecurrence(iso, recurrence) {
   const date = isoToDate(iso);
@@ -49,20 +66,40 @@ function addRecurrence(iso, recurrence) {
 
 // La siguiente fecha sigue el ritmo de la tarea, pero nunca cae en el pasado.
 function nextDueDate(task) {
-  const today = dateToISO(new Date());
+  const today = todayISO();
   let next = addRecurrence(task.due_date, task.recurrence);
   while (next <= today) next = addRecurrence(next, task.recurrence);
   return next;
 }
 
+// Fechas en las que toca una tarea entre from y to (las repetidas aparecen varias veces).
+function taskOccurrences(task, from, to) {
+  const dates = [];
+  let date = task.due_date;
+  for (let guard = 0; date <= to && guard < 60; guard += 1) {
+    if (date >= from) dates.push(date);
+    if (task.recurrence === 'none') break;
+    date = addRecurrence(date, task.recurrence);
+  }
+  return dates;
+}
+
 function dueLabel(iso) {
-  const days = daysBetween(dateToISO(new Date()), iso);
+  const days = daysBetween(todayISO(), iso);
   if (days < -1) return `Hace ${-days} días`;
   if (days === -1) return 'Ayer';
   if (days === 0) return 'Hoy';
   if (days === 1) return 'Mañana';
   if (days < 7) return capitalizeFirst(new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(isoToDate(iso)));
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(isoToDate(iso));
+}
+
+function minutesLabel(minutes) {
+  if (!minutes) return '';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} h ${rest}` : `${hours} h`;
 }
 
 const isMine = (task) => task.assignee === 'both' || task.assignee === currentUser;
@@ -76,7 +113,7 @@ async function loadTasks() {
       completionsStore.list({ build: (query) => query.gte('done_at', since).order('done_at', { ascending: false }), filter: (row) => row.done_at >= since })
     ]);
     householdTasks = tasks;
-    taskCompletions = completions;
+    taskCompletions = completions.sort((first, second) => String(second.done_at).localeCompare(String(first.done_at)));
   } catch (error) {
     console.error('[Umbral] Tareas:', error);
     showToast(`No se pudieron cargar las tareas: ${error.message || 'error desconocido'}`);
@@ -84,33 +121,26 @@ async function loadTasks() {
   renderTasks();
 }
 
-function taskRow(task, bucket) {
-  const chip = task.assignee === 'both' ? '<span class="person-chip is-both" title="Los dos"><i data-lucide="users"></i></span>' : `<span class="person-chip ${task.assignee === currentUser ? 'is-me' : ''}" title="${escapeHtml(assigneeLabel(task))}">${escapeHtml(initialsOf(task.assignee))}</span>`;
-  const meta = [dueLabel(task.due_date), task.recurrence !== 'none' ? RECURRENCE_LABELS[task.recurrence] : '', task.rotate ? 'por turnos' : ''].filter(Boolean).join(' · ');
-  return `<div class="list-item task-item is-${bucket}" data-task-row="${task.id}">
-    <button type="button" class="check-button" data-task-done="${task.id}" aria-label="Marcar «${escapeHtml(task.title)}» como hecha"><i data-lucide="check"></i></button>
-    <span class="task-icon"><i data-lucide="${taskIcon(task.title)}"></i></span>
-    <span class="list-item-copy"><strong>${escapeHtml(task.title)}</strong><small>${escapeHtml(meta)}</small></span>
-    ${chip}
-    <button type="button" class="icon-ghost" data-task-menu="${task.id}" aria-label="Más opciones" title="Más opciones"><i data-lucide="more-horizontal"></i></button>
-    <div class="task-actions" hidden>
-      <button type="button" data-task-snooze="${task.id}"><i data-lucide="alarm-clock"></i> Mañana</button>
-      <button type="button" data-task-delete="${task.id}" class="is-danger"><i data-lucide="trash-2"></i> Eliminar</button>
-    </div>
-  </div>`;
+const V2_FIELDS = ['priority', 'details', 'minutes'];
+const isMissingColumn = (error) => /column|schema cache/i.test(error?.message || '') && V2_FIELDS.some((field) => (error.message || '').includes(field));
+const stripV2 = (row) => Object.fromEntries(Object.entries(row).filter(([key]) => !V2_FIELDS.includes(key)));
+
+// Guarda probando primero con los campos nuevos; si la base aún no los tiene, sin ellos.
+async function saveWithFallback(save, row) {
+  if (!tasksV2Available) return save(stripV2(row));
+  try {
+    return await save(row);
+  } catch (error) {
+    if (!isMissingColumn(error)) throw error;
+    tasksV2Available = false;
+    showToast('Falta ejecutar tasks-notes-v2.sql en Supabase: prioridad y duración no se guardarán');
+    return save(stripV2(row));
+  }
 }
 
-// La lista se pinta junto a las notas en pending.js; aquí, sugerencias y resúmenes.
+// Resumen en Inicio y centro de atención; la lista la pinta pending.js.
 function renderTasks() {
-  const today = dateToISO(new Date());
-  const existing = new Set(householdTasks.map((task) => normalizeText(task.title)));
-  const presets = TASK_PRESETS.filter((preset) => !existing.has(normalizeText(preset.title)));
-  document.querySelector('#taskPresets').innerHTML = presets.map((preset) => `<button type="button" class="suggestion-chip" data-task-preset="${escapeHtml(preset.title)}"><i data-lucide="${taskIcon(preset.title)}"></i>${escapeHtml(preset.title)} <em>${RECURRENCE_LABELS[preset.recurrence].toLowerCase()}</em></button>`).join('');
-  document.querySelector('#taskPresetsBlock').hidden = !presets.length || document.querySelector('#pendingForm').dataset.kind !== 'task';
-
-  renderTaskBalance();
-
-  // Resumen en Inicio, navegación y centro de atención.
+  const today = todayISO();
   const overdue = householdTasks.filter((task) => task.due_date < today);
   const mineNow = householdTasks.filter((task) => isMine(task) && task.due_date <= today);
   const nextMine = householdTasks.filter(isMine).sort((first, second) => first.due_date.localeCompare(second.due_date))[0];
@@ -121,27 +151,14 @@ function renderTasks() {
   renderPending();
 }
 
-function renderTaskBalance() {
-  const block = document.querySelector('#taskBalance');
-  const since = Date.now() - 30 * 86400000;
-  const recent = taskCompletions.filter((completion) => new Date(completion.done_at).getTime() >= since);
-  block.hidden = !recent.length;
-  if (!recent.length) return;
-  const counts = householdPeople.map((person) => ({ person, count: recent.filter((completion) => completion.done_by === person).length }));
-  const total = counts.reduce((sum, entry) => sum + entry.count, 0) || 1;
-  document.querySelector('#taskBalanceBar').innerHTML = counts.map((entry, index) => `<span class="balance-segment is-${index}" style="flex:${Math.max(entry.count, 0.2)}"></span>`).join('');
-  document.querySelector('#taskBalanceLegend').innerHTML = counts.map((entry, index) => `<span><i class="balance-dot is-${index}"></i>${escapeHtml(entry.person)} <b>${entry.count}</b> (${Math.round((entry.count / total) * 100)}%)</span>`).join('');
-}
-
 async function completeTask(id) {
   const task = householdTasks.find((entry) => entry.id === id);
   if (!task) return;
-  const row = document.querySelector(`[data-task-row="${id}"]`);
-  row?.classList.add('is-completing');
+  document.querySelectorAll(`[data-task-row="${CSS.escape(id)}"]`).forEach((row) => row.classList.add('is-completing'));
   await new Promise((resolve) => setTimeout(resolve, 380));
   const doneBy = householdPeople.includes(currentUser) ? currentUser : task.assignee;
   try {
-    const [completion] = await completionsStore.insert({ task_id: task.id, title: task.title, done_by: doneBy, done_at: new Date().toISOString() });
+    const [completion] = await saveWithFallback((row) => completionsStore.insert(row), { task_id: task.id, title: task.title, done_by: doneBy, done_at: new Date().toISOString(), minutes: task.minutes || null });
     taskCompletions.unshift(completion);
     if (task.recurrence === 'none') {
       await tasksStore.update(id, { active: false });
@@ -162,31 +179,61 @@ async function completeTask(id) {
   renderTasks();
 }
 
-async function createTask({ title, recurrence, dueDate, assignee }) {
+function taskRowValues({ title, recurrence = 'none', dueDate, assignee = 'both', priority = 'normal', minutes = null, details = '' }) {
   const rotate = assignee === 'rotate';
+  return {
+    title: title.trim().slice(0, 80),
+    recurrence,
+    due_date: dueDate || todayISO(),
+    assignee: rotate ? (householdPeople.includes(currentUser) ? currentUser : householdPeople[0]) : assignee,
+    rotate,
+    priority: PRIORITIES[priority] ? priority : 'normal',
+    minutes: minutes ? Number(minutes) : null,
+    details: details?.trim().slice(0, 600) || null
+  };
+}
+
+async function createTask(values) {
   try {
-    const [task] = await tasksStore.insert({ title, recurrence, due_date: dueDate, assignee: rotate ? (householdPeople.includes(currentUser) ? currentUser : householdPeople[0]) : assignee, rotate, active: true });
+    const row = { ...taskRowValues(values), active: true };
+    const [task] = await saveWithFallback((data) => tasksStore.insert(data), row);
     householdTasks.push(task);
     renderTasks();
-    showToast(`Tarea añadida: ${title}`);
-    notifyHousehold(`${currentUser} añadió una tarea`, `${title}${task.assignee !== currentUser && task.assignee !== 'both' ? ' · te toca a ti' : ''}`, { open: 'pendientes', tag: 'tasks' });
-    return true;
+    showToast(`Tarea añadida: ${task.title}`);
+    notifyHousehold(`${currentUser} añadió una tarea`, `${task.title}${task.assignee !== currentUser && task.assignee !== 'both' ? ' · te toca a ti' : ''}${task.priority === 'high' ? ' · importante' : ''}`, { open: 'pendientes', tag: 'tasks' });
+    return task;
   } catch (error) {
     showSupabaseError('No se pudo crear la tarea', error);
+    return null;
+  }
+}
+
+async function updateTask(id, values) {
+  const task = householdTasks.find((entry) => entry.id === id);
+  if (!task) return false;
+  const changes = taskRowValues(values);
+  // Al editar, una tarea por turnos conserva a quién le toca ahora.
+  if (changes.rotate && task.rotate) changes.assignee = task.assignee;
+  try {
+    await saveWithFallback((data) => tasksStore.update(id, data), changes);
+    Object.assign(task, tasksV2Available ? changes : stripV2(changes));
+    renderTasks();
+    showToast('Tarea actualizada');
+    return true;
+  } catch (error) {
+    showSupabaseError('No se pudo guardar la tarea', error);
     return false;
   }
 }
 
-async function snoozeTask(id) {
+async function snoozeTask(id, dueDate = addDaysToISO(todayISO(), 1)) {
   const task = householdTasks.find((entry) => entry.id === id);
   if (!task) return;
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
   try {
-    await tasksStore.update(id, { due_date: dateToISO(tomorrow) });
-    task.due_date = dateToISO(tomorrow);
+    await tasksStore.update(id, { due_date: dueDate });
+    task.due_date = dueDate;
     renderTasks();
-    showToast(`«${task.title}» pasa a mañana`);
+    showToast(`«${task.title}» pasa a ${dueLabel(dueDate).toLowerCase()}`);
   } catch (error) {
     showSupabaseError('No se pudo posponer la tarea', error);
   }
@@ -194,36 +241,18 @@ async function snoozeTask(id) {
 
 async function deleteTask(id) {
   const task = householdTasks.find((entry) => entry.id === id);
-  if (!task || !window.confirm(`¿Eliminar «${task.title}»?`)) return;
+  if (!task || !window.confirm(`¿Eliminar «${task.title}»?`)) return false;
   try {
     await tasksStore.update(id, { active: false });
     householdTasks = householdTasks.filter((entry) => entry.id !== id);
     renderTasks();
     showToast('Tarea eliminada');
+    return true;
   } catch (error) {
     showSupabaseError('No se pudo eliminar la tarea', error);
+    return false;
   }
 }
-
-document.querySelector('#tasksView').addEventListener('click', (event) => {
-  const done = event.target.closest('[data-task-done]');
-  if (done) return completeTask(done.dataset.taskDone);
-  const menu = event.target.closest('[data-task-menu]');
-  if (menu) {
-    const actions = menu.closest('.task-item').querySelector('.task-actions');
-    actions.hidden = !actions.hidden;
-    return;
-  }
-  const snooze = event.target.closest('[data-task-snooze]');
-  if (snooze) return snoozeTask(snooze.dataset.taskSnooze);
-  const remove = event.target.closest('[data-task-delete]');
-  if (remove) return deleteTask(remove.dataset.taskDelete);
-  const preset = event.target.closest('[data-task-preset]');
-  if (preset) {
-    const found = TASK_PRESETS.find((entry) => entry.title === preset.dataset.taskPreset);
-    return createTask({ title: found.title, recurrence: found.recurrence, dueDate: dateToISO(new Date()), assignee: found.assignee });
-  }
-});
 
 function focusNewTask() {
   openPending({ kind: 'task' });

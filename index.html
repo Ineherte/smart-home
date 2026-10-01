@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=29" />
+    <link rel="stylesheet" href="styles.css?v=30" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -124,49 +124,36 @@
           </div>
 
           <div class="casa-panel" data-casa-panel="pendientes" id="tasksView" role="tabpanel">
-            <section class="panel pending-panel" aria-labelledby="pendingTitle">
-              <div class="section-heading">
-                <div><p class="eyebrow">Entre los dos</p><h2 id="pendingTitle">Pendientes</h2></div>
-                <button type="button" class="pill-button" data-action="board"><i data-lucide="pen-line"></i> Pizarra</button>
+            <section class="todo-hero" aria-labelledby="todoHeroTitle">
+              <div class="todo-hero-top">
+                <div class="todo-ring" id="todoRing"></div>
+                <div class="todo-hero-copy"><p class="eyebrow">Tu día en casa</p><h2 id="todoHeroTitle">Cargando…</h2><p id="todoHeroDetail"></p></div>
+                <button type="button" class="todo-board-button" data-action="board" aria-label="Abrir la pizarra" title="Pizarra"><i data-lucide="pen-line"></i></button>
               </div>
-              <form class="pending-composer" id="pendingForm" autocomplete="off" data-kind="task">
-                <div class="kind-switch" role="radiogroup" aria-label="Qué quieres añadir">
-                  <button type="button" role="radio" data-kind="task" aria-checked="true"><i data-lucide="repeat-2"></i> Tarea de casa</button>
-                  <button type="button" role="radio" data-kind="note" aria-checked="false"><i data-lucide="sticky-note"></i> Nota</button>
-                </div>
-                <div class="composer">
-                  <input name="title" type="text" maxlength="120" placeholder="Sacar la basura, limpiar el baño…" aria-label="Qué hay que hacer" enterkeyhint="done" />
-                  <button type="submit" aria-label="Añadir"><i data-lucide="plus"></i></button>
-                </div>
-                <div class="pending-options" data-options="task">
-                  <label class="option-chip"><i data-lucide="user-round"></i><select name="assignee" aria-label="Quién"><option value="both">Los dos</option><option value="rotate">Por turnos</option><option value="Ines">Ines</option><option value="Matteo">Matteo</option></select></label>
-                  <label class="option-chip"><i data-lucide="repeat"></i><select name="recurrence" aria-label="Se repite"><option value="none">Una vez</option><option value="daily">Cada día</option><option value="weekly">Cada semana</option><option value="biweekly">Cada 2 semanas</option><option value="monthly">Cada mes</option><option value="yearly">Cada año</option></select></label>
-                  <label class="option-chip"><i data-lucide="calendar"></i><input name="dueDate" type="date" aria-label="Para cuándo" /></label>
-                </div>
-                <div class="pending-options" data-options="note" hidden>
-                  <label class="option-toggle"><input type="checkbox" name="private" /><span><i data-lucide="lock"></i> Solo para mí</span></label>
-                  <label class="option-toggle is-urgent"><input type="checkbox" name="urgent" /><span><i data-lucide="siren"></i> Urgente</span></label>
-                </div>
-              </form>
-              <div class="suggestions" id="taskPresetsBlock" hidden>
-                <p class="suggestions-label">Añadir con un toque</p>
-                <div class="suggestion-row" id="taskPresets"></div>
-              </div>
-              <div class="segmented pending-filters" role="group" aria-label="Qué ver">
-                <button type="button" data-pending-filter="all" aria-pressed="true">Todo</button>
-                <button type="button" data-pending-filter="tasks" aria-pressed="false">Tareas</button>
-                <button type="button" data-pending-filter="notes" aria-pressed="false">Notas</button>
-                <button type="button" data-pending-filter="mine" aria-pressed="false">Mías</button>
-              </div>
-              <div id="pendingList"></div>
+              <div class="todo-stats" id="todoStats"></div>
+              <div class="week-strip" id="weekStrip" aria-label="Carga de los próximos 7 días"></div>
             </section>
-            <section class="panel balance-panel" id="taskBalance" hidden>
-              <div class="section-heading">
-                <div><p class="eyebrow">Últimos 30 días</p><h2>Quién hace qué</h2></div>
+
+            <form class="quick-add" id="pendingForm" autocomplete="off">
+              <div class="quick-add-row">
+                <input name="title" type="text" maxlength="160" placeholder="Añade algo: «basura mañana @matteo cada semana»" aria-label="Añadir una tarea o nota" enterkeyhint="done" />
+                <button type="submit" aria-label="Añadir"><i data-lucide="arrow-up"></i></button>
               </div>
-              <div class="balance-bar" id="taskBalanceBar"></div>
-              <div class="balance-legend" id="taskBalanceLegend"></div>
-            </section>
+              <div class="quick-preview" id="quickPreview"></div>
+            </form>
+
+            <div class="todo-toolbar">
+              <div class="segmented is-wide todo-views" role="group" aria-label="Cómo verlo">
+                <button type="button" data-todo-view="today" aria-pressed="true"><i data-lucide="sun"></i>Hoy</button>
+                <button type="button" data-todo-view="week" aria-pressed="false"><i data-lucide="calendar-range"></i>Semana</button>
+                <button type="button" data-todo-view="people" aria-pressed="false"><i data-lucide="users"></i>Personas</button>
+                <button type="button" data-todo-view="notes" aria-pressed="false"><i data-lucide="sticky-note"></i>Notas</button>
+              </div>
+              <label class="mine-toggle"><input type="checkbox" id="onlyMine" /><span><i data-lucide="user-round"></i>Solo lo mío</span></label>
+            </div>
+
+            <div class="todo-view" id="pendingList"></div>
+            <section class="money-card todo-insights" id="todoInsights" hidden></section>
           </div>
 
           <div class="casa-panel" data-casa-panel="compra" id="shoppingView" role="tabpanel" hidden>
@@ -345,6 +332,12 @@
         <div class="plant-sheet-body"></div>
       </div>
     </div>
+    <div class="plant-sheet item-sheet" id="itemSheet" role="dialog" aria-modal="true" aria-labelledby="itemSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-item aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="itemSheetBody"></div>
+      </div>
+    </div>
     <div class="urgent-modal" id="urgentModal" role="dialog" aria-modal="true" aria-labelledby="urgentTitle">
       <div class="urgent-panel"><span class="urgent-mark"><i data-lucide="siren"></i></span><p class="eyebrow urgent-eyebrow">Importante</p><h2 id="urgentTitle">Tienes notas urgentes</h2><div id="urgentList"></div><button type="button" class="urgent-close" id="closeUrgent">Ver notas</button></div>
     </div>
@@ -419,10 +412,10 @@
     <script src="store.js?v=1"></script>
     <script src="push.js?v=1"></script>
     <script src="shopping.js?v=3"></script>
-    <script src="tasks.js?v=3"></script>
-    <script src="pending.js?v=1"></script>
+    <script src="tasks.js?v=4"></script>
+    <script src="pending.js?v=2"></script>
     <script src="plants.js?v=2"></script>
     <script src="money.js?v=1"></script>
-    <script src="app.js?v=38"></script>
+    <script src="app.js?v=39"></script>
   </body>
 </html>
