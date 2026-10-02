@@ -1847,8 +1847,8 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 
 /* Ines y Matteo. scene.js elige el plan (data-act), el lugar (data-place) y la ropa
    (data-outfit); los colores llegan como --ines-* y --matteo-*. */
-.ch-ines { --ch-skin: var(--ines-skin); --ch-hair: var(--ines-hair); --ch-eyes: var(--ines-eyes); --ch-top: var(--ines-top); --ch-sleeve: var(--ines-sleeve); --ch-pants: var(--ines-pants); --ch-shin: var(--ines-shin); --ch-shoe: var(--ines-shoe); --ch-coat: var(--ines-coat); --ch-boot: var(--ines-boot); --ch-scarf: var(--ines-scarf); --ch-hat: var(--ines-hat); --ch-accent: var(--ines-accent); --ch-cape: var(--ines-cape); }
-.ch-matteo { --ch-skin: var(--matteo-skin); --ch-hair: var(--matteo-hair); --ch-eyes: var(--matteo-eyes); --ch-top: var(--matteo-top); --ch-sleeve: var(--matteo-sleeve); --ch-pants: var(--matteo-pants); --ch-shin: var(--matteo-shin); --ch-shoe: var(--matteo-shoe); --ch-coat: var(--matteo-coat); --ch-boot: var(--matteo-boot); --ch-scarf: var(--matteo-scarf); --ch-hat: var(--matteo-hat); --ch-accent: var(--matteo-accent); --ch-cape: var(--matteo-cape); }
+.ch-ines { --ch-layer: var(--ines-layer); --ch-skin: var(--ines-skin); --ch-hair: var(--ines-hair); --ch-eyes: var(--ines-eyes); --ch-top: var(--ines-top); --ch-sleeve: var(--ines-sleeve); --ch-pants: var(--ines-pants); --ch-shin: var(--ines-shin); --ch-shoe: var(--ines-shoe); --ch-coat: var(--ines-coat); --ch-boot: var(--ines-boot); --ch-scarf: var(--ines-scarf); --ch-hat: var(--ines-hat); --ch-accent: var(--ines-accent); --ch-cape: var(--ines-cape); }
+.ch-matteo { --ch-layer: var(--matteo-layer); --ch-skin: var(--matteo-skin); --ch-hair: var(--matteo-hair); --ch-eyes: var(--matteo-eyes); --ch-top: var(--matteo-top); --ch-sleeve: var(--matteo-sleeve); --ch-pants: var(--matteo-pants); --ch-shin: var(--matteo-shin); --ch-shoe: var(--matteo-shoe); --ch-coat: var(--matteo-coat); --ch-boot: var(--matteo-boot); --ch-scarf: var(--matteo-scarf); --ch-hat: var(--matteo-hat); --ch-accent: var(--matteo-accent); --ch-cape: var(--matteo-cape); }
 .sc-couple { pointer-events: none; }
 .ch-hit { fill: transparent; pointer-events: all; cursor: pointer; }
 .scene[data-place="in"] .ch-hit { display: none; }
@@ -1869,7 +1869,51 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .ch-shadow { fill: rgba(20, 30, 25, .22); }
 .ch-face, .ch-neck, .ch-hand { fill: var(--ch-skin); }
 .ch-hair { fill: var(--ch-hair); }
-.ch-eyes { fill: var(--ch-eyes); transform-box: fill-box; transform-origin: center; animation: ch-blink 5.2s infinite; }
+.ch-eyes { transform-box: fill-box; transform-origin: center; animation: ch-blink 5.2s infinite; }
+.ch-sclera { fill: #fbf7f2; }
+.ch-iris { fill: var(--ch-eyes); }
+.ch-pupil { fill: #1d1512; }
+.ch-lash { fill: none; stroke: #2a1c16; stroke-width: .38; stroke-linecap: round; }
+.ch-gaze { transition: transform .4s ease; }
+.ch-brows { fill: none; stroke: var(--ch-hair); stroke-width: .45; stroke-linecap: round; filter: brightness(.8); }
+.ch-matteo .ch-brows { stroke-width: .62; }
+.ch-pos:not([data-brows="none"]) .ch-brows { display: none; }
+.ch-ears { fill: var(--ch-skin); }
+.ch-face-shade { fill: rgba(150, 70, 40, .13); }
+.ch-stubble { fill: var(--ch-hair); opacity: .11; }
+.ch-nose { fill: none; stroke: rgba(150, 80, 60, .55); stroke-width: .35; stroke-linecap: round; }
+.ch-hair-shine { fill: none; stroke: rgba(255, 255, 255, .22); stroke-width: .4; stroke-linecap: round; }
+.ch-pos:is([data-style="dino"], [data-style="bear"], [data-wear="rain"]) .hs-locks { display: none !important; }
+.ch-shade { fill: rgba(0, 0, 0, .16); }
+.ch-leg-shade { fill: rgba(0, 0, 0, .12); }
+.ch-pos[data-wide="true"] .ch-leg-shade { display: none; }
+.ch-sole { fill: none; stroke: rgba(0, 0, 0, .22); stroke-width: .45; stroke-linecap: round; }
+.ch-wide-shade { display: none; fill: rgba(0, 0, 0, .1); stroke: rgba(0, 0, 0, .1); stroke-width: .35; stroke-linecap: round; }
+.ch-pos[data-wide="true"] .ch-wide-shade { display: inline; }
+.ch-neckline, .ch-neck-shade { fill: var(--ch-skin); }
+.ch-neck-shade { fill: rgba(120, 60, 40, .18); }
+.ch-pos:is([data-wear="cold"], [data-wear="rain"], [data-wear="fun"]) .ch-neckline { display: none; }
+.ch-crop { display: none; }
+.ch-pos[data-crop="true"] .ch-crop { display: inline; }
+.ch-crop-skin { fill: var(--ch-skin); }
+.ch-crop-band { fill: var(--ch-pants); }
+.ch-navel { fill: rgba(120, 60, 40, .45); }
+.ch-layer { display: none; fill: var(--ch-layer); }
+.ch-pos[data-layer="overshirt"] .ch-layer { display: inline; }
+.ch-layer-fold { fill: none; stroke: rgba(255, 255, 255, .14); stroke-width: .4; }
+.ch-matteo .ch-sleeve { stroke-width: 2.75; }
+.ch-matteo .ch-cuff { stroke-width: 3.2; }
+.ch-phone, .ch-shark, .ch-embrace { display: none; }
+.ch-phone-case { fill: #f0d48a; stroke: rgba(0, 0, 0, .25); stroke-width: .2; }
+.ch-shark-body, .ch-shark-fin { fill: #7f9fc0; }
+.ch-shark-belly { fill: #f4f6f8; }
+.ch-shark-eye { fill: #1d1d22; }
+.ch-shark-mouth { fill: none; stroke: #c45a6a; stroke-width: .3; stroke-linecap: round; }
+.ch-embrace-arm { fill: none; stroke: var(--hug-skin, #efc6a2); stroke-width: 2.1; stroke-linecap: round; }
+.ch-embrace-sleeve { fill: none; stroke: var(--hug-sleeve, #1f1e24); stroke-width: 2.7; stroke-linecap: round; }
+.ch-embrace-hand { fill: var(--hug-skin, #efc6a2); }
+/* En la escena del jardín los muñecos son pequeños: ojos sencillos. */
+.scene:not(.avatar-stage) :is(.ch-sclera, .ch-lash, .ch-nose, .ch-pupil) { display: none; }
 .ch-matteo .ch-eyes { animation-delay: -2.3s; }
 @keyframes ch-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
 .ch-glints { fill: #fff; }
@@ -2032,7 +2076,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .mi-eye { fill: var(--mi-eyes); }
 .mi-top-ines { fill: var(--ines-top); }
 .mi-top-matteo { fill: var(--matteo-top); }
-.sc-sofa { fill: #8a5a4a; }
+.sc-sofa { fill: #7d7f52; }
 .sc-popcorn path { fill: #d9534f; }
 .sc-popcorn circle { fill: #fff6dc; }
 .sc-tv { fill: #cfe4ff; animation: sc-tv 3.2s steps(1) infinite; }
@@ -2055,6 +2099,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 
 /* Aspecto de su foto: aros dorados y vaqueros anchos de Ines. */
 .ch-earrings { fill: none; stroke: #e2b250; stroke-width: .5; }
+.ch-pos:is([data-hair="ponytail"], [data-hair="bun"]) .ch-earrings { stroke-width: .6; }
 .ch-wide { display: none; fill: var(--ch-pants); }
 .ch-pos[data-wide="true"] .ch-wide { display: inline; }
 .ch-pos[data-wide="true"] :is(.ch-thigh, .ch-shin) { display: none; }
@@ -2357,7 +2402,19 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sc-door { cursor: pointer; }
 .sims-heading-actions { display: flex; gap: 8px; }
 .sims-sound { font-size: 16px; }
-.sims-house { position: relative; margin: -18px calc(var(--gutter) * -1) 0; background: #a8d5ef; }
+.sims-house { position: relative; margin: -18px calc(var(--gutter) * -1) 0; overflow: hidden; background: #a8d5ef; }
+/* Lupa: la casa se amplía alrededor de tu muñeco y le sigue (el origen nunca saca la casa del marco). */
+.sims-house .sims-svg { transform-origin: var(--cam-x, 50%) var(--cam-y, 50%); transition: transform .45s ease, transform-origin var(--cam-secs, 0s) linear; }
+.sims-house.is-zoomed .sims-svg { transform: scale(1.75); }
+.sims-zoom { font-size: 16px; }
+.sims-zoom[aria-pressed="true"] { background: var(--green); color: var(--lime); }
+.sims-flash { position: absolute; inset: 0; z-index: 4; background: #fff; pointer-events: none; animation: sims-flash .7s ease-out forwards; }
+@keyframes sims-flash { from { opacity: .95; } to { opacity: 0; } }
+.sh-obj { transition: filter .2s ease; }
+@media (hover: hover) { .sh-obj:hover { filter: brightness(1.07) drop-shadow(0 0 2px rgba(255, 255, 255, .9)); } }
+.sh-target { fill: #3fd46a; stroke: #fff; stroke-width: .8; opacity: 0; pointer-events: none; }
+.sh-target.is-on { animation: sh-target 1.1s ease-out; }
+@keyframes sh-target { 0% { opacity: 1; } 70% { opacity: .9; } 100% { opacity: 0; } }
 .sims-svg { display: block; width: 100%; height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .sims-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sh-front { pointer-events: none; }
@@ -2430,10 +2487,11 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 @keyframes sh-note { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translate(4px, -14px); } }
 .sims-svg[data-radio="on"] .sh-record { animation: sh-spin .6s linear infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes sh-spin { 50% { transform: scaleX(.6); } }
-.sh-sofa { fill: #e07a5f; }
-.sh-cushion { fill: #f2a088; }
-.sh-sofa-front { fill: #d76c50; }
-.sh-sofa-arm { fill: #c95f45; }
+.sh-sofa { fill: #7d7f52; }
+.sh-cushion { fill: #969869; }
+.sh-sofa-front { fill: #727447; }
+.sh-sofa-arm { fill: #66683e; }
+.sh-sofa-seam { fill: none; stroke: rgba(0, 0, 0, .14); stroke-width: .8; }
 .sh-tv-stand { fill: #8a6a4a; }
 .sh-tv { fill: #2a2a2e; }
 .sh-tv-screen { fill: #3d4a5c; }
@@ -2490,6 +2548,36 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sh-steam-cloud circle:nth-child(2) { animation-delay: -1.2s; }
 @keyframes sh-cloud { to { transform: translateY(-5px); opacity: .5; } }
 
+/* Vuestro salón: alfombra roja, puzzle de La gran ola, tiburón de peluche y espejo de gota */
+.sh-rug-base { fill: #b3262c; }
+.sh-rug-border { fill: none; stroke: #e8c27a; stroke-width: .7; }
+.sh-rug-pattern { fill: #7d1519; stroke: #e8c27a; stroke-width: .35; }
+.sh-rug-fringe { fill: none; stroke: #f1e6cf; stroke-width: .5; stroke-linecap: round; }
+.sh-wave-frame { fill: #2b2522; }
+.sh-wave-sky { fill: #ecdcbc; }
+.sh-wave-fuji { fill: #4b6a8c; }
+.sh-wave-snow { fill: #fbf7ee; }
+.sh-wave-big, .sh-wave-small { fill: #1f3d6e; }
+.sh-wave-light { fill: none; stroke: #7fa6c8; stroke-width: .7; stroke-linecap: round; }
+.sh-wave-foam { fill: #fbf7ee; }
+.sh-wave-boat { fill: none; stroke: #d9c49a; stroke-width: 1.1; stroke-linecap: round; }
+.sh-puzzle { fill: none; stroke: rgba(20, 20, 30, .22); stroke-width: .3; }
+.sh-puzzle-box { display: none; }
+.sh-puzzle-box rect { fill: #ecdcbc; stroke: #1f3d6e; stroke-width: .4; }
+.sh-puzzle-box path { stroke: rgba(20, 20, 30, .3); stroke-width: .3; }
+.sims-svg[data-puzzle="on"] .sh-puzzle-box { display: inline; }
+.sims-svg[data-puzzle="on"] :is(.sh-croissant, .sh-cup) { display: none; }
+.sh-shark-body, .sh-shark-fin { fill: #7f9fc0; }
+.sh-shark-belly { fill: #f4f6f8; }
+.sh-shark-eye { fill: #1d1d22; }
+.sh-shark-gill { stroke: rgba(30, 50, 80, .35); stroke-width: .5; }
+.sh-shark { transform-box: fill-box; transform-origin: center bottom; transition: opacity .3s ease; }
+.sims-svg[data-shark="on"] .sh-shark { opacity: 0; }
+.sh-drop-mirror { fill: #d9c3a5; }
+.sh-drop-glass { fill: #c9dfe6; }
+.sh-drop-leaf { fill: rgba(60, 120, 80, .35); }
+.sh-drop-shine { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.1; stroke-linecap: round; }
+
 /* Muñecos dentro de casa */
 .sim { transition: transform 1s linear; }
 .sim .ch-pos { transform: none !important; opacity: 1 !important; }
@@ -2545,6 +2633,67 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sim[data-doing="social-highfive"] .ch-arm-r { transform: rotate(-155deg); }
 .sim[data-doing="social-tickle"][data-role="target"] .ch-person { animation: ch-bounce .16s ease-in-out infinite alternate; }
 .sim[data-doing="social-tickle"][data-role="actor"] .ch-arm-r { animation: sim-stir .2s ease-in-out infinite alternate; }
+
+/* Se miran: los ojos van hacia donde está el otro (el muñeco ya está girado hacia él). */
+.sim:is([data-gaze="side"], [data-doing^="social-"]:not([data-doing="social-selfie"])) .ch-gaze { transform: translateX(.34px); }
+.sim[data-gaze="far"] .ch-gaze { transform: translate(.26px, -.08px); }
+.sim[data-pose="sit"] .sim-flip { transform: translateY(5px) scaleX(var(--flip, 1)); }
+.sim[data-doing="phone"] .ch-phone { display: inline; }
+
+/* Abrazar al tiburón de peluche (y dormir la siesta con él) */
+.sim:is([data-doing="sharkhug"], [data-doing="sharknap"]) .ch-shark { display: inline; }
+.sim:is([data-doing="sharkhug"], [data-doing="sharknap"]) .ch-arm-l { transform: rotate(-58deg); }
+.sim:is([data-doing="sharkhug"], [data-doing="sharknap"]) .ch-arm-r { transform: rotate(58deg); }
+.sim[data-doing="sharkhug"] .ch-body { animation: ch-rock 1.3s ease-in-out infinite alternate; }
+.sim[data-doing="sharkhug"] .ch-head { transform: rotate(-8deg); }
+.sim[data-doing="sharkhug"] .ch-cheek { opacity: .95; fill: #ff6f86; }
+.sim[data-doing="sharknap"] .ch-head { transform: rotate(14deg); }
+.sim[data-doing="sharknap"] :is(.ch-eyes, .mv-eyes-heart, .mv-eyes-half, .mv-eyes-closed) { display: none !important; }
+.sim[data-doing="sharknap"] .mv-eyes-sleep { display: inline !important; }
+
+/* Admirar el puzzle, hacer otro y posar en el espejo */
+.sim[data-doing="admire"] .ch-head { transform: rotate(-7deg) translateY(-.3px); }
+.sim[data-doing="admire"] .ch-gaze { transform: translateY(-.25px); }
+.sim[data-doing="admire"] .ch-arm-l { transform: rotate(-25deg); }
+.sim[data-doing="admire"] .ch-arm-r { transform: rotate(-125deg); }
+.sim[data-doing="puzzle"] .ch-arm-r { animation: sim-puzzle .9s ease-in-out infinite alternate; }
+.sim[data-doing="puzzle"] .ch-arm-l { transform: rotate(-40deg); }
+.sim[data-doing="puzzle"] .ch-head { transform: rotate(9deg); }
+@keyframes sim-puzzle { from { transform: rotate(-38deg); } to { transform: rotate(-62deg); } }
+.sim[data-doing="pose"] .ch-arm-l { transform: rotate(-150deg) translateY(-1px); }
+.sim[data-doing="pose"] .ch-arm-r { transform: rotate(-35deg); }
+.sim[data-doing="pose"] .ch-person { animation: sim-pose 2.4s ease-in-out infinite; }
+.sim[data-doing="pose"] .ch-head { transform: rotate(-6deg); }
+@keyframes sim-pose { 0%, 45% { transform: rotate(0); } 55%, 100% { transform: rotate(-4deg) translateX(-.5px); } }
+
+/* Selfie en el espejo, como en vuestra foto: Ines con el móvil y Matteo abrazándola por detrás */
+.sim-ines[data-doing="social-selfie"] .ch-phone, .sim-ines[data-doing="social-selfie"] .ch-embrace { display: inline; }
+.sim-ines[data-doing="social-selfie"] .ch-arm-r { transform: rotate(-148deg); }
+.sim-ines[data-doing="social-selfie"] .ch-arm-l { transform: rotate(-52deg); }
+.sim-ines[data-doing="social-selfie"] .ch-head { transform: rotate(-5deg); }
+.sim-ines[data-doing="social-selfie"] :is(.ch-eyes, .ch-glints) { display: none; }
+.sim-ines[data-doing="social-selfie"] .mv-eyes-closed { display: inline !important; }
+.sim-ines[data-doing="social-selfie"] .ch-mouth { display: none; }
+.sim-ines[data-doing="social-selfie"] .mv-mouth-big { display: inline !important; }
+.sim-matteo[data-doing="social-selfie"] .ch-arm-l { transform: rotate(-18deg); }
+.sim-matteo[data-doing="social-selfie"] .ch-arm-r { transform: rotate(18deg); }
+.sim-matteo[data-doing="social-selfie"] .ch-head { transform: rotate(7deg) translateY(.4px); }
+.sim-matteo[data-doing="social-selfie"] .ch-gaze { transform: translate(-.3px, .3px); }
+.sim[data-doing="social-selfie"] :is(.ch-plumbob, .ch-mood-badge) { display: none !important; }
+
+/* Ataque de tiburón: manos de mandíbula que muerden y el otro muerto de risa */
+.sim[data-doing="social-shark"][data-role="actor"] .ch-arm-l { animation: sim-jaw-l .32s ease-in-out infinite alternate; }
+.sim[data-doing="social-shark"][data-role="actor"] .ch-arm-r { animation: sim-jaw-r .32s ease-in-out infinite alternate; }
+.sim[data-doing="social-shark"][data-role="actor"] .ch-body { animation: sim-prowl .64s ease-in-out infinite alternate; }
+.sim[data-doing="social-shark"][data-role="target"] .ch-person { animation: ch-bounce .16s ease-in-out infinite alternate; }
+.sim[data-doing="social-shark"][data-role="target"] .ch-arm-l { transform: rotate(150deg); }
+.sim[data-doing="social-shark"][data-role="target"] .ch-arm-r { transform: rotate(-150deg); }
+.sim[data-doing="social-shark"][data-role="target"] :is(.ch-eyes, .ch-glints) { display: none; }
+.sim[data-doing="social-shark"][data-role="target"] .mv-eyes-closed, .sim[data-doing="social-shark"][data-role="target"] .mv-mouth-open { display: inline !important; }
+.sim[data-doing="social-shark"][data-role="target"] .ch-mouth { display: none; }
+@keyframes sim-jaw-l { from { transform: rotate(-70deg); } to { transform: rotate(-110deg); } }
+@keyframes sim-jaw-r { from { transform: rotate(-110deg); } to { transform: rotate(-70deg); } }
+@keyframes sim-prowl { from { transform: translateY(0) rotate(3deg); } to { transform: translateY(-.8px) rotate(6deg); } }
 
 /* Menú circular, bocadillos y números */
 .sims-pie { position: absolute; inset: 0; z-index: 3; pointer-events: none; }

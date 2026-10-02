@@ -20,7 +20,8 @@ create table if not exists public.avatars (
   primary key (household_id, person)
 );
 
--- Casa por dentro (sims.js): necesidades, qué está haciendo cada muñeco y más interacciones.
+-- Casa por dentro (sims.js): necesidades, qué está haciendo cada muñeco y más interacciones
+-- (ataque de tiburón y selfie en el espejo incluidos).
 alter table public.avatars add column if not exists needs jsonb not null default '{}'::jsonb;
 alter table public.avatars add column if not exists needs_at timestamptz;
 alter table public.avatars add column if not exists activity text;
@@ -30,7 +31,7 @@ alter table public.avatars add constraint avatars_activity_check check (activity
 alter table public.avatars drop constraint if exists avatars_needs_check;
 alter table public.avatars add constraint avatars_needs_check check (pg_column_size(needs) < 1000);
 alter table public.avatars drop constraint if exists avatars_poke_check;
-alter table public.avatars add constraint avatars_poke_check check (poke is null or poke in ('kiss', 'hug', 'tickle', 'highfive', 'chat', 'dance', 'compliment'));
+alter table public.avatars add constraint avatars_poke_check check (poke is null or poke in ('kiss', 'hug', 'tickle', 'highfive', 'chat', 'dance', 'compliment', 'shark', 'selfie'));
 
 alter table public.avatars enable row level security;
 alter table public.avatars replica identity full;

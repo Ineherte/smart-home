@@ -103,6 +103,7 @@ async function saveAvatar(changes) {
     let { data, error } = await upsert({ ...base, needs: row.needs || {}, needs_at: row.needs_at || null, activity: row.activity || null, activity_at: row.activity_at || null });
     // Sin la parte nueva de avatars.sql (necesidades y actividad) se guarda lo de siempre.
     if (error && /needs|activity|column/i.test(error.message)) ({ data, error } = await upsert(base));
+    if (error && /avatars_poke_check/i.test(error.message)) throw new Error('Para este toque hay que volver a ejecutar avatars.sql en Supabase');
     if (error) throw new Error(/relation|schema cache|does not exist/i.test(error.message) ? 'Falta ejecutar avatars.sql en Supabase' : error.message);
     avatarRows[person] = data;
   } else {
@@ -212,6 +213,9 @@ function avatarPane(person) {
       ${look.outfit === 'casual' ? `<p class="avatar-label">Arriba</p>${swatches('top', catalog.CLOTH_COLORS, look.top)}
       <p class="avatar-label">Pantalón</p>${swatches('bottom', catalog.CLOTH_COLORS, look.bottom)}
       <p class="avatar-label">Zapatillas</p>${swatches('shoes', catalog.CLOTH_COLORS, look.shoes)}
+      <p class="avatar-label">Encima</p>${choiceChips('layer', catalog.LAYERS || [], look.layer || 'none')}
+      ${look.layer === 'overshirt' ? swatches('layerColor', catalog.CLOTH_COLORS, look.layerColor) : ''}
+      ${key === 'ines' ? `<p class="avatar-label">Top</p>${choiceChips('crop', [['true', 'Corto', ''], ['false', 'Largo', '']], String(look.crop !== false))}` : ''}
       <label class="option-toggle"><input type="checkbox" data-avatar-weather ${look.weather !== false ? 'checked' : ''} /><span><i data-lucide="cloud-snow"></i>Abrigarme cuando haga frío o llueva</span></label>` : '<p class="avatar-hint">Los disfraces se quedan puestos llueva o nieve 😄</p>'}`;
   }
   if (avatarTab === 'extras') {
@@ -280,7 +284,8 @@ avatarSheet.addEventListener('click', (event) => {
   }
   const set = target.closest('[data-avatar-set]');
   if (set) {
-    avatarDraft.look = { ...avatarDraft.look, [set.dataset.avatarSet]: set.dataset.value };
+    const raw = set.dataset.value;
+    avatarDraft.look = { ...avatarDraft.look, [set.dataset.avatarSet]: raw === 'true' ? true : raw === 'false' ? false : raw };
     return renderAvatarEditor();
   }
   if (target.closest('[data-avatar-undo]')) {

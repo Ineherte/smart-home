@@ -141,9 +141,10 @@
   }
 
   // ---------- Ines y Matteo ----------
-  // Como en su foto. Ines: pelo castaño liso por debajo de los hombros con flequillo,
-  // ojos marrones, aros dorados, top negro y vaqueros anchos claros. Matteo: más alto,
-  // pelo castaño oscuro con volumen, ojos claros y camiseta negra.
+  // Como en su foto del espejo. Ines (española): pelo castaño largo con flequillo, ojos
+  // marrones, aros dorados, top negro corto, camisa negra abierta y vaqueros anchos claros.
+  // Matteo (italiano): más alto y ancho de hombros, pelo castaño oscuro con volumen, barba de
+  // tres días, camiseta negra y vaqueros claros.
   const PEOPLE = {
     ines: { name: 'Ines', scale: 1, skin: '#f1c7a5', hair: '#4a2a1a', eyes: '#5a3420' },
     matteo: { name: 'Matteo', scale: 1.16, skin: '#efc6a2', hair: '#33221a', eyes: '#5f8fa8' }
@@ -176,15 +177,15 @@
 
   // ---------- Muñecos personalizables (cada uno edita el suyo en avatars.js) ----------
   const DEFAULT_LOOK = {
-    ines: { outfit: 'casual', hair: 'loose', hairColor: '#4a2a1a', top: '#1f1e24', bottom: '#a9c7e3', shoes: '#f4f1ea', head: 'none', face: 'none', neck: 'none', weather: true },
-    matteo: { outfit: 'casual', hair: 'fluffy', hairColor: '#33221a', top: '#1f1e24', bottom: '#3d4f6e', shoes: '#f4f1ea', head: 'none', face: 'none', neck: 'none', weather: true }
+    ines: { outfit: 'casual', hair: 'loose', hairColor: '#4a2a1a', top: '#1f1e24', bottom: '#a9c7e3', shoes: '#f4f1ea', layer: 'overshirt', layerColor: '#1f1e24', crop: true, head: 'none', face: 'none', neck: 'none', weather: true },
+    matteo: { outfit: 'casual', hair: 'fluffy', hairColor: '#33221a', top: '#1f1e24', bottom: '#d3dde6', shoes: '#f4f1ea', layer: 'none', layerColor: '#3d4f6e', head: 'none', face: 'none', neck: 'none', weather: true }
   };
   const HAIRSTYLES = {
     ines: [['loose', 'Suelto'], ['ponytail', 'Coleta'], ['bun', 'Moño']],
     matteo: [['fluffy', 'Con volumen'], ['short', 'Corto'], ['curly', 'Rizado']]
   };
   const HAIR_COLORS = ['#1c120d', '#33221a', '#4a2a1a', '#6b4529', '#9a6a3f', '#d2ab72', '#b8432f', '#8a8f96', '#e58fb4', '#6aa0d8'];
-  const CLOTH_COLORS = ['#1f1e24', '#f4f1ea', '#a9c7e3', '#3d4f6e', '#5f7f4f', '#c9b48f', '#e07a5f', '#f2c230', '#e58fb4', '#8e1f3a', '#7a62b3', '#3f8f6b'];
+  const CLOTH_COLORS = ['#1f1e24', '#f4f1ea', '#d3dde6', '#a9c7e3', '#3d4f6e', '#7d7f52', '#5f7f4f', '#c9b48f', '#e07a5f', '#f2c230', '#e58fb4', '#8e1f3a', '#7a62b3', '#3f8f6b'];
   // Conjuntos: los que no son «casual» son disfraces y no cambian con el tiempo.
   const OUTFITS = {
     casual: { label: 'Mi ropa', emoji: '👕' },
@@ -196,6 +197,8 @@
     elegant: { label: 'De gala', emoji: '✨', colors: { ines: { top: '#8e1f3a', pants: '#8e1f3a', shin: 'skin', shoe: '#1d1d22' }, matteo: { top: '#1d1d22', pants: '#1d1d22', shoe: '#1d1d22' } } },
     sport: { label: 'Chándal', emoji: '🏃', colors: { top: '#e04f4f', pants: '#e04f4f', shoe: '#f2f2f2', accent: '#ffffff' } }
   };
+  // Lo que va encima de la ropa (con «Mi ropa», cuando no hace frío ni llueve).
+  const LAYERS = [['none', 'Nada', '·'], ['overshirt', 'Camisa abierta', '🧥']];
   const HEAD_ACC = [['none', 'Nada', '·'], ['beanie', 'Gorro', '🧶'], ['cap', 'Gorra', '🧢'], ['crown', 'Corona', '👑'], ['flowers', 'Flores', '🌼'], ['bow', 'Lazo', '🎀'], ['headphones', 'Cascos', '🎧'], ['catears', 'Orejas de gato', '🐱']];
   const FACE_ACC = [['none', 'Nada', '·'], ['glasses', 'Gafas', '👓'], ['sunglasses', 'Gafas de sol', '🕶️']];
   const NECK_ACC = [['none', 'Nada', '·'], ['necklace', 'Collar', '📿'], ['bowtie', 'Pajarita', '🎀'], ['scarf', 'Bufanda', '🧣']];
@@ -221,7 +224,9 @@
     highfive: { emoji: '🙌', label: 'Chocar los cinco', text: 'quiere chocar esos cinco' },
     chat: { emoji: '💬', label: 'Charlar', text: 'quiere charlar contigo' },
     dance: { emoji: '💃', label: 'Bailar juntos', text: 'te saca a bailar' },
-    compliment: { emoji: '🌹', label: 'Un piropo', text: 'te ha dicho un piropo' }
+    compliment: { emoji: '🌹', label: 'Un piropo', text: 'te ha dicho un piropo' },
+    shark: { emoji: '🦈', label: 'Ataque de tiburón', text: 'te ataca como un tiburón' },
+    selfie: { emoji: '🤳', label: 'Selfie en el espejo', text: 'quiere un selfie contigo en el espejo' }
   };
 
   // Planes posibles. place: 'out' en el jardín, 'in' dentro de casa (room se enciende).
@@ -302,6 +307,8 @@
   const armMarkup = (side, x, y, extra = '') => `<g transform="translate(${x} ${y})"><g class="ch-arm ch-arm-${side}">
       <path class="ch-sleeve" d="M0 0 V8"></path><path class="ch-cuff" d="M0 0 V2.6"></path><circle class="ch-hand" cx="0" cy="9" r="1.3"></circle>${extra}
     </g></g>`;
+  // Móvil con la funda de pegatinas (como el de la foto), en la mano derecha.
+  const PHONE = '<g class="ch-phone"><rect class="ch-phone-case" x="-1.2" y="7.9" width="2.4" height="3.9" rx=".55"></rect><circle cx="-.45" cy="8.9" r=".38" fill="#e0533f"></circle><circle cx=".45" cy="9.9" r=".36" fill="#4a8fe0"></circle><circle cx="-.35" cy="10.9" r=".32" fill="#3fbf6a"></circle><path d="M.2 8.5 l.5 .3 l-.1 .5" stroke="#fff" stroke-width=".25" fill="none"></path></g>';
   // Regadera en la mano derecha de Ines.
   const CAN = '<g class="ch-can"><rect x="-2.6" y="8.6" width="4.6" height="3.8" rx=".7"></rect><path d="M2 9.6 L5.4 7.6" class="ch-can-spout"></path><path d="M-2.6 9.4 q-1.6 1.4 0 2.6" class="ch-can-handle"></path></g>';
 
@@ -314,15 +321,19 @@
 
   // Peinados: se dibujan todos y el CSS enseña el elegido (data-hair).
   const HAIR_BACK = {
-    ines: '<path class="ch-hair hs hs-loose" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.9 11.4 q-6.2 2.2 -12.4 0 z"></path>'
+    ines: '<path class="ch-hair hs hs-loose" d="M-5.4 -27 q-.4 -7 5.4 -7 q5.8 0 5.4 7 l.7 6 q.6 3.6 -.3 5.8 q-1.3 .8 -2.4 .1 q-.9 .7 -2 .1 h-2.8 q-1.1 .6 -2 -.1 q-1.1 .7 -2.4 -.1 q-.9 -2.2 -.3 -5.8 z"></path>'
       + '<path class="ch-hair hs hs-ponytail hs-bun" d="M-5.3 -27 q-.2 -6.8 5.3 -6.8 q5.5 0 5.3 6.8 l.4 3.2 q-5.7 1.4 -11.4 0 z"></path>'
       + '<path class="ch-hair hs hs-ponytail" d="M3.6 -32 q5.4 -.4 5 5.6 q-.2 3.4 -1.8 5.8 q-.2 -3.8 -1.6 -6.4 q-.6 -2.4 -1.6 -5 z"></path>',
     matteo: ''
   };
   const HAIR_TOP = {
-    ines: `<circle class="ch-hair hs hs-bun" cx="0" cy="-34.6" r="2.5"></circle><path class="ch-hair" d="${HAIR_FRONT.ines}"></path>`,
+    ines: `<circle class="ch-hair hs hs-bun" cx="0" cy="-34.6" r="2.5"></circle><path class="ch-hair" d="${HAIR_FRONT.ines}"></path>`
+      // Mechones que caen por delante de los hombros (pelo suelto).
+      + '<path class="ch-hair hs hs-loose hs-locks" d="M-5.2 -28.4 q-1.4 4.2 -1 9 q.3 2 1.6 3.2 q-.5 -2.8 -.2 -5.4 q.2 -3.4 .8 -5.6 z M5.2 -28.4 q1.4 4.2 1 9 q-.3 2 -1.6 3.2 q.5 -2.8 .2 -5.4 q-.2 -3.4 -.8 -5.6 z"></path>'
+      + '<path class="ch-hair-shine" d="M-3.4 -32.6 q2 -1.1 4.4 -.7"></path><path class="ch-hair-shine hs hs-loose hs-locks" d="M-5.6 -24 q-.3 2.6 .2 5"></path>',
     matteo: `<path class="ch-hair hs hs-fluffy hs-front" d="${HAIR_FRONT.matteo}"></path>`
       + '<path class="ch-hair hs hs-short hs-front" d="M-5.2 -26.4 Q-5.8 -32.6 0 -32.9 Q5.8 -32.6 5.2 -26.4 Q4.6 -29.4 2.6 -29.9 Q.2 -29 -2.4 -29.9 Q-4.6 -29.4 -5.2 -26.4 Z"></path>'
+      + '<path class="ch-hair-shine hs hs-fluffy hs-front" d="M-2.8 -33.6 q2 -1.4 4.6 -.6"></path>'
       + `<g class="ch-hair hs hs-curly hs-front">${[[-4.5, -29.4, 1.9], [-2.7, -32.3, 2.1], [0.1, -33.4, 2.2], [2.9, -32.3, 2.1], [4.6, -29.4, 1.9], [-1.4, -30.2, 1.9], [1.6, -30.2, 1.9]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"></circle>`).join('')}</g>`
   };
 
@@ -364,8 +375,27 @@
   const NECKWEAR = '<path class="acc acc-bowtie" d="M0 -21.5 l-1.9 -1.1 v2.2 z M0 -21.5 l1.9 -1.1 v2.2 z"></path>'
     + '<g class="acc acc-necklace"><path d="M-2.3 -22.7 q2.3 3.2 4.6 0"></path><circle cx="0" cy="-20.9" r=".65"></circle></g>';
 
+  // Cara y cuerpo con formas y sombras suaves (capas semitransparentes, sin degradados, para
+  // que se vea igual en la escena, en la casa por dentro y en el editor).
+  const FACE_SHAPE = {
+    ines: 'M-4.7 -27.6 Q-4.8 -32.2 0 -32.2 Q4.8 -32.2 4.7 -27.6 Q4.6 -24.4 2.6 -22.9 Q1.3 -22 0 -22 Q-1.3 -22 -2.6 -22.9 Q-4.6 -24.4 -4.7 -27.6 Z',
+    matteo: 'M-4.8 -27.6 Q-4.9 -32.3 0 -32.3 Q4.9 -32.3 4.8 -27.6 Q4.8 -24.2 3.2 -22.8 Q1.6 -21.8 0 -21.8 Q-1.6 -21.8 -3.2 -22.8 Q-4.8 -24.2 -4.8 -27.6 Z'
+  };
+  const TORSO_SHAPE = {
+    // Ines con cintura; Matteo con la espalda más ancha.
+    ines: { w: 4.3, d: 'M-3.9 -11.6 Q-4.1 -14.4 -3.6 -16.2 Q-4.3 -18.2 -4.3 -20 Q-4.3 -22.2 -2.1 -22.2 H2.1 Q4.3 -22.2 4.3 -20 Q4.3 -18.2 3.6 -16.2 Q4.1 -14.4 3.9 -11.6 Z', shade: 'M3 -22.1 Q4.3 -21.8 4.3 -20 Q4.3 -18.2 3.6 -16.2 Q4.1 -14.4 3.9 -11.6 H2.9 Q3.2 -14.6 2.8 -16.4 Q3.4 -18.6 3 -22.1 Z', neckline: 'M-2 -22.25 Q0 -19.6 2 -22.25 Z' },
+    matteo: { w: 4.9, d: 'M-4.4 -11.6 L-4.8 -19.8 Q-4.9 -22.4 -2.4 -22.4 H2.4 Q4.9 -22.4 4.8 -19.8 L4.4 -11.6 Z', shade: 'M3.4 -22.3 Q4.9 -22 4.8 -19.8 L4.4 -11.6 H3.3 L3.6 -19.8 Q3.8 -21.4 3.4 -22.3 Z', neckline: 'M-1.5 -22.45 Q0 -20.9 1.5 -22.45 Z' }
+  };
+  const SHARK_TOY = '<g class="ch-shark" transform="translate(-.5 -16.4)"><path class="ch-shark-body" d="M-6.4 .4 q2.6 -3.6 9.4 -2.4 l2.8 -2.3 l-.3 3 l2 2 l-3 .2 q-4.6 2.6 -10.9 -.5 z"></path><path class="ch-shark-fin" d="M-.6 -2 l1.6 -3 l1.4 3.1 z"></path><path class="ch-shark-belly" d="M-6.2 .6 q4.6 1.8 9.4 -.2 q-4.4 2.4 -9.4 .2 z"></path><circle class="ch-shark-eye" cx="-4.1" cy="-.6" r=".42"></circle><path class="ch-shark-mouth" d="M-5.8 .7 q.9 .5 1.8 .2"></path></g>';
+
   function personMarkup(key, { attrs = '', badge = '' } = {}) {
     const person = PEOPLE[key];
+    const torso = TORSO_SHAPE[key];
+    const w = torso.w;
+    const he = key === 'matteo';
+    const armX = (w - 0.1).toFixed(1);
+    const coatW = (w + 0.6).toFixed(1);
+    const layerPanel = (side) => `M${side * 1.4} -22.3 L${side * 2.1} -7 L${(side * (w + 1.4)).toFixed(1)} -7.5 L${(side * (w + 0.5)).toFixed(1)} -20 Q${(side * (w + 0.3)).toFixed(1)} -22.3 ${(side * (w - 1.6)).toFixed(1)} -22.3 Z`;
     const splash = [[-6, -2, -5, -5], [-3, -1, -2, -7], [3, -1, 2, -7], [6, -2, 5, -5]]
       .map(([x, y, dx, dy]) => `<circle cx="${x}" cy="${y}" r=".8" style="--dx:${dx}px;--dy:${dy}px"></circle>`).join('');
     return `<g class="ch-pos ch-${key}" ${attrs}><g class="ch-person"><g transform="scale(${person.scale})">
@@ -376,32 +406,51 @@
         <g class="ch-back">${HAIR_BACK[key]}</g>
         <rect class="ch-thigh" x="-3.5" y="-12.5" width="3" height="6.5" rx=".8"></rect><rect class="ch-thigh" x=".5" y="-12.5" width="3" height="6.5" rx=".8"></rect>
         <rect class="ch-shin" x="-3.3" y="-6.6" width="2.6" height="5.4"></rect><rect class="ch-shin" x=".7" y="-6.6" width="2.6" height="5.4"></rect>
+        <path class="ch-leg-shade" d="M2.4 -12.4 h1.1 v6.3 h-1.1 z M2.5 -6.5 h.8 v5.2 h-.8 z"></path>
         <rect class="ch-shoe" x="-4.1" y="-1.9" width="3.7" height="1.9" rx=".9"></rect><rect class="ch-shoe" x=".4" y="-1.9" width="3.7" height="1.9" rx=".9"></rect>
+        <path class="ch-sole" d="M-3.9 -.35 h3.3 M.6 -.35 h3.3"></path>
         <path class="ch-wide" d="M-3.7 -12.6 H-.3 L.1 -1.2 H-5 Z M.3 -12.6 H3.7 L5 -1.2 H-.1 Z"></path>
+        <path class="ch-wide-shade" d="M2.6 -12.6 H3.7 L5 -1.2 H3.8 Z M-.8 -11.8 L-.6 -1.4 M-2.6 -8 q-.6 2 -1.2 6.4"></path>
         <rect class="ch-boot" x="-3.9" y="-4.6" width="3.5" height="4.6" rx=".9"></rect><rect class="ch-boot" x=".4" y="-4.6" width="3.5" height="4.6" rx=".9"></rect>
         <path class="ow-dress" d="M-4.6 -15.6 h9.2 l3.2 10.8 h-15.6 z"></path>
-        <path class="ch-torso" d="M-4.4 -11.6 v-8.4 q0 -2.2 2.2 -2.2 h4.4 q2.2 0 2.2 2.2 v8.4 z"></path>
+        <path class="ch-torso" d="${torso.d}"></path>
+        <path class="ch-shade ch-torso-shade" d="${torso.shade}"></path>
+        <path class="ch-neckline" d="${torso.neckline}"></path>
+        <g class="ch-crop"><rect class="ch-crop-skin" x="-3.7" y="-14" width="7.4" height="1.7" rx=".4"></rect><rect class="ch-crop-band" x="-3.95" y="-12.5" width="7.9" height="1.2" rx=".3"></rect><circle class="ch-navel" cx=".2" cy="-13.1" r=".18"></circle></g>
         ${OUTFIT_BODY}
-        <path class="ch-coat" d="M-4.9 -8.6 v-11.4 q0 -2.4 2.4 -2.4 h5 q2.4 0 2.4 2.4 v11.4 z"></path>
+        <g class="ch-layer"><path d="${layerPanel(-1)}"></path><path d="${layerPanel(1)}"></path><path class="ch-layer-fold" d="M-1.7 -21.6 L-2.3 -7.6 M${(w - 0.6).toFixed(1)} -20.6 L${(w + 0.4).toFixed(1)} -8"></path></g>
+        <path class="ch-coat" d="M-${coatW} -8.6 v-11.4 q0 -2.4 2.4 -2.4 h${(2 * w - 3.6).toFixed(1)} q2.4 0 2.4 2.4 v11.4 z"></path>
         <path class="ch-coat-line" d="M0 -21.6 V-8.8"></path>
         ${NECKWEAR}
-        <rect class="ch-neck" x="-1" y="-23.6" width="2" height="2"></rect>
+        <rect class="ch-neck" x="${he ? -1.25 : -1}" y="-23.8" width="${he ? 2.5 : 2}" height="2.2"></rect>
+        <path class="ch-neck-shade" d="M${he ? -1.25 : -1} -23.4 h${he ? 2.5 : 2} v.9 q-${he ? 1.25 : 1} .6 -${he ? 2.5 : 2} 0 z"></path>
         <g class="ch-scarf"><rect x="-3.4" y="-23.2" width="6.8" height="2.4" rx="1.1"></rect><rect x="1" y="-21.6" width="2" height="5" rx=".8"></rect></g>
-        ${armMarkup('l', -4.2, -20.4)}
-        ${armMarkup('r', 4.2, -20.4, key === 'ines' ? CAN : '')}
+        ${SHARK_TOY}
+        ${armMarkup('l', -armX, he ? -20.6 : -20.4)}
+        ${armMarkup('r', armX, he ? -20.6 : -20.4, PHONE + (key === 'ines' ? CAN : ''))}
+        ${key === 'ines' ? '<g class="ch-embrace"><path class="ch-embrace-sleeve" d="M-7 -18.6 l1.6 .5 M7 -17.4 l-1.6 .4"></path><path class="ch-embrace-arm" d="M-5.6 -18.2 Q-1 -15.8 4.4 -17.4 M5.6 -17 Q1 -14.4 -4.2 -15.6"></path><circle class="ch-embrace-hand" cx="4.6" cy="-17.4" r="1.2"></circle><circle class="ch-embrace-hand" cx="-4.4" cy="-15.6" r="1.2"></circle></g>' : ''}
         <g class="ch-head">
-          <circle class="ch-face" cx="0" cy="-27" r="4.8"></circle>
+          <g class="ch-ears"><ellipse cx="-4.75" cy="-26.7" rx=".95" ry="1.35"></ellipse><ellipse cx="4.75" cy="-26.7" rx=".95" ry="1.35"></ellipse></g>
+          <path class="ch-face" d="${FACE_SHAPE[key]}"></path>
+          <path class="ch-face-shade" d="M4.6 -28.4 Q4.7 -24.4 2.6 -22.9 Q1.3 -22 0 -22 Q2.7 -23.3 3.6 -26 Q4.1 -28.6 3.3 -31.5 Q4.6 -30.4 4.6 -28.4 Z"></path>
+          ${he ? '<path class="ch-stubble" d="M-4.6 -25.8 Q-4.4 -23.6 -3.2 -22.8 Q-1.6 -21.8 0 -21.8 Q1.6 -21.8 3.2 -22.8 Q4.4 -23.6 4.6 -25.8 Q3.8 -24.2 2.4 -24.6 Q1.2 -23.6 0 -23.8 Q-1.2 -23.6 -2.4 -24.6 Q-3.8 -24.2 -4.6 -25.8 Z"></path>' : ''}
           <path class="ow-mask" d="M-4.7 -27.9 h9.4 v2.4 h-9.4 z"></path>
-          <g class="ch-eyes"><circle cx="-1.7" cy="-26.6" r=".9"></circle><circle cx="1.7" cy="-26.6" r=".9"></circle></g>
-          <g class="ch-glints"><circle cx="-1.4" cy="-26.95" r=".3"></circle><circle cx="2" cy="-26.95" r=".3"></circle></g>
+          <g class="ch-eyes">
+            <ellipse class="ch-sclera" cx="-1.75" cy="-26.6" rx="1.08" ry=".8"></ellipse><ellipse class="ch-sclera" cx="1.75" cy="-26.6" rx="1.08" ry=".8"></ellipse>
+            <g class="ch-gaze"><circle class="ch-iris" cx="-1.7" cy="-26.55" r=".64"></circle><circle class="ch-iris" cx="1.8" cy="-26.55" r=".64"></circle><circle class="ch-pupil" cx="-1.7" cy="-26.55" r=".3"></circle><circle class="ch-pupil" cx="1.8" cy="-26.55" r=".3"></circle>
+            <g class="ch-glints"><circle cx="-1.45" cy="-26.85" r=".2"></circle><circle cx="2.05" cy="-26.85" r=".2"></circle></g></g>
+            <path class="ch-lash" d="M-2.85 -26.75 q1.1 -.95 2.2 0 M.65 -26.75 q1.1 -.95 2.2 0${he ? '' : ' M-2.85 -26.75 l-.5 -.35 M2.85 -26.75 l.5 -.35'}"></path>
+          </g>
+          <path class="ch-brows" d="${he ? 'M-2.9 -28.6 q1.1 -.75 2.2 -.25 M.7 -28.85 q1.1 -.5 2.2 .25' : 'M-2.8 -28.7 q1 -.6 2 -.2 M.8 -28.9 q1 -.4 2 .2'}"></path>
           ${MOOD_EYES}
+          <path class="ch-nose" d="M.15 -26.1 q.55 1.2 -.35 1.55"></path>
           <circle class="ch-cheek" cx="-3" cy="-25" r=".9"></circle><circle class="ch-cheek" cx="3" cy="-25" r=".9"></circle>
-          <path class="ch-mouth" d="M-1.1 -24.5 q1.1 1 2.2 0"></path>
+          <path class="ch-mouth" d="${he ? 'M-1.2 -24.2 q1.4 .85 2.5 -.35' : 'M-1.3 -24.3 q1.3 1.15 2.6 0'}"></path>
           ${MOOD_MOUTH}
           ${HAIR_TOP[key]}
           ${MOOD_OVER}
           ${FACEWEAR}
-          ${key === 'ines' ? '<g class="ch-earrings"><circle cx="-4.9" cy="-25.2" r=".8"></circle><circle cx="4.9" cy="-25.2" r=".8"></circle></g>' : ''}
+          ${key === 'ines' ? '<g class="ch-earrings"><circle cx="-4.9" cy="-24.6" r=".8"></circle><circle cx="4.9" cy="-24.6" r=".8"></circle></g>' : ''}
           <g class="ch-shades"><rect x="-3.2" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x=".3" y="-27.7" width="2.9" height="2" rx=".7"></rect><rect x="-.4" y="-27.1" width=".8" height=".45"></rect></g>
           <g class="ch-hat"><path d="M-5 -28.8 q0 -6 5 -6 q5 0 5 6 z"></path><rect x="-5.4" y="-29.6" width="10.8" height="2.1" rx="1"></rect><circle cx="0" cy="-35" r="1.4"></circle></g>
           <path class="ch-hood" d="M-6 -24.6 q-.7 -9.6 6 -9.6 q6.7 0 6 9.6 q-.9 -4.9 -6 -5.2 q-5.1 .3 -6 5.2 z"></path>
@@ -844,6 +893,8 @@
       face: look.face,
       neck: wear === 'cold' && look.neck === 'scarf' ? 'none' : look.neck,
       wide: String(key === 'ines' && casual && ['warm', 'mild', 'cold'].includes(wear)),
+      layer: casual && ['warm', 'mild'].includes(wear) && look.layer === 'overshirt' ? 'overshirt' : 'none',
+      crop: String(key === 'ines' && casual && look.crop !== false && ['hot', 'warm', 'mild'].includes(wear)),
       covered: String(weatherHead || ['hood', 'chef', 'nightcap'].includes(outfitHead) || ['beanie', 'cap'].includes(head)),
       mood,
       eyes: face.eyes || 'open',
@@ -861,10 +912,19 @@
     if (traits.wear === 'fun') {
       const spec = OUTFITS[look.outfit].colors;
       const colors = spec[key] || spec;
-      return { skin, hair: look.hairColor, eyes: person.eyes, top: colors.top, sleeve: colors.top, pants: colors.pants, shin: colors.shin === 'skin' ? skin : colors.pants, shoe: colors.shoe, coat: colors.top, boot: colors.shoe, scarf: colors.top, hat: look.hairColor, accent: colors.accent || '#ffffff', cape: colors.cape || colors.top };
+      return { skin, hair: look.hairColor, eyes: person.eyes, top: colors.top, sleeve: colors.top, pants: colors.pants, shin: colors.shin === 'skin' ? skin : colors.pants, shoe: colors.shoe, coat: colors.top, boot: colors.shoe, scarf: colors.top, hat: look.hairColor, accent: colors.accent || '#ffffff', cape: colors.cape || colors.top, layer: colors.top };
     }
     const base = WARDROBE[traits.wear][key];
-    return { skin, hair: look.hairColor, eyes: person.eyes, top: look.top, sleeve: base.sleeve === 'skin' ? skin : look.top, pants: look.bottom, shin: base.shin === 'skin' ? skin : look.bottom, shoe: look.shoes, coat: base.coat || look.top, boot: base.boot || look.shoes, scarf: base.scarf || look.top, hat: base.hat || look.hairColor, accent: '#ffffff', cape: look.top };
+    const layer = look.layerColor || look.top;
+    const sleeve = traits.layer === 'overshirt' ? layer : base.sleeve === 'skin' ? skin : look.top;
+    return { skin, hair: look.hairColor, eyes: person.eyes, top: look.top, sleeve, layer, pants: look.bottom, shin: base.shin === 'skin' ? skin : look.bottom, shoe: look.shoes, coat: base.coat || look.top, boot: base.boot || look.shoes, scarf: base.scarf || look.top, hat: base.hat || look.hairColor, accent: '#ffffff', cape: look.top };
+  }
+
+  // Colores de los brazos de uno para dibujar su abrazo sobre el otro (selfie en el espejo).
+  function armColors(key, avatar = {}, weatherOutfit = 'mild') {
+    const look = lookFor(key, avatar);
+    const colors = colorsFor(key, traitsFor(key, weatherOutfit, avatar), look);
+    return { skin: colors.skin, sleeve: colors.sleeve };
   }
 
   const moodBadge = (traits) => (traits.mood !== 'none' ? MOODS[traits.mood].emoji : '');
@@ -907,9 +967,9 @@
   // Toques entre los dos: un plan especial unos segundos.
   function play(kind) {
     if (!container) return;
-    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug' }[kind] || 'hug';
+    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug', shark: 'dance', selfie: 'hug' }[kind] || 'hug';
     apply();
-    if (kind === 'kiss' || kind === 'hug') {
+    if (['kiss', 'hug', 'selfie', 'shark'].includes(kind)) {
       container.dataset.love = 'false';
       void container.getBoundingClientRect();
       container.dataset.love = 'true';
@@ -1005,7 +1065,8 @@
     if (container.dataset.decor === 'christmas') lines.push('¡Feliz Navidad! 🎄');
     if (currentAct === 'dance') lines.push('¡A bailar! 💃');
     if (currentAct === 'stargaze') lines.push('¡Mira, una estrella fugaz! 🌠');
-    lines.push(`Te quiero, ${partner} ❤️`, key === 'ines' ? '¿Un café? ☕' : '¿Pizza esta noche? 🍕');
+    if (key === 'ines') lines.push(`Te quiero, ${partner} ❤️`, '¿Dónde está mi tiburón? 🦈', '¿Un café? ☕');
+    else lines.push(`Ti amo, ${partner} ❤️`, 'Ciao, tiburona! 🦈', 'Pizza stasera? 🍕');
     return lines;
   }
 
@@ -1090,5 +1151,5 @@
     }
   }
 
-  window.umbralScene = { mount, update, preview, play, personSvg, catalog: { DEFAULT_LOOK, HAIRSTYLES, HAIR_COLORS, CLOTH_COLORS, OUTFITS, HEAD_ACC, FACE_ACC, NECK_ACC, MOODS, POKES } };
+  window.umbralScene = { mount, update, preview, play, personSvg, armColors, catalog: { DEFAULT_LOOK, HAIRSTYLES, HAIR_COLORS, CLOTH_COLORS, OUTFITS, LAYERS, HEAD_ACC, FACE_ACC, NECK_ACC, MOODS, POKES } };
 })();
