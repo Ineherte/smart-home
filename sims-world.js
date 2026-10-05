@@ -10,7 +10,21 @@
   const W = 512;
   const H = 384;
   const OL = '#2b1f1d';
-  const SPRITES = { ines: 'assets/sims/ines.png?v=1', matteo: 'assets/sims/matteo.png?v=2' };
+  // Hojas de sprites. Las de ropa y familia están compactadas: solo llevan algunas filas
+  // (rows dice qué fila original es cada una). Si a una hoja de ropa le falta una animación,
+  // se usa la de su ropa de siempre (base).
+  const OUTFIT_ROWS = [...Array(12).keys(), ...Array.from({ length: 16 }, (_, i) => 22 + i)];
+  const NPC_ROWS = [8, 9, 10, 11, ...Array.from({ length: 16 }, (_, i) => 22 + i)];
+  const SHEETS = {
+    ines: { src: 'assets/sims/ines.png?v=1' },
+    matteo: { src: 'assets/sims/matteo.png?v=2' }
+  };
+  ['pajamas', 'cold', 'hot'].forEach((outfit) => ['ines', 'matteo'].forEach((key) => {
+    SHEETS[`${key}-${outfit}`] = { src: `assets/sims/outfits/${key}-${outfit}.png?v=1`, rows: OUTFIT_ROWS, base: key };
+  }));
+  ['ines-mom', 'ines-dad', 'ines-brother', 'matteo-mom', 'matteo-dad', 'matteo-nonna', 'ped-a', 'ped-b'].forEach((id) => {
+    SHEETS[id] = { src: `assets/sims/npc/${id}.png?v=1`, rows: NPC_ROWS };
+  });
   // Expresiones (solo los píxeles de la cara que cambian respecto a la neutra), en un atlas:
   // una franja de 54 filas × 13 columnas por expresión. box: dónde va dentro del fotograma.
   const FACES = {
@@ -120,16 +134,16 @@
       let i = row;
       while (x < x0 + w) {
         const len = lengths[i % lengths.length];
-        const color = tone(base, (((i * 7 + row * 3) % 5) - 2) * 0.035);
+        const color = tone(base, (((i * 7 + row * 3) % 5) - 2) * 0.02);
         const xa = Math.max(x, x0);
         const xb = Math.min(x + len, x0 + w);
         R(c, xa, y, xb - xa, ph, color);
-        R(c, xa, y, xb - xa, 1, tone(color, 0.14));
-        if (ph === 8) R(c, xa, y + 7, xb - xa, 1, tone(base, -0.3));
-        if (x >= x0) R(c, x, y, 1, ph, tone(base, -0.32));
+        R(c, xa, y, xb - xa, 1, tone(color, 0.1));
+        if (ph === 8) R(c, xa, y + 7, xb - xa, 1, tone(base, -0.18));
+        if (x >= x0) R(c, x, y, 1, ph, tone(base, -0.2));
         if (xb - xa > 14) {
-          R(c, xa + 3 + ((i * 13) % (xb - xa - 12)), y + 3, 6, 1, tone(color, -0.1));
-          R(c, xa + 6 + ((i * 29) % (xb - xa - 12)), y + 5, 4, 1, tone(color, 0.06));
+          R(c, xa + 3 + ((i * 13) % (xb - xa - 12)), y + 3, 6, 1, tone(color, -0.05));
+          R(c, xa + 6 + ((i * 29) % (xb - xa - 12)), y + 5, 4, 1, tone(color, 0.04));
         }
         x += len;
         i += 1;
@@ -150,6 +164,18 @@
     }
   }
 
+  // Baldosa de barro y crema en damero suave, con alguna hidráulica suelta de adorno.
+  function checker(c, x0, y0, w, h) {
+    for (let y = y0; y < y0 + h; y += 16) {
+      for (let x = x0; x < x0 + w; x += 16) {
+        const odd = ((x - x0) / 16 + (y - y0) / 16) % 2;
+        const color = odd ? '#d9a27e' : '#f0e2c8';
+        R(c, x, y, 16, 16, color);
+        R(c, x, y, 16, 1, tone(color, 0.12));
+        R(c, x, y, 1, 16, tone(color, -0.08));
+      }
+    }
+  }
   // Baldosa hidráulica, de las de casa de abuela (en España y en Italia).
   function hydraulic(c, x0, y0, w, h) {
     for (let y = y0; y < y0 + h; y += 16) {
@@ -215,12 +241,17 @@
     } else {
       const base = { bedroom: '#e8d3c3', kitchen: '#f0e3c6', living: '#ece4d4' }[style];
       R(c, x0, y0, w, h, base);
-      if (style === 'bedroom') for (let x = x0 + 3; x < x1; x += 8) R(c, x, y0, 1, h, tone(base, -0.05));
+      if (style === 'bedroom') {
+        for (let y = y0 + 6; y < y1 - 8; y += 8) for (let x = x0 + (((y - y0) / 8) % 2 ? 2 : 6); x < x1; x += 8) R(c, x, y, 1, 1, tone(base, -0.12));
+      }
       if (style === 'living') {
-        for (let i = 0; i < w * h / 40; i += 1) {
-          const px = x0 + ((i * 37) % w);
-          const py = y0 + ((i * 53 + (i >> 3) * 7) % h);
-          R(c, px, py, 1, 1, tone(base, ((i % 3) - 1) * 0.04));
+        // Zócalo de madera pintada en verde salvia, con su moldura.
+        R(c, x0, y1 - 20, w, 15, '#a9b59a');
+        R(c, x0, y1 - 20, w, 1, '#f6f1e8');
+        R(c, x0, y1 - 19, w, 1, '#c3cdb5');
+        for (let x = x0 + 6; x < x1 - 4; x += 16) {
+          R(c, x, y1 - 16, 12, 8, '#9eab8e');
+          R(c, x, y1 - 16, 12, 1, '#8e9b7e');
         }
       }
       if (style === 'kitchen') {
@@ -249,8 +280,8 @@
   // Parte de arriba de los muros (lo que se ve desde el techo).
   function cap(c, x, y, w, h) {
     R(c, x, y, w, h, OL);
-    R(c, x + 1, y + 1, w - 2, h - 2, '#6e5d55');
-    R(c, x + 1, y + 1, w - 2, 1, '#8f7c72');
+    R(c, x + 1, y + 1, w - 2, h - 2, '#7d6c63');
+    R(c, x + 1, y + 1, w - 2, 1, '#9c8a7f');
   }
 
   function rug(c, x = 30, y = 276) {
@@ -346,15 +377,15 @@
   const PHOTO_SLOTS = [
     { x: 41, y: 191, w: 12, h: 10, frame: '#8a5a3a', art: 'couple' },
     { x: 41, y: 206, w: 12, h: 12, frame: '#2b2522', art: 'roma' },
-    { x: 122, y: 190, w: 14, h: 11, frame: '#f4f0e8', art: 'beach' },
-    { x: 123, y: 206, w: 12, h: 12, frame: '#c9a06a', art: 'flags' },
+    { x: 214, y: 212, w: 12, h: 10, frame: '#f4f0e8', art: 'beach' },
+    { x: 46, y: 18, w: 12, h: 10, frame: '#c9a06a', art: 'flags' },
     { x: 75, y: 20, w: 8, h: 7, polaroid: true, art: 'heart' },
     { x: 90, y: 22, w: 8, h: 7, polaroid: true, art: 'couple' },
     { x: 105, y: 22, w: 8, h: 7, polaroid: true, art: 'shark' },
     { x: 120, y: 20, w: 8, h: 7, polaroid: true, art: 'beach' },
     { x: 142, y: 44, w: 6, h: 5, frame: '#e3b86a', art: 'couple' },
     { x: 350, y: 56, w: 8, h: 7, frame: '#ffffff', art: 'roma' },
-    { x: 284, y: 345, w: 6, h: 5, frame: '#2b2522', art: 'heart' }
+    { x: 243, y: 346, w: 6, h: 5, frame: '#2b2522', art: 'heart' }
   ];
   // Dibujitos de reserva (cuando aún no hay fotos en Nosotros).
   function photoArt(c, kind, x, y, w, h) {
@@ -442,8 +473,8 @@
     R(c, 0, 0, W, H, '#33292a');
     planks(c, ...ROOMS.bedroom, '#c99a64');
     bathTiles(c, ...ROOMS.bathroom);
-    hydraulic(c, ...ROOMS.kitchen);
-    parquet(c, 8, 176, 496, 200, '#a8703f');
+    checker(c, ...ROOMS.kitchen);
+    planks(c, 8, 176, 496, 200, '#b4834f');
     // Sombra del suelo junto a las paredes.
     const ao = (x, y, w, h, dir) => {
       for (let i = 0; i < 6; i += 1) {
@@ -491,12 +522,15 @@
     R(c, 241, 103, 34, 12, '#8ec9c0');
     R(c, 241, 103, 34, 1, '#b8e2db');
     R(c, 380, 80, 84, 12, OL);
-    R(c, 381, 81, 82, 10, '#3d6a9a');
+    R(c, 381, 81, 82, 10, '#b8674a');
     for (let i = 383; i < 462; i += 6) R(c, i, 83, 3, 6, '#efe3c8');
-    R(c, 340, 300, 52, 16, OL);
-    R(c, 341, 301, 50, 14, '#8e6fb8');
-    R(c, 341, 301, 50, 1, '#ad93d2');
-    R(c, 389, 301, 2, 14, '#6f539a');
+    // Alfombra de yute y la esterilla de yoga encima.
+    ovalBox(c, 366, 308, 44, 20, '#cdb88f');
+    for (let r = 16; r > 2; r -= 5) { c.globalAlpha = 0.25; oval(c, 366, 308, r * 2.6, r, '#a8925f'); c.globalAlpha = 1; oval(c, 366, 308, r * 2.6 - 1, r - 1, '#cdb88f'); }
+    R(c, 341, 301, 50, 14, OL);
+    R(c, 342, 302, 48, 12, '#8fa98a');
+    R(c, 342, 302, 48, 1, '#aec4a8');
+    R(c, 387, 302, 3, 12, '#7a9475');
     // Zapatillas junto a la cama.
     pixels(c, [[66, 136, 5, 3], [72, 137, 5, 3]], OL);
     pixels(c, [[67, 136, 3, 2], [73, 137, 3, 2]], '#e98a6a');
@@ -507,7 +541,7 @@
     ovalBox(c, 220, 200, 7, 7, '#f7f2e6');
     oval(c, 220, 200, 5, 5, '#fbf8f0');
     [[220, 194], [226, 200], [220, 206], [214, 200]].forEach(([hx, hy]) => R(c, hx, hy, 1, 1, OL));
-    [[210, 212], [266, 212], [158, 26], [438, 212]].forEach(([sx, sy]) => { R(c, sx, sy, 4, 6, OL); R(c, sx + 1, sy + 1, 2, 4, '#f7f2e6'); });
+    [[266, 212], [158, 26], [438, 212]].forEach(([sx, sy]) => { R(c, sx, sy, 4, 6, OL); R(c, sx + 1, sy + 1, 2, 4, '#f7f2e6'); });
     // Espejo redondo del baño.
     ovalBox(c, 319, 25, 9, 10, '#c5ccce');
     oval(c, 319, 25, 7, 8, '#bfe1ea');
@@ -528,8 +562,6 @@
     box(c, 268, 22, 4, 6, '#e98a6a');
     R(c, 274, 25, 3, 3, '#f7f2e6');
     R(c, 275, 24, 1, 1, '#f2c230');
-    pixels(c, [[244, 20, 6, 4], [243, 24, 2, 5], [246, 24, 1, 8], [249, 24, 2, 4], [247, 32, 2, 2]], '#4c9a5a');
-    pixels(c, [[245, 17, 4, 3]], '#c47a52');
     // Muebles altos de la cocina, ristra de ajos y guindillas junto a la ventana.
     box(c, 372, 10, 98, 18, '#7f9a7a');
     for (let i = 372; i < 470; i += 24.5) R(c, i, 11, 1, 16, tone('#7f9a7a', -0.35));
@@ -558,6 +590,14 @@
       R(c, x + i, y + h - bh, 7, 2, roofs);
       if (sky.night && (i + x) % 3 === 0) R(c, x + i + 2, y + h - bh + 4, 1, 1, '#ffd77a');
       else if (!sky.night) R(c, x + i + 2, y + h - bh + 4, 2, 2, tone(walls, -0.25));
+    }
+    if (sky.rain || sky.snow) {
+      c.globalAlpha = sky.snow ? 0.9 : 0.6;
+      for (let i = 0; i < w; i += 3) {
+        const fy = (t / (sky.snow ? 60 : 14) + i * 7) % h;
+        R(c, x + i, y + fy, 1, sky.snow ? 1 : 3, sky.snow ? '#ffffff' : '#dbe8f4');
+      }
+      c.globalAlpha = 1;
     }
     if (sky.night) {
       pixels(c, [[x + 4, y + 4], [x + w - 6, y + 6], [x + w / 2, y + 3], [x + 7, y + 9]], '#ffffff');
@@ -592,7 +632,11 @@
   // Cada mueble: draw(c, state, t). sort: la «y» de su base (para saber quién tapa a quién).
   // block: lo que ocupa en el suelo. hit: dónde se toca.
   const PLANT_LEAF = '#3f8a4f';
-  function strelitzia(c, x, y, t, wet) {
+  const GREENS = ['#3f8a4f', '#4c9a5a', '#3a7d47', '#5aa86a'];
+  const DRYS = ['#8f8a45', '#a39a52', '#7f7a3c', '#b3aa62'];
+  function strelitzia(c, x, y, t, wet, dry) {
+    const pal = dry ? DRYS : GREENS;
+    const droop = dry ? 5 : 0;
     const sway = Math.sin(t / 1400) * 1.2;
     const leaf = (bx, by, dx, dy, len, color) => {
       for (let i = 0; i < len; i += 1) {
@@ -606,14 +650,16 @@
     };
     // Tallos.
     [[-4, -1], [0, 0], [4, 1], [-1, -1]].forEach(([dx]) => R(c, x + dx, y - 26, 1, 20, '#5b7a3a'));
-    leaf(x - 10, y - 50, 0.25, 1, 22, PLANT_LEAF);
-    leaf(x + 8, y - 54, -0.15, 1, 26, '#4c9a5a');
-    leaf(x - 2, y - 58, 0.05, 1, 28, '#3a7d47');
-    leaf(x + 12, y - 40, -0.4, 1, 16, '#4c9a5a');
-    leaf(x - 14, y - 36, 0.45, 1, 14, '#3a7d47');
+    leaf(x - 10 - droop, y - 50 + droop, 0.25, 1, 22, pal[0]);
+    leaf(x + 8 + droop, y - 54 + droop, -0.15, 1, 26, pal[1]);
+    leaf(x - 2, y - 58 + droop, 0.05, 1, 28, pal[2]);
+    leaf(x + 12, y - 40 + droop, -0.4, 1, 16, pal[1]);
+    leaf(x - 14, y - 36 + droop, 0.45, 1, 14, pal[2]);
     // La flor de ave del paraíso.
-    pixels(c, [[x + 6, y - 46, 4, 1], [x + 8, y - 47, 3, 1], [x + 9, y - 49, 2, 2], [x + 5, y - 45, 6, 1]], '#f08a2c');
-    pixels(c, [[x + 10, y - 48, 2, 1], [x + 4, y - 44, 6, 1]], '#3f5aa8');
+    if (!dry) {
+      pixels(c, [[x + 6, y - 46, 4, 1], [x + 8, y - 47, 3, 1], [x + 9, y - 49, 2, 2], [x + 5, y - 45, 6, 1]], '#f08a2c');
+      pixels(c, [[x + 10, y - 48, 2, 1], [x + 4, y - 44, 6, 1]], '#3f5aa8');
+    }
     // Maceta de barro.
     box(c, x - 9, y - 12, 18, 13, '#c47a52');
     R(c, x - 10, y - 13, 20, 3, OL);
@@ -644,9 +690,6 @@
       R(c, x + 3, sy + 10, 52, 2, '#8a5a3a');
       R(c, x + 3, sy + 12, 52, 1, OL);
     }
-    // Una planta colgante y un marco.
-    pixels(c, [[x + 44, y - 4, 6, 4]], '#c47a52');
-    pixels(c, [[x + 42, y, 2, 6], [x + 46, y, 1, 9], [x + 50, y, 2, 5], [x + 43, y - 6, 8, 3]], '#4c9a5a');
     R(c, x, y + 56, 58, 3, 'rgba(0,0,0,.2)');
   }
 
@@ -794,16 +837,117 @@
     pixels(c, [[12, 95, 6, 4], [17, 94, 6, 4]], '#f4f1ea');
     pixels(c, [[14, 96, 4, 3]], '#1f1e24');
   }
-  function drawSnakePlant(c) {
-    shadow(c, 19, 174, 9, 2, 0.22);
-    [[13, 138, 3, 24, '#3a7d47'], [17, 134, 3, 28, '#4c9a5a'], [21, 140, 3, 22, '#3a7d47'], [24, 146, 2, 16, '#5aa86a']].forEach(([lx, ly, lw, lh, color]) => {
-      R(c, lx - 1, ly, lw + 2, lh, OL);
-      R(c, lx, ly + 1, lw, lh - 1, color);
-      R(c, lx, ly + 1, 1, lh - 1, '#c9d27a');
+  function snakePlant(c, x, y, dry) {
+    const pal = dry ? DRYS : GREENS;
+    shadow(c, x, y, 9, 2, 0.22);
+    [[-6, -36, 3, 24, pal[2]], [-2, -40, 3, 28, pal[1]], [2, -34, 3, 22, pal[2]], [5, -28, 2, 16, pal[3]]].forEach(([lx, ly, lw, lh, color]) => {
+      const tilt = dry ? 3 : 0;
+      R(c, x + lx - 1, y + ly + tilt, lw + 2, lh - tilt, OL);
+      R(c, x + lx, y + ly + 1 + tilt, lw, lh - 1 - tilt, color);
+      R(c, x + lx, y + ly + 1 + tilt, 1, lh - 1 - tilt, dry ? '#c9b46a' : '#c9d27a');
     });
-    box(c, 11, 160, 16, 14, '#efe6d4');
-    R(c, 12, 163, 14, 1, '#cfc4b1');
+    box(c, x - 8, y - 14, 16, 14, '#efe6d4');
+    R(c, x - 7, y - 11, 14, 1, '#cfc4b1');
   }
+  // Poto colgante: maceta con cuerdas o encima de un mueble, con guías que caen.
+  function pothos(c, x, y, t, dry, hanging) {
+    const pal = dry ? DRYS : GREENS;
+    if (hanging) {
+      R(c, x - 5, y - 14, 1, 10, '#a89070');
+      R(c, x + 4, y - 14, 1, 10, '#a89070');
+      R(c, x - 1, y - 16, 2, 2, '#8a7a6a');
+    }
+    const sway = Math.sin(t / 1500);
+    [[-4, 16], [0, 22], [4, 12], [-2, 9]].forEach(([dx, len], i) => {
+      for (let k = 0; k < len; k += 1) {
+        const px = x + dx + Math.round(Math.sin(k / 4 + i) * 1 + sway * (k / len));
+        R(c, px, y + k, 1, 1, tone(pal[2], -0.2));
+        if (k % 4 === 2) { R(c, px - 2, y + k - 1, 2, 2, pal[(i + k) % 2]); R(c, px + 1, y + k, 2, 2, pal[(i + k + 1) % 2]); }
+      }
+    });
+    pixels(c, [[x - 6, y - 6, 12, 3], [x - 5, y - 8, 10, 2]], pal[1]);
+    pixels(c, [[x - 4, y - 9, 3, 2], [x + 2, y - 9, 3, 2]], pal[3]);
+    box(c, x - 5, y - 4, 10, 6, hanging ? '#efe6d4' : '#c47a52');
+  }
+  // Plantita aromática (albahaca o lo que sea) en una maceta pequeña.
+  function herb(c, x, y, dry) {
+    const pal = dry ? DRYS : GREENS;
+    [[-4, -10], [0, -13], [3, -9], [-2, -7], [2, -6]].forEach(([dx, dy], i) => ovalBox(c, x + dx, y + dy + (dry ? 2 : 0), 2, 2, pal[i % 4]));
+    box(c, x - 4, y - 5, 9, 6, '#c47a52');
+    R(c, x - 5, y - 6, 11, 2, OL);
+  }
+  // Huecos para plantas: los grandes en el suelo y los pequeños colgados o en muebles.
+  // Ahí se ponen vuestras plantas de la app (con su nombre y su sed de verdad).
+  const PLANT_SLOTS = [
+    { kind: 'strelitzia', x: 282, y: 266, hit: [266, 196, 32, 72], block: [268, 248, 30, 20], sort: 267, top: 62, spot: { x: 282, y: 284, dir: 'up' } },
+    { kind: 'monstera', x: 488, y: 318, hit: [474, 274, 30, 48], block: [478, 300, 22, 18], sort: 319, top: 50, spot: { x: 464, y: 316, dir: 'right' } },
+    { kind: 'snake', x: 19, y: 174, hit: [8, 130, 24, 46], block: [10, 160, 18, 14], sort: 174, top: 44, spot: { x: 36, y: 166, dir: 'left' } },
+    { kind: 'pothos', x: 431, y: 186, hit: [420, 172, 24, 34], sort: 249, top: 12, spot: { x: 420, y: 264, dir: 'up' } },
+    { kind: 'herb', x: 487, y: 42, hit: [478, 26, 20, 18], sort: 44, top: 16, spot: { x: 452, y: 88, dir: 'up' } },
+    { kind: 'pothos', x: 247, y: 26, hit: [236, 10, 22, 34], sort: 30, top: 18, hanging: true, spot: { x: 262, y: 106, dir: 'up' } }
+  ];
+  const BIG_KINDS = ['strelitzia', 'monstera', 'snake'];
+  function drawPlantSlot(c, s, t, index) {
+    const slot = PLANT_SLOTS[index];
+    const info = s.plants?.[index];
+    const dry = Boolean(info && ['thirsty', 'parched'].includes(info.mood));
+    const wet = Boolean(s.props[`plant${index}`]);
+    const kind = info?.draw && (BIG_KINDS.includes(slot.kind) === BIG_KINDS.includes(info.draw)) ? info.draw : slot.kind;
+    if (kind === 'strelitzia') strelitzia(c, slot.x, slot.y, t, wet, dry);
+    else if (kind === 'monstera') drawMonstera(c, t, slot.x, slot.y, dry);
+    else if (kind === 'snake') snakePlant(c, slot.x, slot.y, dry);
+    else if (kind === 'pothos') pothos(c, slot.x, slot.y, t, dry, slot.hanging);
+    else herb(c, slot.x, slot.y, dry);
+    // Gota que parpadea encima si tiene sed.
+    if (dry && Math.floor(t / 500) % 2) {
+      const dx = slot.x;
+      const dy = slot.y - slot.top - 8;
+      pixels(c, [[dx, dy, 1, 1], [dx - 1, dy + 1, 3, 1], [dx - 2, dy + 2, 5, 2], [dx - 1, dy + 4, 3, 1]], '#2b6a9a');
+      pixels(c, [[dx, dy + 1, 1, 1], [dx - 1, dy + 2, 3, 2]], '#7cc4e6');
+    }
+  }
+  // Letras y números de 3×5 píxeles (calendario, carteles…).
+  const GLYPHS = {
+    A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011',
+    H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101',
+    O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111',
+    V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111',
+    0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110',
+    6: '011100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001110', ' ': '000000000000000', "'": '010010000000000', '.': '000000000000010'
+  };
+  function pixelText(c, text, x, y, color, scale = 1) {
+    c.fillStyle = color;
+    [...String(text).toUpperCase()].forEach((ch, i) => {
+      const glyph = GLYPHS[ch] || GLYPHS[' '];
+      for (let k = 0; k < 15; k += 1) if (glyph[k] === '1') c.fillRect(Math.round(x + (i * 4 + (k % 3)) * scale), Math.round(y + Math.floor(k / 3) * scale), scale, scale);
+    });
+  }
+  const textWidth = (text, scale = 1) => (String(text).length * 4 - 1) * scale;
+  // Corcho del salón con vuestras tareas pendientes (una nota por tarea).
+  function drawBoard(c, s) {
+    const x = 120;
+    const y = 188;
+    R(c, x, y + 30, 20, 2, 'rgba(0,0,0,.16)');
+    box(c, x, y, 20, 30, '#8a5a3a');
+    R(c, x + 2, y + 2, 16, 26, '#c9a06a');
+    for (let i = 0; i < 12; i += 1) R(c, x + 3 + ((i * 7) % 14), y + 3 + ((i * 11) % 24), 1, 1, '#a8804e');
+    const n = s.data?.tasks || 0;
+    const colors = ['#fbe58a', '#f6b3c4', '#a9d8f0', '#c8e6a0'];
+    if (!n) {
+      R(c, x + 6, y + 9, 8, 8, '#c8e6a0');
+      pixels(c, [[x + 8, y + 13, 1, 1], [x + 9, y + 14, 1, 1], [x + 10, y + 13, 1, 1], [x + 11, y + 12, 1, 1], [x + 12, y + 11, 1, 1]], '#3a7d47');
+    }
+    for (let i = 0; i < Math.min(n, 4); i += 1) {
+      const nx = x + 3 + (i % 2) * 8;
+      const ny = y + 4 + Math.floor(i / 2) * 12;
+      R(c, nx, ny, 7, 8, colors[i]);
+      R(c, nx + 1, ny + 3, 5, 1, 'rgba(0,0,0,.25)');
+      R(c, nx + 1, ny + 5, 4, 1, 'rgba(0,0,0,.25)');
+      R(c, nx + 3, ny, 1, 1, '#c0303e');
+    }
+    if (n > 4) pixelText(c, `${Math.min(n, 9)}`, x + 14, y + 24, OL);
+  }
+
   function drawWasher(c, s, t) {
     shadow(c, 322, 172, 14, 2, 0.22);
     box(c, 308, 146, 28, 26, '#f1f4f5', { hi: 0.35, lo: -0.15 });
@@ -854,6 +998,12 @@
     box(c, 277, 337, 5, 5, '#f4f1ea');
     R(c, 278, 338, 3, 1, '#6a4a34');
     drawSlot(c, PHOTO_SLOTS[10], s.photos?.[10]);
+    const day = String(s.data?.day || new Date().getDate()).padStart(2, '0');
+    R(c, 284, 333, 11, 11, OL);
+    R(c, 285, 334, 9, 9, '#fbf9f3');
+    R(c, 285, 334, 9, 2, '#c0303e');
+    pixelText(c, day, 285, 337, OL);
+    if (s.data?.events) R(c, 292, 341, 2, 2, '#3d6a9a');
   }
   function drawCoatRack(c) {
     shadow(c, 491, 372, 8, 2, 0.25);
@@ -1027,15 +1177,19 @@
     R(c, x + 1, y + 28, 22, 1, '#b9c2c6');
     R(c, x + 19, y + 12, 2, 10, '#9aa3a8');
     R(c, x + 19, y + 34, 2, 14, '#9aa3a8');
-    // Imanes de Italia y España y vuestra lista.
-    R(c, x + 5, y + 36, 3, 3, '#3a9a5a');
-    R(c, x + 8, y + 36, 3, 3, '#f4f1ea');
-    R(c, x + 11, y + 36, 3, 3, '#c0303e');
-    R(c, x + 5, y + 42, 3, 2, '#c0303e');
-    R(c, x + 5, y + 44, 3, 1, '#f2c230');
-    R(c, x + 5, y + 45, 3, 2, '#c0303e');
+    // La nota de la compra (una raya por cosa apuntada), imanes de Italia y España y una foto.
+    const items = Math.min(s.data?.shopping || 0, 6);
+    R(c, x + 3, y + 33, 12, 15, 'rgba(0,0,0,.15)');
+    R(c, x + 2, y + 32, 12, 15, '#fbf6dc');
+    for (let i = 0; i < items; i += 1) R(c, x + 4, y + 35 + i * 2, 5 + ((i * 3) % 4), 1, '#5a6a8a');
+    if (!items) pixelText(c, 'OK', x + 4, y + 37, '#3a9a5a');
+    R(c, x + 7, y + 31, 2, 2, '#c0303e');
+    pixels(c, [[x + 16, y + 34, 1, 3], [x + 17, y + 34, 1, 3], [x + 18, y + 34, 1, 3]], '#3a9a5a');
+    pixels(c, [[x + 17, y + 34, 1, 3]], '#f4f1ea');
+    pixels(c, [[x + 18, y + 34, 1, 3]], '#c0303e');
+    pixels(c, [[x + 16, y + 40, 3, 1], [x + 16, y + 42, 3, 1]], '#c0303e');
+    pixels(c, [[x + 16, y + 41, 3, 1]], '#f2c230');
     drawSlot(c, PHOTO_SLOTS[9], s.photos?.[9]);
-    R(c, x + 7, y + 47, 2, 2, '#c0303e');
     if (s.props.fridge) {
       box(c, x - 14, y + 29, 15, 44, '#eef1f2');
       R(c, x + 1, y + 29, 22, 42, '#fff7c2');
@@ -1144,14 +1298,16 @@
     R(c, 362, 198, 12, 1, '#fbf3dc');
   }
 
-  function drawMonstera(c, t, x = 486, y = 262) {
+  function drawMonstera(c, t, x = 486, y = 262, dry = false) {
+    const pal = dry ? DRYS : GREENS;
     const sway = Math.round(Math.sin(t / 1600) * 1);
     const leaf = (lx, ly, r) => {
-      ovalBox(c, lx, ly, r, r - 1, '#3f8a4f');
-      R(c, lx - 1, ly - r + 2, 1, r * 2 - 3, '#2f6a3c');
+      ly += dry ? 4 : 0;
+      ovalBox(c, lx, ly, r, r - 1, pal[0]);
+      R(c, lx - 1, ly - r + 2, 1, r * 2 - 3, tone(pal[0], -0.25));
       R(c, lx - r + 2, ly, 2, 1, '#33221a');
       R(c, lx + r - 3, ly - 1, 2, 1, '#33221a');
-      R(c, lx - r + 3, ly - 2, 2, 1, '#5aa86a');
+      R(c, lx - r + 3, ly - 2, 2, 1, pal[3]);
     };
     leaf(x - 8 + sway, y - 34, 7);
     leaf(x + 6 + sway, y - 40, 8);
@@ -1170,7 +1326,6 @@
     { id: 'nightstandR', sort: 76, layer: 'static', block: [140, 56, 18, 22], draw: (c, s) => drawNightstand(c, 140, s.photos?.[8] || null) },
     { id: 'wardrobe', sort: 77, hit: [160, 8, 46, 70], block: [160, 56, 48, 22], draw: (c, s) => shifted(c, 38, 0, () => drawWardrobe(c, s)) },
     { id: 'basket', sort: 112, block: [10, 98, 16, 14], draw: drawBasket },
-    { id: 'snake', sort: 174, block: [10, 160, 18, 14], draw: drawSnakePlant },
     // Baño
     { id: 'shower', sort: 60, hit: [226, 14, 76, 78], block: [226, 56, 76, 36], draw: drawTub },
     { id: 'showerFront', sort: 93, draw: drawTubFront },
@@ -1189,14 +1344,14 @@
     { id: 'lamp', sort: 252, layer: 'static', block: [10, 240, 20, 12], draw: (c) => shifted(c, -348, 0, () => drawFloorLamp(c)) },
     { id: 'sofa', sort: 269, hit: [36, 220, 104, 48], block: [36, 232, 104, 36], draw: (c, s) => shifted(c, -16, 0, () => drawSofa(c, s)) },
     { id: 'radio', sort: 263, hit: [144, 228, 32, 36], block: [144, 236, 32, 28], draw: (c, s, t) => shifted(c, -14, 0, () => drawRecordPlayer(c, s, t)) },
-    { id: 'plant', sort: 267, hit: [266, 196, 32, 72], block: [268, 248, 30, 20], draw: (c, s, t) => strelitzia(c, 282, 266, t, s.props.plant) },
+    ...PLANT_SLOTS.map((slot, index) => ({ id: `plant${index}`, sort: slot.sort, hit: slot.hit, block: slot.block, draw: (c, s, t) => drawPlantSlot(c, s, t, index) })),
+    { id: 'board', sort: 2, hit: [118, 186, 24, 34], draw: drawBoard },
     { id: 'mirror', sort: 253, hit: [302, 186, 30, 68], block: [304, 242, 28, 12], draw: drawMirror },
     { id: 'bookshelf', sort: 247, layer: 'static', hit: [380, 184, 62, 64], block: [380, 232, 62, 16], draw: (c) => shifted(c, 84, 0, () => bookshelf(c)) },
     { id: 'coffee', sort: 310, block: [68, 291, 44, 19], draw: (c) => shifted(c, -18, 0, () => drawCoffeeTable(c)) },
     { id: 'tv', sort: 371, hit: [50, 322, 82, 50], block: [50, 330, 80, 46], draw: (c, s, t) => shifted(c, -16, 0, () => drawTvBack(c, s, t)) },
     { id: 'deskchair', sort: 336, draw: drawDeskChair },
     { id: 'desk', sort: 373, hit: [228, 326, 68, 48], block: [228, 342, 68, 32], draw: drawDesk },
-    { id: 'monstera', sort: 319, block: [478, 300, 22, 18], draw: (c, s, t) => drawMonstera(c, t, 488, 318) },
     { id: 'coatrack', sort: 372, hit: [480, 324, 22, 50], block: [482, 352, 18, 20], draw: drawCoatRack },
     { id: 'shoes', sort: 372, layer: 'static', block: [400, 358, 36, 14], draw: drawShoeBench },
     // Cosas que se tocan pero ya están pintadas (paredes y suelo).
@@ -1211,132 +1366,212 @@
   ];
   const OBJECT_BY_ID = Object.fromEntries(OBJECTS.map((object) => [object.id, object]));
 
-  // ---------- Por dónde se puede andar ----------
+  // ---------- Por dónde se puede andar (una red por escena) ----------
   const CELL = 4;
   const GW = W / CELL;
   const GH = H / CELL;
   const PAD_X = 6;
   const PAD_Y = 3;
   const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
-  const WALK_AREAS = [
-    ...Object.values(ROOMS).map(([x, y, w, h]) => [x + PAD_X, y + 4, w - PAD_X * 2, h - 4 - PAD_Y]),
-    ...DOORS.map(([x, w]) => [x + PAD_X, 168, w - PAD_X * 2, 72])
-  ];
-  const BLOCKERS = OBJECTS.filter((object) => object.block).map(({ block: [x, y, w, h] }) => [x - PAD_X, y - PAD_Y, w + PAD_X * 2, h + PAD_Y * 2]);
-  const free = (x, y) => WALK_AREAS.some((area) => inRect(x, y, area)) && !BLOCKERS.some((block) => inRect(x, y, block));
-  const grid = new Uint8Array(GW * GH);
-  for (let gy = 0; gy < GH; gy += 1) for (let gx = 0; gx < GW; gx += 1) grid[gy * GW + gx] = free(gx * CELL + CELL / 2, gy * CELL + CELL / 2) ? 1 : 0;
-  const cellOf = (x, y) => [Math.max(0, Math.min(GW - 1, Math.floor(x / CELL))), Math.max(0, Math.min(GH - 1, Math.floor(y / CELL)))];
-  const center = (gx, gy) => ({ x: gx * CELL + CELL / 2, y: gy * CELL + CELL / 2 });
 
-  function nearestFree(x, y) {
-    if (free(x, y)) return { x, y };
-    for (let r = 2; r < 120; r += 2) {
-      for (let a = 0; a < 16; a += 1) {
-        const px = x + Math.cos((a / 16) * Math.PI * 2) * r;
-        const py = y + Math.sin((a / 16) * Math.PI * 2) * r;
-        if (free(px, py)) return { x: px, y: py };
-      }
-    }
-    return { x, y };
-  }
+  function makeNav(walkAreas, objects) {
+    const blockers = objects.filter((object) => object.block).map(({ block: [x, y, w, h] }) => [x - PAD_X, y - PAD_Y, w + PAD_X * 2, h + PAD_Y * 2]);
+    const free = (x, y) => walkAreas.some((area) => inRect(x, y, area)) && !blockers.some((block) => inRect(x, y, block));
+    const grid = new Uint8Array(GW * GH);
+    for (let gy = 0; gy < GH; gy += 1) for (let gx = 0; gx < GW; gx += 1) grid[gy * GW + gx] = free(gx * CELL + CELL / 2, gy * CELL + CELL / 2) ? 1 : 0;
+    const cellOf = (x, y) => [Math.max(0, Math.min(GW - 1, Math.floor(x / CELL))), Math.max(0, Math.min(GH - 1, Math.floor(y / CELL)))];
+    const center = (gx, gy) => ({ x: gx * CELL + CELL / 2, y: gy * CELL + CELL / 2 });
 
-  function lineFree(a, b) {
-    const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 2);
-    for (let i = 1; i < steps; i += 1) {
-      if (!free(a.x + ((b.x - a.x) * i) / steps, a.y + ((b.y - a.y) * i) / steps)) return false;
-    }
-    return true;
-  }
-
-  // A* sobre una cuadrícula de 4 px y luego se estira el camino para que no haga zigzag.
-  function findPath(from, to) {
-    const start = nearestFree(from.x, from.y);
-    const goal = nearestFree(to.x, to.y);
-    if (lineFree(start, goal)) return [goal];
-    const [sx, sy] = cellOf(start.x, start.y);
-    const [tx, ty] = cellOf(goal.x, goal.y);
-    const startId = sy * GW + sx;
-    const goalId = ty * GW + tx;
-    const gScore = new Float32Array(GW * GH).fill(Infinity);
-    const came = new Int32Array(GW * GH).fill(-1);
-    const closed = new Uint8Array(GW * GH);
-    const heap = [];
-    const push = (id, f) => {
-      heap.push([f, id]);
-      let i = heap.length - 1;
-      while (i > 0) {
-        const p = (i - 1) >> 1;
-        if (heap[p][0] <= heap[i][0]) break;
-        [heap[p], heap[i]] = [heap[i], heap[p]];
-        i = p;
-      }
-    };
-    const pop = () => {
-      const top = heap[0];
-      const last = heap.pop();
-      if (heap.length) {
-        heap[0] = last;
-        let i = 0;
-        for (;;) {
-          const l = i * 2 + 1;
-          const r = l + 1;
-          let m = i;
-          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-          if (m === i) break;
-          [heap[m], heap[i]] = [heap[i], heap[m]];
-          i = m;
+    function nearestFree(x, y) {
+      if (free(x, y)) return { x, y };
+      for (let r = 2; r < 160; r += 2) {
+        for (let a = 0; a < 16; a += 1) {
+          const px = x + Math.cos((a / 16) * Math.PI * 2) * r;
+          const py = y + Math.sin((a / 16) * Math.PI * 2) * r;
+          if (free(px, py)) return { x: px, y: py };
         }
       }
-      return top;
-    };
-    const h = (id) => Math.hypot((id % GW) - tx, Math.floor(id / GW) - ty);
-    gScore[startId] = 0;
-    push(startId, h(startId));
-    let found = false;
-    while (heap.length) {
-      const [, id] = pop();
-      if (closed[id]) continue;
-      if (id === goalId) { found = true; break; }
-      closed[id] = 1;
-      const cx = id % GW;
-      const cy = Math.floor(id / GW);
-      for (let dy = -1; dy <= 1; dy += 1) {
-        for (let dx = -1; dx <= 1; dx += 1) {
-          if (!dx && !dy) continue;
-          const nx = cx + dx;
-          const ny = cy + dy;
-          if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
-          const nid = ny * GW + nx;
-          if (!grid[nid] || closed[nid]) continue;
-          if (dx && dy && (!grid[cy * GW + nx] || !grid[ny * GW + cx])) continue;
-          const g = gScore[id] + (dx && dy ? 1.414 : 1);
-          if (g < gScore[nid]) {
-            gScore[nid] = g;
-            came[nid] = id;
-            push(nid, g + h(nid));
+      return { x, y };
+    }
+
+    function lineFree(a, b) {
+      const steps = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 2);
+      for (let i = 1; i < steps; i += 1) {
+        if (!free(a.x + ((b.x - a.x) * i) / steps, a.y + ((b.y - a.y) * i) / steps)) return false;
+      }
+      return true;
+    }
+
+    // A* sobre una cuadrícula de 4 px y luego se estira el camino para que no haga zigzag.
+    function findPath(from, to) {
+      const start = nearestFree(from.x, from.y);
+      const goal = nearestFree(to.x, to.y);
+      if (lineFree(start, goal)) return [goal];
+      const [sx, sy] = cellOf(start.x, start.y);
+      const [tx, ty] = cellOf(goal.x, goal.y);
+      const startId = sy * GW + sx;
+      const goalId = ty * GW + tx;
+      const gScore = new Float32Array(GW * GH).fill(Infinity);
+      const came = new Int32Array(GW * GH).fill(-1);
+      const closed = new Uint8Array(GW * GH);
+      const heap = [];
+      const push = (id, f) => {
+        heap.push([f, id]);
+        let i = heap.length - 1;
+        while (i > 0) {
+          const p = (i - 1) >> 1;
+          if (heap[p][0] <= heap[i][0]) break;
+          [heap[p], heap[i]] = [heap[i], heap[p]];
+          i = p;
+        }
+      };
+      const pop = () => {
+        const top = heap[0];
+        const last = heap.pop();
+        if (heap.length) {
+          heap[0] = last;
+          let i = 0;
+          for (;;) {
+            const l = i * 2 + 1;
+            const r = l + 1;
+            let m = i;
+            if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+            if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+            if (m === i) break;
+            [heap[m], heap[i]] = [heap[i], heap[m]];
+            i = m;
+          }
+        }
+        return top;
+      };
+      const h = (id) => Math.hypot((id % GW) - tx, Math.floor(id / GW) - ty);
+      gScore[startId] = 0;
+      push(startId, h(startId));
+      let found = false;
+      while (heap.length) {
+        const [, id] = pop();
+        if (closed[id]) continue;
+        if (id === goalId) { found = true; break; }
+        closed[id] = 1;
+        const cx = id % GW;
+        const cy = Math.floor(id / GW);
+        for (let dy = -1; dy <= 1; dy += 1) {
+          for (let dx = -1; dx <= 1; dx += 1) {
+            if (!dx && !dy) continue;
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue;
+            const nid = ny * GW + nx;
+            if (!grid[nid] || closed[nid]) continue;
+            if (dx && dy && (!grid[cy * GW + nx] || !grid[ny * GW + cx])) continue;
+            const g = gScore[id] + (dx && dy ? 1.414 : 1);
+            if (g < gScore[nid]) {
+              gScore[nid] = g;
+              came[nid] = id;
+              push(nid, g + h(nid));
+            }
           }
         }
       }
+      if (!found) return [goal];
+      const cells = [];
+      for (let id = goalId; id !== -1 && id !== startId; id = came[id]) cells.push(center(id % GW, Math.floor(id / GW)));
+      cells.reverse();
+      cells[cells.length - 1] = goal;
+      const out = [];
+      let anchor = start;
+      let i = 0;
+      while (i < cells.length) {
+        let j = cells.length - 1;
+        while (j > i && !lineFree(anchor, cells[j])) j -= 1;
+        out.push(cells[j]);
+        anchor = cells[j];
+        i = j + 1;
+      }
+      return out;
     }
-    if (!found) return [goal];
-    const cells = [];
-    for (let id = goalId; id !== -1 && id !== startId; id = came[id]) cells.push(center(id % GW, Math.floor(id / GW)));
-    cells.reverse();
-    cells[cells.length - 1] = goal;
-    // Estirar: saltar puntos mientras se vea el siguiente en línea recta.
-    const out = [];
-    let anchor = start;
-    let i = 0;
-    while (i < cells.length) {
-      let j = cells.length - 1;
-      while (j > i && !lineFree(anchor, cells[j])) j -= 1;
-      out.push(cells[j]);
-      anchor = cells[j];
-      i = j + 1;
+    return { free, lineFree, nearestFree, findPath };
+  }
+
+  // ---------- Escenas: la casa y los sitios a los que se puede ir (sims-places.js) ----------
+  const HOUSE_WALK = [
+    ...Object.values(ROOMS).map(([x, y, w, h]) => [x + PAD_X, y + 4, w - PAD_X * 2, h - 4 - PAD_Y]),
+    ...DOORS.map(([x, w]) => [x + PAD_X, 168, w - PAD_X * 2, 72])
+  ];
+  const SCENES = {
+    house: { id: 'house', label: 'Casa', indoor: true, bake: bakeBackground, objects: OBJECTS, walk: HOUSE_WALK, lights: [[112, 112, 80], [280, 118, 56], [424, 118, 70], [90, 300, 90], [300, 300, 90], [440, 300, 70]] }
+  };
+  function registerScene(def) {
+    SCENES[def.id] = def;
+  }
+  let activeScene = SCENES.house;
+  const navOf = (scene) => (scene.nav ||= makeNav(scene.walk, scene.objects));
+  const free = (x, y) => navOf(activeScene).free(x, y);
+  const lineFree = (a, b) => navOf(activeScene).lineFree(a, b);
+  const nearestFree = (x, y) => navOf(activeScene).nearestFree(x, y);
+  const findPath = (from, to) => navOf(activeScene).findPath(from, to);
+
+  // ---------- Kika, la perra de Ines ----------
+  // Dibujada a mano: de lado cuando va a izquierda o derecha y de frente o de espaldas.
+  function drawDog(c, a, t) {
+    const x = Math.round(a.x);
+    const y = Math.round(a.y);
+    const fur = '#c99a5e';
+    const dark = '#8a5e34';
+    const white = '#f6efe2';
+    const walking = a.anim === 'walk';
+    const step = walking ? Math.floor(a.stride / 3) % 2 : 0;
+    const wag = Math.floor(t / (a.happy ? 80 : 260)) % 2;
+    shadow(c, x, y, 9, 2, 0.25);
+    if (a.dir === 'left' || a.dir === 'right') {
+      c.save();
+      c.translate(x, y);
+      if (a.dir === 'right') c.scale(-1, 1);
+      const bob = walking ? step : 0;
+      // Patas.
+      [[-6, step], [-3, -step], [3, step], [6, -step]].forEach(([lx, off]) => { R(c, lx - 1, -5, 3, 5 + (a.sit && lx > 0 ? -3 : 0), OL); R(c, lx, -5, 1, 4 + off * 0 + (a.sit && lx > 0 ? -3 : 0), lx < 0 ? white : fur); });
+      // Cuerpo.
+      R(c, -9, -12 - bob, 18, 8, OL);
+      R(c, -8, -11 - bob, 16, 6, fur);
+      R(c, -8, -7 - bob, 9, 2, white);
+      R(c, -8, -11 - bob, 16, 1, tone(fur, 0.2));
+      // Cola.
+      pixels(c, [[8, -14 - bob - wag * 2, 2, 4], [9, -16 - bob - wag * 2, 2, 3]], OL);
+      pixels(c, [[8, -13 - bob - wag * 2, 1, 3], [9, -15 - bob - wag * 2, 1, 2]], fur);
+      // Cabeza, oreja, hocico y ojo.
+      R(c, -14, -19 - bob, 9, 9, OL);
+      R(c, -13, -18 - bob, 7, 7, fur);
+      R(c, -16, -14 - bob, 4, 4, OL);
+      R(c, -15, -13 - bob, 3, 2, white);
+      R(c, -16, -14 - bob, 1, 1, '#1d1d22');
+      R(c, -11, -16 - bob, 1, 1, '#1d1d22');
+      R(c, -8, -20 - bob, 3, 5, OL);
+      R(c, -7, -19 - bob, 2, 4, dark);
+      if (a.collar !== false) R(c, -8, -11 - bob, 2, 4, '#d6333f');
+      if (a.ball) ovalBox(c, -17, -12 - bob, 2, 2, '#e8e04a');
+      c.restore();
+    } else {
+      const back = a.dir === 'up';
+      [[-4, step], [3, -step]].forEach(([lx, off]) => { R(c, x + lx - 1, y - 5 + off, 3, 5 - off, OL); R(c, x + lx, y - 5 + off, 1, 4 - off, white); });
+      R(c, x - 6, y - 13, 12, 9, OL);
+      R(c, x - 5, y - 12, 10, 7, fur);
+      if (!back) R(c, x - 3, y - 11, 6, 5, white);
+      if (back) pixels(c, [[x - 1, y - 16 - wag, 2, 4]], fur);
+      R(c, x - 5, y - 21, 10, 9, OL);
+      R(c, x - 4, y - 20, 8, 7, fur);
+      R(c, x - 6, y - 21, 3, 6, OL);
+      R(c, x + 3, y - 21, 3, 6, OL);
+      R(c, x - 5, y - 20, 1, 4, dark);
+      R(c, x + 4, y - 20, 1, 4, dark);
+      if (!back) {
+        R(c, x - 2, y - 17, 1, 1, '#1d1d22');
+        R(c, x + 1, y - 17, 1, 1, '#1d1d22');
+        R(c, x - 1, y - 15, 2, 2, white);
+        R(c, x - 1, y - 15, 2, 1, '#1d1d22');
+        if (a.happy) R(c, x - 1, y - 13, 2, 1, '#e87a8a');
+        R(c, x - 2, y - 12, 4, 1, '#d6333f');
+      }
     }
-    return out;
   }
 
   // ---------- Muñecos ----------
@@ -1350,9 +1585,12 @@
     img.src = src;
     store[key] = img;
   });
+  function loadSheet(id) {
+    return SHEETS[id] ? loadImage(images, id, SHEETS[id].src, true) : Promise.resolve();
+  }
   function loadSprites() {
     return Promise.all([
-      ...Object.entries(SPRITES).map(([key, src]) => loadImage(images, key, src)),
+      ...['ines', 'matteo'].map((key) => loadImage(images, key, SHEETS[key].src)),
       // Sin las caras, los muñecos funcionan igual (solo no cambian de expresión).
       ...Object.entries(FACES).map(([key, face]) => loadImage(faceImages, key, face.src, true))
     ]);
@@ -1360,18 +1598,31 @@
 
   // Un fotograma de la hoja (para el reflejo también, con otra dirección y tamaño).
   function drawActorFrame(c, a, x, y, scale = 1, dir = a.dir) {
-    const img = images[a.key];
-    if (!img?.naturalWidth) return;
     const anim = ANIMS[a.anim] || ANIMS.idle;
     const row = anim.row + (anim.single ? 0 : DIR_ROW[dir] ?? 2);
-    const col = Math.max(0, Math.min(anim.frames - 1, Math.floor(a.frame || 0)));
+    let col = Math.max(0, Math.min(anim.frames - 1, Math.floor(a.frame || 0)));
+    // Qué hoja y qué fila: la de su ropa si está cargada y tiene esa animación.
+    const id = a.sprite || a.key;
+    const sheet = SHEETS[id] || {};
+    let img = images[id];
+    let drawRow = row;
+    if (sheet.rows) {
+      const index = sheet.rows.indexOf(row);
+      if (img?.naturalWidth && index >= 0) drawRow = index;
+      else if (sheet.base) img = images[sheet.base];
+      else if (img?.naturalWidth) {
+        drawRow = sheet.rows.indexOf(22 + (DIR_ROW[dir] ?? 2));
+        col = col % 2;
+      } else img = null;
+    }
+    if (!img?.naturalWidth) return;
     const size = Math.round(64 * scale);
     const dx = Math.round(x - 32 * scale);
     const dy = Math.round(y - 62 * scale);
-    c.drawImage(img, col * 64, row * 64, 64, 64, dx, dy, size, size);
+    c.drawImage(img, col * 64, drawRow * 64, 64, 64, dx, dy, size, size);
     // Expresión: se pintan encima solo los ojos y la boca que cambian.
     const faceIndex = FACE_ORDER.indexOf(a.face);
-    const faceImg = faceImages[a.key];
+    const faceImg = a.npc ? null : faceImages[a.key];
     if (faceIndex >= 0 && faceImg?.naturalWidth && !anim.single) {
       const [bx, by, bw, bh] = FACES[a.key].box;
       c.drawImage(faceImg, col * bw, (faceIndex * 54 + row) * bh, bw, bh, dx + Math.round(bx * scale), dy + Math.round(by * scale), Math.round(bw * scale), Math.round(bh * scale));
@@ -1419,6 +1670,12 @@
       R(c, x - 4, y - 3, 8, 6, '#c9714a');
       R(c, x - 3, y - 2, 6, 1, '#e08e66');
     }
+    if (a.prop === 'gelato') {
+      R(c, x - 1, y, 3, 5, OL);
+      R(c, x, y + 1, 1, 3, '#d8a860');
+      ovalBox(c, x, y - 2, 2, 2, '#9ad08a');
+      R(c, x - 1, y - 4, 2, 2, '#f6c8d6');
+    }
     if (a.prop === 'rose') {
       R(c, x, y - 1, 1, 6, '#3a9a5a');
       R(c, x - 2, y - 4, 5, 4, OL);
@@ -1457,8 +1714,9 @@
     }
   }
 
-  function drawActor(c, a) {
+  function drawActor(c, a, t = 0) {
     if (a.hidden) return;
+    if (a.kind === 'dog') return drawDog(c, a, t);
     if (a.shadow !== false) shadow(c, a.x, a.y, 9, 3, 0.26);
     if (a.clipY) clipRect(c, a.x - 40, a.y - 70, 80, a.clipY - (a.y - 70));
     drawActorFrame(c, a, a.x + (a.ox || 0), a.y + (a.oy || 0));
@@ -1469,6 +1727,7 @@
   // Diamante de los Sims (verde, amarillo o rojo) que gira sobre la cabeza.
   const PLUMBOB = { green: ['#3fd46a', '#9cf2b4', '#1f8a3e'], yellow: ['#f2c230', '#fbe58a', '#a8820f'], red: ['#ef4f4f', '#f9a0a0', '#9a2020'] };
   function drawPlumbob(c, a, t) {
+    if (a.kind === 'dog' || a.npc) return;
     const colors = PLUMBOB[a.plumbob];
     if (!colors || a.hidden) return;
     const x = Math.round(a.x + (a.ox || 0));
@@ -1510,7 +1769,9 @@
     overlay.className = 'sims-overlay';
     container.replaceChildren(canvas, overlay);
     const c = canvas.getContext('2d');
-    const background = bakeBackground();
+    let scene = SCENES.house;
+    activeScene = scene;
+    let background = scene.bake();
     const light = document.createElement('canvas');
     light.width = W;
     light.height = H;
@@ -1534,7 +1795,12 @@
       flashUntil: 0,
       cam: { x: 0, y: 0, z: 1 },
       follow: null,
-      zoom: false
+      zoom: false,
+      scene: 'house',
+      plants: [],
+      data: {},
+      weather: { code: 1, temp: 18 },
+      tram: null
     };
     let scale = 2;
     // Muebles fijos y fotos de las paredes: se pintan una vez (y otra si llegan vuestras fotos).
@@ -1542,8 +1808,21 @@
       const sc = staticLayer.getContext('2d');
       sc.clearRect(0, 0, W, H);
       sc.imageSmoothingEnabled = false;
-      PHOTO_SLOTS.slice(0, 8).forEach((slot, i) => drawSlot(sc, slot, state.photos[i]));
-      OBJECTS.filter((object) => object.layer === 'static').sort((a, b) => a.sort - b.sort).forEach((object) => object.draw(sc, state, 0));
+      if (scene.id === 'house') PHOTO_SLOTS.slice(0, 8).forEach((slot, i) => drawSlot(sc, slot, state.photos[i]));
+      scene.objects.filter((object) => object.layer === 'static').sort((a, b) => a.sort - b.sort).forEach((object) => object.draw(sc, state, 0));
+    }
+    // Cambiar de sitio: la casa, Turín, Chieti o España.
+    function setScene(id) {
+      if (!SCENES[id]) return;
+      scene = SCENES[id];
+      activeScene = scene;
+      state.scene = id;
+      state.particles = [];
+      state.projectiles = [];
+      state.hover = null;
+      state.selected = null;
+      background = scene.bake();
+      bakeStatic();
     }
     bakeStatic();
     function setPhotos(list) {
@@ -1571,6 +1850,66 @@
     const AMBIENT = { day: null, dusk: '#f4d2b0', night: '#47507e' };
     // Luces del techo de cada habitación y las que se encienden con cosas.
     const LIGHTS = [[112, 112, 80], [280, 118, 56], [424, 118, 70], [90, 300, 90], [300, 300, 90], [440, 300, 70]];
+
+    const isRain = (code) => (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+    const isSnow = (code) => (code >= 71 && code <= 77) || code === 85 || code === 86;
+    const isCloudy = (code) => [2, 3, 45, 48].includes(code) || isRain(code) || isSnow(code);
+    // Cielo de los sitios de fuera: color según la hora, sol o luna, estrellas y nubes.
+    function drawSky(t) {
+      const horizon = scene.horizon || 170;
+      const code = state.weather.code;
+      const grey = isCloudy(code);
+      const colors = state.time === 'night' ? ['#0e1532', '#2a3664'] : state.time === 'dusk' ? (grey ? ['#8a7a86', '#c8aca0'] : ['#e7895c', '#f7cf94']) : grey ? ['#9fb2c4', '#d6dee6'] : ['#6fb6e6', '#cfeaf8'];
+      const grad = c.createLinearGradient(0, 0, 0, horizon);
+      grad.addColorStop(0, colors[0]);
+      grad.addColorStop(1, colors[1]);
+      c.fillStyle = grad;
+      c.fillRect(0, 0, W, horizon);
+      if (state.time === 'night') {
+        for (let i = 0; i < 40; i += 1) {
+          const sx = (i * 97) % W;
+          const sy = (i * 53) % (horizon - 30);
+          c.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t / 900 + i));
+          R(c, sx, sy, 1, 1, '#ffffff');
+        }
+        c.globalAlpha = 1;
+        oval(c, 70, 30, 9, 9, '#f6f0c8');
+        oval(c, 74, 27, 8, 8, colors[0]);
+      } else if (!grey) {
+        const sy = state.time === 'dusk' ? 70 : 28;
+        c.globalAlpha = 0.35;
+        oval(c, 70, sy, 16, 16, '#fff6c8');
+        c.globalAlpha = 1;
+        oval(c, 70, sy, 10, 10, state.time === 'dusk' ? '#ffb070' : '#fff2a8');
+      }
+      // Nubes que pasan despacio (más y más grises si está nublado).
+      const clouds = grey ? 8 : 4;
+      for (let i = 0; i < clouds; i += 1) {
+        const cx = ((t / (900 + i * 300)) * 8 + i * 140) % (W + 80) - 40;
+        const cy = 14 + ((i * 37) % 60);
+        const tint = grey ? (state.time === 'night' ? '#3a4466' : '#b9c3cc') : state.time === 'night' ? '#2c3a66' : '#ffffff';
+        c.globalAlpha = grey ? 0.95 : 0.85;
+        oval(c, cx, cy, 14, 4, tint);
+        oval(c, cx + 8, cy - 3, 9, 4, tint);
+        oval(c, cx - 7, cy - 2, 7, 3, tint);
+        c.globalAlpha = 1;
+      }
+    }
+    // Lluvia o nieve (el tiempo de verdad de Turín, que la app ya tiene).
+    function drawWeather(t) {
+      const code = state.weather.code;
+      if (scene.indoor || !(isRain(code) || isSnow(code))) return;
+      const snow = isSnow(code);
+      c.globalAlpha = snow ? 0.9 : 0.55;
+      for (let i = 0; i < (snow ? 70 : 110); i += 1) {
+        const speed = snow ? 0.02 : 0.25;
+        const x = ((i * 53) + (snow ? Math.sin(t / 700 + i) * 6 : -t * speed * 0.3)) % W;
+        const y = ((i * 89) + t * speed) % H;
+        if (snow) R(c, (x + W) % W, y, 1, 1, '#ffffff');
+        else R(c, (x + W) % W, y, 1, 4, '#c8dcf0');
+      }
+      c.globalAlpha = 1;
+    }
 
     function updateCamera() {
       const cam = state.cam;
@@ -1608,13 +1947,15 @@
         lc.globalAlpha = 1;
       };
       if (state.lamps) {
-        LIGHTS.forEach(([x, y, r]) => glow(x, y, r, 'rgba(255,214,150,.9)', state.time === 'night' ? 0.8 : 0.5));
-        glow(55, 42, 30, 'rgba(255,200,120,.9)');
-        glow(154, 42, 30, 'rgba(255,200,120,.9)');
-        glow(19, 204, 46, 'rgba(255,210,140,.9)');
-        glow(237, 330, 26, 'rgba(255,220,140,.8)');
+        (scene.lights || []).forEach(([x, y, r]) => glow(x, y, r, 'rgba(255,214,150,.9)', state.time === 'night' ? 0.8 : 0.5));
+        if (scene.id === 'house') {
+          glow(55, 42, 30, 'rgba(255,200,120,.9)');
+          glow(154, 42, 30, 'rgba(255,200,120,.9)');
+          glow(19, 204, 46, 'rgba(255,210,140,.9)');
+          glow(237, 330, 26, 'rgba(255,220,140,.8)');
+        }
       }
-      if (state.props.tv || state.props.games) {
+      if (scene.id === 'house' && (state.props.tv || state.props.games)) {
         const flicker = 0.55 + Math.sin(t / 90) * 0.1 + Math.sin(t / 37) * 0.05;
         glow(90, 300, 70, `rgba(150,190,255,${flicker})`);
       }
@@ -1629,8 +1970,8 @@
 
     // Rayos de sol que entran por las ventanas durante el día.
     function drawSunbeams() {
-      if (state.time === 'night') return;
-      c.globalAlpha = state.time === 'dusk' ? 0.12 : 0.1;
+      if (state.time === 'night' || !scene.indoor || isCloudy(state.weather.code)) return;
+      c.globalAlpha = state.time === 'dusk' ? 0.08 : 0.06;
       c.fillStyle = state.time === 'dusk' ? '#ffb070' : '#fff6c8';
       [[16, 40, 26, 70], [474, 42, 26, 60], [340, 222, 36, 70]].forEach(([x, y, w, h]) => {
         c.beginPath();
@@ -1646,7 +1987,7 @@
 
     // Motas de polvo que flotan en los rayos de sol.
     function drawDust(t) {
-      if (state.time !== 'day') return;
+      if (state.time !== 'day' || !scene.indoor || isCloudy(state.weather.code)) return;
       [[16, 40, 26, 70], [474, 42, 26, 60], [340, 222, 36, 70]].forEach(([x, y, w, h], beam) => {
         for (let i = 0; i < 6; i += 1) {
           const phase = (t / (9000 + i * 1300) + i / 6 + beam / 3) % 1;
@@ -1674,12 +2015,17 @@
       state.projectiles = state.projectiles.filter((p) => {
         const k = (t - p.t0) / p.dur;
         if (k >= 1) {
+          if (p.kind === 'ball') return false;
           for (let i = 0; i < 8; i += 1) state.particles.push({ type: 'feather', x: p.x1 + (Math.random() - 0.5) * 8, y: p.y1 + (Math.random() - 0.5) * 6, vx: (Math.random() - 0.5) * 30, vy: -10 - Math.random() * 20, life: 1 + Math.random() });
           return false;
         }
         const x = p.x0 + (p.x1 - p.x0) * k;
         const y = p.y0 + (p.y1 - p.y0) * k - Math.sin(k * Math.PI) * 16;
         shadow(c, x, p.y0 + 30 + (p.y1 - p.y0) * k, 4, 1, 0.2);
+        if (p.kind === 'ball') {
+          ovalBox(c, x, y, 2, 2, '#e8e04a');
+          return true;
+        }
         R(c, x - 5, y - 4, 10, 8, OL);
         R(c, x - 4, y - 3, 8, 6, '#c9714a');
         R(c, x - 3, y - 2, 6, 1, '#e08e66');
@@ -1753,16 +2099,22 @@
       const k = scale * cam.z;
       c.setTransform(k, 0, 0, k, -Math.round(cam.x * k), -Math.round(cam.y * k));
       c.imageSmoothingEnabled = false;
+      if (!scene.indoor) drawSky(t);
       c.drawImage(background, 0, 0);
-      const sky = SKIES[state.time];
-      WINDOWS.forEach((win) => windowAt(c, win, sky, t));
-      drawClock();
+      if (scene.indoor) {
+        const sky = Object.assign([...SKIES[state.time]], { night: state.time === 'night', dusk: state.time === 'dusk', rain: isRain(state.weather.code), snow: isSnow(state.weather.code) });
+        WINDOWS.forEach((win) => windowAt(c, win, sky, t));
+        drawClock();
+      }
+      scene.drawBack?.(c, state, t);
       c.drawImage(staticLayer, 0, 0);
       drawSunbeams();
       // Muebles y muñecos ordenados por profundidad.
-      const drawables = OBJECTS.filter((object) => object.draw && object.layer !== 'static').map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));
-      state.actors.forEach((a) => drawables.push({ y: a.sortY ?? a.y, draw: () => drawActor(c, a) }));
+      const drawables = scene.objects.filter((object) => object.draw && object.layer !== 'static').map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));
+      state.actors.forEach((a) => drawables.push({ y: a.sortY ?? a.y, draw: () => drawActor(c, a, t) }));
       drawables.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
+      scene.drawFront?.(c, state, t);
+      drawWeather(t);
       drawProjectiles(t);
       drawParticles();
       drawDust(t);
@@ -1790,11 +2142,11 @@
       return { x: ((x - cam.x) * cam.z * rect.width) / W, y: ((y - cam.y) * cam.z * rect.height) / H, width: rect.width, height: rect.height };
     }
     function objectAt(x, y) {
-      return OBJECTS.filter((object) => object.hit && inRect(x, y, object.hit)).sort((a, b) => b.sort - a.sort)[0]?.id || null;
+      return scene.objects.filter((object) => object.hit && inRect(x, y, object.hit)).sort((a, b) => b.sort - a.sort)[0]?.id || null;
     }
     function actorAt(x, y) {
       return state.actors
-        .filter((a) => !a.hidden && x > a.x - 11 && x < a.x + 11 && y > a.headY - 2 && y < a.y + 2)
+        .filter((a) => !a.hidden && (a.kind === 'dog' ? x > a.x - 14 && x < a.x + 14 && y > a.y - 22 && y < a.y + 2 : true) && x > a.x - 11 && x < a.x + 11 && y > a.headY - 2 && y < a.y + 2)
         .sort((a, b) => b.y - a.y)[0] || null;
     }
     function emit(type, x, y, { count = 1, spread = 6, vy = -18, color } = {}) {
@@ -1813,12 +2165,18 @@
       objectAt,
       actorAt,
       emit,
-      hitRect: (id) => OBJECT_BY_ID[id]?.hit || null,
+      hitRect: (id) => scene.objects.find((object) => object.id === id)?.hit || null,
+      setScene,
+      scene: () => scene,
       setPhotos,
-      throwItem: (from, to, dur = 600) => state.projectiles.push({ x0: from.x, y0: from.y, x1: to.x, y1: to.y, t0: performance.now(), dur }),
+      throwItem: (from, to, dur = 600, kind = 'pillow') => state.projectiles.push({ x0: from.x, y0: from.y, x1: to.x, y1: to.y, t0: performance.now(), dur, kind }),
       destroy: () => observer?.disconnect()
     };
   }
 
-  window.simsWorld = { W, H, ANIMS, loadSprites, createWorld, findPath, nearestFree, free, lineFree };
+  window.simsWorld = {
+    W, H, ANIMS, OL, loadSprites, loadSheet, createWorld, findPath, nearestFree, free, lineFree, registerScene, PLANT_SLOTS,
+    // Pinceles para dibujar los sitios de fuera (sims-places.js).
+    paint: { R, box, oval, ovalBox, shadow, pixels, tone, line, pixelText, textWidth, planks, checker, rug, shifted, clipRect }
+  };
 })();

@@ -15,7 +15,8 @@
 const WALK_SPEED = 62;
 
 const SIM_OBJECTS = {
-  fridge: { label: 'Nevera', actions: ['snack'] },
+  fridge: { label: 'Nevera', actions: ['snack', 'shoplist'] },
+  board: { label: 'Corcho de tareas', actions: ['tasklist'] },
   stove: { label: 'Cocina', actions: ['cook', 'coffee'] },
   ksink: { label: 'Fregadero', actions: ['dishes'] },
   table: { label: 'Mesa', actions: ['eat', 'wine', 'puzzle'] },
@@ -23,7 +24,6 @@ const SIM_OBJECTS = {
   radio: { label: 'Tocadiscos', actions: ['dance', 'sing'] },
   sofa: { label: 'Sofá', actions: ['tv', 'games', 'readsofa', 'nap', 'phone'], social: ['cuddle'] },
   tv: { label: 'Tele', actions: ['tv', 'games'] },
-  plant: { label: 'Strelitzia', actions: ['water', 'talkplant'] },
   photo: { label: 'Vuestras fotos', actions: ['photos'] },
   photo2: { label: 'Vuestras fotos', actions: ['photos'] },
   polaroids: { label: 'Polaroids', actions: ['photos'] },
@@ -38,9 +38,28 @@ const SIM_OBJECTS = {
   bookshelf: { label: 'Librería', actions: ['read', 'readsofa'] },
   window: { label: 'Ventana', actions: ['window'] },
   yoga: { label: 'Esterilla', actions: ['yoga'] },
-  desk: { label: 'Escritorio', actions: ['work'] },
-  door: { label: 'Puerta de casa', actions: ['goout'] },
-  coatrack: { label: 'Perchero', actions: ['goout'] }
+  desk: { label: 'Escritorio', actions: ['work', 'agenda'] },
+  door: { label: 'Puerta de casa', actions: ['tripturin', 'tripchieti', 'tripspain', 'goout'] },
+  coatrack: { label: 'Perchero', actions: ['tripturin', 'goout'] },
+  // Turín
+  mole: { label: 'Mole Antonelliana', actions: ['moleview', 'moleselfie'] },
+  cafe: { label: 'Caffè al Bicerin', actions: ['bicerin'] },
+  gelato: { label: 'Gelateria', actions: ['gelato'] },
+  bench: { label: 'Banco', actions: ['benchsit'] },
+  kiosk: { label: 'Edicola', actions: ['newspaper'] },
+  // Chieti
+  familytable: { label: 'La mesa de la familia', actions: ['familylunch'] },
+  grill: { label: 'Fornacella', actions: ['arrosticini'] },
+  olive: { label: 'Olivo', actions: ['olivepick'] },
+  vespa: { label: 'La Vespa', actions: ['vespa'] },
+  orto: { label: 'El huerto', actions: ['tomatoes'] },
+  majella: { label: 'La Majella', actions: ['majella'] },
+  // España
+  paellatable: { label: 'La mesa del patio', actions: ['paella'] },
+  hammock: { label: 'Hamaca', actions: ['siesta'] },
+  orange: { label: 'Naranjo', actions: ['orange'] },
+  fountain: { label: 'Fuente', actions: ['fountain'] },
+  kikabed: { label: 'La camita de Kika', actions: ['petkika', 'fetch'] }
 };
 
 // Dónde se pone cada uno para usar las cosas (pies del muñeco y hacia dónde mira).
@@ -64,7 +83,8 @@ const SPOTS = {
   window: { x: 358, y: 262, dir: 'up' },
   yoga: { x: 366, y: 310, dir: 'down' },
   door: { x: 457, y: 366, dir: 'down' },
-  coatrack: { x: 457, y: 366, dir: 'down' }
+  coatrack: { x: 457, y: 366, dir: 'down' },
+  board: { x: 130, y: 282, dir: 'up' }
 };
 // Sitios con dos plazas: el otro puede estar ya en una.
 const SEATS = {
@@ -130,14 +150,43 @@ const SIM_ACTIONS = {
   shower: { object: 'shower', label: 'Ducharse', emoji: '🚿', secs: 8, pose: 'shower', prop: 'shower', talk: true, needs: { hygiene: 60 } },
   bath: { object: 'shower', label: 'Baño de espuma', emoji: '🛁', secs: 12, pose: 'bath', prop: 'bath', expr: 'closed', needs: { hygiene: 80, fun: 10 } },
   laundry: { object: 'washer', label: 'Poner una lavadora', emoji: '🧺', secs: 5, anim: ['thrust', [0, 1, 2, 3, 2], 4], prop: 'laundry', propStays: 20000, needs: { hygiene: 25 } },
-  goout: { object: 'door', label: 'Salir a dar una vuelta', emoji: '🚶', secs: 14, pose: 'out', expr: 'happy', needs: { fun: 25, social: 15, energy: -10 } }
+  goout: { object: 'door', label: 'Salir a dar una vuelta', emoji: '🚶', secs: 14, pose: 'out', expr: 'happy', needs: { fun: 25, social: 15, energy: -10 } },
+  // Con la app de verdad: la lista de la compra, las tareas y la agenda.
+  shoplist: { object: 'fridge', label: 'Ver la lista de la compra', emoji: '📝', secs: 1.2, after: 'shoplist' },
+  tasklist: { object: 'board', label: 'Ver las tareas pendientes', emoji: '📌', secs: 1.2, after: 'tasklist' },
+  agenda: { object: 'desk', label: 'Mirar la agenda', emoji: '📅', secs: 1.5, pose: 'desk', after: 'agenda' },
+  // Viajes (se va con el otro).
+  tripturin: { object: 'door', label: 'Pasear por Turín', emoji: '🏛️', trip: 'turin' },
+  tripchieti: { object: 'door', label: 'Ir a Chieti (familia de Matteo)', emoji: '🇮🇹', trip: 'chieti' },
+  tripspain: { object: 'door', label: 'Ir a España (familia de Ines y Kika)', emoji: '🇪🇸', trip: 'spain' },
+  // Turín
+  moleview: { object: 'mole', label: 'Admirar la Mole', emoji: '🏛️', secs: 5, expr: 'happy', needs: { fun: 15 }, say: { ines: ['¡Qué alta es la Mole!', 'Me encanta Turín'], matteo: ['La Mole è sempre bellissima', 'Dentro c\'è il museo del cinema'] } },
+  moleselfie: { object: 'mole', label: 'Selfie con la Mole', emoji: '🤳', social: 'selfie' },
+  bicerin: { object: 'cafe', label: 'Tomar un bicerin', emoji: '☕', secs: 9, pose: 'seat', hold: 'cup', expr: ['happy', 'closed', 'happy'], needs: { energy: 15, fun: 15, hunger: 10 }, say: { ines: ['¡Qué rico el bicerin!', 'Chocolate, café y nata… 😍'], matteo: ['Il bicerin è una religione qui', 'Un classico torinese'] } },
+  gelato: { object: 'gelato', label: 'Comprar un helado', emoji: '🍦', secs: 5, anim: ['thrust', [0, 1, 2, 1], 3], after: 'gelato', needs: { hunger: 15, fun: 15 }, say: { ines: ['¡Uno de pistacho, porfa!'], matteo: ['Gianduia e nocciola!'] } },
+  benchsit: { object: 'bench', label: 'Sentarse en el banco', emoji: '🪑', secs: 9, pose: 'seat', expr: [null, 'happy'], needs: { energy: 10, fun: 5 } },
+  newspaper: { object: 'kiosk', label: 'Comprar el periódico', emoji: '📰', secs: 5, hold: 'book', anim: ['thrust', [0, 1, 0], 2], needs: { fun: 10 }, say: { ines: ['¿Tienen El País?'], matteo: ['La Stampa, grazie'] } },
+  // Chieti
+  familylunch: { object: 'familytable', label: 'Comer todos juntos', emoji: '🍝', secs: 14, pose: 'seat', family: true, expr: ['happy', null, 'happy', 'blush'], needs: { hunger: 55, social: 35 }, say: { ines: ['¡Qué buena está la pasta, mamma!'], matteo: ['Come la fa la mamma, nessuno!'] } },
+  arrosticini: { object: 'grill', label: 'Hacer arrosticini', emoji: '🍢', secs: 9, anim: ['thrust', [1, 2, 3, 2], 5], prop: 'grill', expr: 'happy', needs: { hunger: 30, fun: 15 }, say: { ines: ['¡Huelen genial!'], matteo: ['Gli arrosticini abruzzesi, i migliori!'] } },
+  olivepick: { object: 'olive', label: 'Coger aceitunas', emoji: '🫒', secs: 6, anim: ['thrust', [3, 4, 5, 4], 4], needs: { fun: 10 } },
+  vespa: { object: 'vespa', label: 'Dar una vuelta en Vespa', emoji: '🛵', secs: 12, pose: 'out', expr: 'happy', needs: { fun: 30, energy: -5 } },
+  tomatoes: { object: 'orto', label: 'Coger tomates del huerto', emoji: '🍅', secs: 6, anim: ['thrust', [3, 4, 5, 4], 4], needs: { hunger: 10, fun: 10 } },
+  majella: { object: 'majella', label: 'Mirar la Majella', emoji: '⛰️', secs: 6, expr: [null, 'happy'], needs: { fun: 10 }, say: { ines: ['¡Qué montañas tan bonitas!'], matteo: ['Casa mia ❤️', 'La Majella, che spettacolo'] } },
+  // España
+  paella: { object: 'paellatable', label: 'Comer paella todos juntos', emoji: '🥘', secs: 14, pose: 'seat', family: true, expr: ['happy', null, 'happy'], needs: { hunger: 55, social: 35 }, say: { ines: ['¡La paella de papá es la mejor!'], matteo: ['Buonissima la paella!'] } },
+  siesta: { object: 'hammock', label: 'Siesta en la hamaca', emoji: '😴', secs: 12, pose: 'hammock', zzz: true, expr: 'closed', needs: { energy: 40 } },
+  orange: { object: 'orange', label: 'Coger una naranja', emoji: '🍊', secs: 5, anim: ['thrust', [3, 4, 5, 4], 4], needs: { hunger: 15 } },
+  fountain: { object: 'fountain', label: 'Refrescarse en la fuente', emoji: '⛲', secs: 5, anim: ['thrust', [1, 2, 1], 4], needs: { hygiene: 15, fun: 5 } },
+  petkika: { object: 'kikabed', label: 'Acariciar a Kika', emoji: '🐶', secs: 6, dog: 'pet', expr: 'happy', needs: { social: 20, fun: 15 } },
+  fetch: { object: 'kikabed', label: 'Jugar a la pelota con Kika', emoji: '🎾', secs: 10, dog: 'fetch', expr: 'happy', needs: { fun: 30, social: 10 } }
 };
 const NEED_ACTIONS = { hunger: ['cook', 'snack', 'eat'], energy: ['nap', 'sleep', 'sharknap', 'coffee'], fun: ['tv', 'games', 'dance', 'jump', 'sing', 'puzzle', 'readsofa', 'yoga', 'window'], hygiene: ['shower', 'teeth', 'bath', 'laundry'], social: ['mirror', 'phone', 'talkplant', 'sharkhug', 'pose', 'wine'] };
-const ACTION_VERB = { snack: 'Picando algo', cook: 'Cocinando', coffee: 'Haciendo café', dishes: 'Fregando', eat: 'Merendando', wine: 'Con una copa de vino', dance: 'Bailando', sing: 'Cantando', nap: 'Echando la siesta', phone: 'Con el móvil', tv: 'Viendo la tele', games: 'Jugando a la consola', readsofa: 'Leyendo', water: 'Regando', talkplant: 'Hablando con la planta', admire: 'Mirando el puzzle', puzzle: 'Haciendo un puzzle', sharkhug: 'Abrazando al tiburón', sharknap: 'Siesta con el tiburón', pose: 'Posando', photos: 'Mirando fotos', read: 'Buscando un libro', window: 'Mirando por la ventana', yoga: 'Haciendo yoga', work: 'Trabajando', sleep: 'Durmiendo', readbed: 'Leyendo en la cama', jump: 'Saltando en la cama', dress: 'En el armario', teeth: 'Lavándose los dientes', mirror: 'Hablando con el espejo', shower: 'En la ducha', bath: 'En la bañera', laundry: 'Poniendo una lavadora', goout: 'De paseo' };
+const ACTION_VERB = { shoplist: 'Mirando la compra', tasklist: 'Mirando las tareas', agenda: 'Mirando la agenda', moleview: 'Admirando la Mole', bicerin: 'Con un bicerin', gelato: 'Comprando un helado', benchsit: 'En el banco', newspaper: 'Con el periódico', familylunch: 'Comiendo en familia', arrosticini: 'Haciendo arrosticini', olivepick: 'Cogiendo aceitunas', vespa: 'En Vespa', tomatoes: 'En el huerto', majella: 'Mirando la Majella', paella: 'Comiendo paella', siesta: 'Siesta en la hamaca', orange: 'Cogiendo naranjas', fountain: 'En la fuente', petkika: 'Con Kika', fetch: 'Jugando con Kika', water: 'Regando', snack: 'Picando algo', cook: 'Cocinando', coffee: 'Haciendo café', dishes: 'Fregando', eat: 'Merendando', wine: 'Con una copa de vino', dance: 'Bailando', sing: 'Cantando', nap: 'Echando la siesta', phone: 'Con el móvil', tv: 'Viendo la tele', games: 'Jugando a la consola', readsofa: 'Leyendo', water: 'Regando', talkplant: 'Hablando con la planta', admire: 'Mirando el puzzle', puzzle: 'Haciendo un puzzle', sharkhug: 'Abrazando al tiburón', sharknap: 'Siesta con el tiburón', pose: 'Posando', photos: 'Mirando fotos', read: 'Buscando un libro', window: 'Mirando por la ventana', yoga: 'Haciendo yoga', work: 'Trabajando', sleep: 'Durmiendo', readbed: 'Leyendo en la cama', jump: 'Saltando en la cama', dress: 'En el armario', teeth: 'Lavándose los dientes', mirror: 'Hablando con el espejo', shower: 'En la ducha', bath: 'En la bañera', laundry: 'Poniendo una lavadora', goout: 'De paseo' };
 
 // Interacciones entre los dos, por categorías (como en los Sims). needs: lo que le cambia a
 // cada uno. dist: a qué distancia se ponen.
-const SOCIAL_CATS = [['friendly', 'Amistoso', '😊'], ['fun', 'Divertido', '🎉'], ['romance', 'Romántico', '💕'], ['intimate', 'Íntimo', '🔥'], ['angry', 'Enfado', '😤']];
+const SOCIAL_CATS = [['friendly', 'Amistoso', '😊'], ['fun', 'Divertido', '🎉'], ['romance', 'Romántico', '💕'], ['intimate', 'Íntimo', '🔥'], ['angry', 'Enfado', '😤'], ['plans', 'Planes', '✈️']];
 const SOCIALS = {
   chat: { cat: 'friendly', dist: 20 },
   compliment: { cat: 'friendly', dist: 18 },
@@ -146,19 +195,49 @@ const SOCIALS = {
   tickle: { cat: 'fun', dist: 12, needs: { social: 15, fun: 20 } },
   dance: { cat: 'fun', dist: 20, needs: { social: 20, fun: 20 } },
   shark: { cat: 'fun', dist: 14, needs: { social: 15, fun: 20 } },
-  pillow: { cat: 'fun', dist: 44, needs: { social: 15, fun: 30 } },
+  pillow: { cat: 'fun', dist: 44, home: true, needs: { social: 15, fun: 30 } },
   hug: { cat: 'romance', dist: 13, needs: { social: 25 } },
   kiss: { cat: 'romance', dist: 12, needs: { social: 25, fun: 5 } },
   slowdance: { cat: 'romance', needs: { social: 25, fun: 15 } },
-  cuddle: { cat: 'romance', needs: { social: 30, energy: 5 } },
-  massage: { cat: 'romance', needs: { social: 20, energy: 15 } },
+  cuddle: { cat: 'romance', home: true, needs: { social: 30, energy: 5 } },
+  massage: { cat: 'romance', home: true, needs: { social: 20, energy: 15 } },
   makeout: { cat: 'intimate', dist: 11, needs: { social: 30, fun: 15 } },
-  spoon: { cat: 'intimate', needs: { social: 25, energy: 40 } },
-  woohoo: { cat: 'intimate', needs: { social: 40, fun: 35, energy: -15, hygiene: -15 } },
+  spoon: { cat: 'intimate', home: true, needs: { social: 25, energy: 40 } },
+  woohoo: { cat: 'intimate', home: true, needs: { social: 40, fun: 35, energy: -15, hygiene: -15 } },
   argue: { cat: 'angry', dist: 24, needs: { social: -15, fun: -10 } },
   sulk: { cat: 'angry', dist: 26, needs: { social: -10 } },
-  apologize: { cat: 'angry', dist: 14, needs: { social: 20 } }
+  apologize: { cat: 'angry', dist: 14, needs: { social: 20 } },
+  turin: { cat: 'plans', trip: true, needs: { fun: 30, social: 15, energy: -10 } },
+  chieti: { cat: 'plans', trip: true, needs: { social: 40, fun: 25, energy: -15 } },
+  spain: { cat: 'plans', trip: true, needs: { social: 40, fun: 25, energy: -15 } }
 };
+// Lo que cada interacción le cambia al otro cuando le llega (avatars.js usa la misma tabla).
+Object.entries(SOCIALS).forEach(([kind, social]) => { if (social.needs) POKE_NEEDS[kind] = social.needs; });
+
+// ---------- Viajes y familias ----------
+const TRIPS = {
+  turin: { label: 'Turín', icon: '🏛️', travel: '🚶 Paseando hacia el centro de Turín…', arrive: [{ x: 40, y: 352 }, { x: 60, y: 362 }] },
+  chieti: { label: 'Chieti', icon: '🇮🇹', travel: '🚆 En el Frecciarossa camino de Chieti…', arrive: [{ x: 220, y: 330 }, { x: 240, y: 340 }] },
+  spain: { label: 'España', icon: '🇪🇸', travel: '✈️ Volando a España…', arrive: [{ x: 240, y: 262 }, { x: 262, y: 270 }] }
+};
+// La familia de cada uno (y paseantes en Turín). lines: lo que dicen; greet: al llegar.
+const FAMILY = {
+  chieti: [
+    { id: 'matteo-mom', name: 'Mamma', home: { x: 120, y: 280 }, voice: 'it-f', greet: ['Ciao ragazzi! Che bello vedervi!', 'Matteo, tesoro mio!'], lines: ['Avete mangiato?', 'Ines, sei bellissima!', 'Vi preparo qualcosa?', 'Fate i bravi a Torino'] },
+    { id: 'matteo-dad', name: 'Papà', home: { x: 456, y: 340 }, voice: 'it-m', greet: ['Eccoli! Ciao!', 'Benvenuti a casa!'], lines: ['Gli arrosticini sono quasi pronti', 'Allora, come va a Torino?', 'Un bicchiere di Montepulciano?'] },
+    { id: 'matteo-nonna', name: 'Nonna', seat: 'rocking', home: { x: 114, y: 276 }, voice: 'it-old', greet: ['Venite qui, fatevi abbracciare!'], lines: ['Mangiate, mangiate!', 'Siete troppo magri!', 'Quando vi sposate?', 'Ai miei tempi…'] }
+  ],
+  spain: [
+    { id: 'ines-mom', name: 'Mamá', home: { x: 200, y: 270 }, voice: 'es-f', greet: ['¡Hija mía, qué alegría!', '¡Ya estáis aquí!'], lines: ['¿Habéis comido bien?', 'Matteo, ¡qué guapo estás!', 'Os he hecho tortilla', '¿Cuándo volvéis otra vez?'] },
+    { id: 'ines-dad', name: 'Papá', home: { x: 380, y: 320 }, voice: 'es-m', greet: ['¡Hombre, Matteo! ¿Qué tal?', '¡Bienvenidos!'], lines: ['La paella está casi lista', '¿Qué tal por Turín?', 'Este año las naranjas están buenísimas'] },
+    { id: 'ines-brother', name: 'Tu hermano', home: { x: 120, y: 330 }, voice: 'es-m', greet: ['¡Hermanita!', '¡Qué pasa, cuñado!'], lines: ['¿Echamos un FIFA, Matteo?', 'Kika te echaba de menos', 'Mamá ha hecho comida para un regimiento'] }
+  ],
+  turin: [
+    { id: 'ped-a', name: 'Una vecina', walker: true, lane: 250, voice: 'it-f', lines: ['Buongiorno!', 'Che bella giornata'] },
+    { id: 'ped-b', name: 'Un señor', walker: true, lane: 356, voice: 'it-m', lines: ['Buonasera', 'Permesso…'] }
+  ]
+};
+const NPC_LINES = { hug: { 'it': ['Che bello!', 'Un abbraccio forte!'], 'es': ['¡Qué alegría!', '¡Ay, qué abrazo!'] } };
 
 // Sitios para pasear cuando no hacen nada.
 const IDLE_SPOTS = [{ x: 40, y: 150 }, { x: 150, y: 150 }, { x: 280, y: 150 }, { x: 470, y: 150 }, { x: 236, y: 300 }, { x: 330, y: 330 }, { x: 420, y: 320 }, { x: 180, y: 340 }, { x: 460, y: 280 }];
@@ -196,12 +275,18 @@ const SIM_TIPS = [
   'Las fotos de las paredes son las vuestras de Nosotros. Tócalas para verlas.',
   'Poneos delante del espejo de gota: os refleja. Tócalo para haceros vuestro selfie 🤳',
   'Con la lupa sigues de cerca a tu muñeco por la casa.',
-  'De noche se encienden las luces de casa y la tele ilumina el salón.'
+  'De noche se encienden las luces de casa y la tele ilumina el salón.',
+  'La nota de la nevera es vuestra lista de la compra de verdad: tócala para ver o añadir cosas.',
+  'En el corcho del salón están vuestras tareas: puedes darlas por hechas desde aquí.',
+  'Las plantas de casa son las vuestras: si tienen sed se ponen mustias; riégalas y quedan regadas en la app.',
+  'Por la puerta podéis ir a pasear por Turín, a Chieti con la familia de Matteo o a España con la de Ines y Kika.',
+  'Se ponen el pijama para dormir y, al salir, abrigo o ropa de verano según el tiempo de Turín.',
+  'Si dormís a la vez, la energía os sube más a los dos 💞'
 ];
 
 const simsModal = document.querySelector('#simsModal');
 const simsHouse = document.querySelector('#simsHouse');
-const simsState = { open: false, timer: null, raf: 0, last: 0, needsOf: 'me', tip: 0, sound: true, zoom: false, world: null, bubbles: [], pieAt: null, photoIndex: 0 };
+const simsState = { open: false, timer: null, raf: 0, last: 0, needsOf: 'me', tip: 0, sound: true, zoom: false, world: null, bubbles: [], pieAt: null, photoIndex: 0, npcs: [], dog: null, nextTram: 0 };
 try {
   simsState.sound = localStorage.getItem('umbral-sims-sound') !== 'off';
   simsState.zoom = localStorage.getItem('umbral-sims-zoom') === 'on';
@@ -214,6 +299,9 @@ const simPerson = (key) => householdPeople.find((person) => avatarKey(person) ==
 const meKey = () => avatarKey(myAvatarPerson() || householdPeople[0]);
 const partnerKeyOf = () => avatarKey(otherPerson(simPerson(meKey())));
 const world = () => simsState.world;
+const curScene = () => world()?.state.scene || 'house';
+const sceneObj = (id) => world()?.scene().objects.find((object) => object.id === id);
+const NPC_NEEDS = { hunger: 80, energy: 80, fun: 80, hygiene: 80, social: 80 };
 const needsOf = (sim) => currentNeeds(avatarRows[simPerson(sim.key)]);
 
 // ---------- Sonido (opcional) ----------
@@ -244,20 +332,56 @@ const SMOOCH = () => simTune([1400, 1800], 70);
 const GRUMBLE = () => simTune([180, 150, 170, 130], 110, 'sawtooth');
 const ROMANTIC = () => simTune([523, 659, 784, 659, 698, 880, 784], 260, 'triangle');
 
-// Habla con la voz del móvil, en español (Ines) o en italiano (Matteo).
-function speak(key, text) {
+// Voces: busca en el móvil una voz de mujer en español para Ines y una de hombre en italiano
+// para Matteo (y para cada familiar, la suya). Prefiere las voces «naturales» o «mejoradas».
+const VOICE_PROFILES = {
+  ines: { lang: 'es', female: true, pitch: 1.05, rate: 1.02 },
+  matteo: { lang: 'it', female: false, pitch: 0.95, rate: 1.0 },
+  'es-f': { lang: 'es', female: true, pitch: 1.0, rate: 1.0 },
+  'es-m': { lang: 'es', female: false, pitch: 0.9, rate: 1.0 },
+  'it-f': { lang: 'it', female: true, pitch: 1.0, rate: 1.0 },
+  'it-m': { lang: 'it', female: false, pitch: 0.85, rate: 0.98 },
+  'it-old': { lang: 'it', female: true, pitch: 0.9, rate: 0.85 }
+};
+const FEMALE_VOICE = /(m[oó]nica|paulina|helena|elvira|laura|luc[ií]a|marisol|esperanza|conchita|pen[eé]lope|lupe|sabina|dalia|elena|ximena|camila|isabela|marta|carmen|sara|paloma|alice|federica|elsa|isabella|chiara|paola|giorgia|emma|francesca|female|mujer|donna|femmin|google espa[nñ]ol|google italiano)/i;
+const MALE_VOICE = /(jorge|diego|juan|pablo|carlos|enrique|alvaro|álvaro|raul|raúl|luca|cosimo|giuseppe|benigno|giorgio|calogero|lorenzo|federico|diego|marco|male|hombre|uomo|maschil)/i;
+let voiceCache = {};
+function pickVoice(profile) {
+  if (!('speechSynthesis' in window)) return null;
+  const cacheKey = `${profile.lang}-${profile.female}`;
+  if (voiceCache[cacheKey] !== undefined) return voiceCache[cacheKey];
+  const voices = speechSynthesis.getVoices().filter((voice) => voice.lang?.toLowerCase().startsWith(profile.lang));
+  if (!voices.length) return null;
+  const score = (voice) => {
+    let points = 0;
+    const name = voice.name || '';
+    if (profile.female ? FEMALE_VOICE.test(name) : MALE_VOICE.test(name)) points += 10;
+    if (profile.female ? MALE_VOICE.test(name) : FEMALE_VOICE.test(name)) points -= 10;
+    if (/natural|neural|premium|enhanced|mejorad|siri/i.test(name)) points += 4;
+    if (/es-ES|it-IT/i.test(voice.lang)) points += 2;
+    if (voice.localService) points += 1;
+    return points;
+  };
+  const best = [...voices].sort((a, b) => score(b) - score(a))[0];
+  voiceCache[cacheKey] = { voice: best, matches: score(best) >= 10 };
+  return voiceCache[cacheKey];
+}
+if ('speechSynthesis' in window) speechSynthesis.addEventListener?.('voiceschanged', () => { voiceCache = {}; });
+
+function speak(key, text, profileId) {
   if (!simsState.sound || !('speechSynthesis' in window)) return;
   try {
-    const voice = SIM_VOICES[key] || SIM_VOICES.ines;
+    const profile = VOICE_PROFILES[profileId || key] || VOICE_PROFILES.ines;
     const clean = text.replace(/[¡!¿#@%&♪]/g, '').replace(/\p{Extended_Pictographic}|‍|️/gu, '').trim();
     if (!clean) return;
     const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.lang = voice.lang;
-    const native = speechSynthesis.getVoices().find((option) => option.lang?.replace('_', '-').startsWith(voice.lang.slice(0, 2)));
-    if (native) utterance.voice = native;
-    utterance.pitch = voice.pitch;
-    utterance.rate = 1.1;
-    utterance.volume = 0.7;
+    const picked = pickVoice(profile);
+    utterance.lang = profile.lang === 'es' ? 'es-ES' : 'it-IT';
+    if (picked?.voice) utterance.voice = picked.voice;
+    // Si el móvil no tiene una voz de ese tipo, se ajusta el tono para que se parezca.
+    utterance.pitch = picked?.matches ? profile.pitch : profile.female ? 1.35 : 0.7;
+    utterance.rate = profile.rate;
+    utterance.volume = 0.8;
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
   } catch {}
@@ -373,15 +497,15 @@ function faceFor(sim, t, needs) {
 }
 
 function stepSim(sim, dt, t) {
-  const row = avatarRows[simPerson(sim.key)] || {};
-  const needs = currentNeeds(row);
+  const row = sim.npc ? {} : avatarRows[simPerson(sim.key)] || {};
+  const needs = sim.npc ? NPC_NEEDS : currentNeeds(row);
   if (sim.path.length) {
     const target = sim.path[0];
     const dx = target.x - sim.x;
     const dy = target.y - sim.y;
     const dist = Math.hypot(dx, dy);
     // Aceleran al arrancar y frenan al llegar; con poca energía van más despacio.
-    const top = needs.energy < 25 ? 44 : WALK_SPEED;
+    const top = sim.kind === 'dog' ? 88 : sim.run ? 100 : sim.npc ? 46 : needs.energy < 25 ? 44 : WALK_SPEED;
     sim.speed = Math.min(top, sim.speed + 260 * dt);
     if (sim.path.length === 1 && dist < 14) sim.speed = Math.max(18, Math.min(sim.speed, (top * dist) / 14));
     const step = sim.speed * dt;
@@ -395,15 +519,21 @@ function stepSim(sim, dt, t) {
       sim.y += (dy / dist) * step;
     }
     sim.stride += Math.min(step, dist);
-    sim.anim = 'walk';
-    sim.frame = 1 + (Math.floor(sim.stride / 4.5) % 8);
+    // Andando o, si el camino es largo, corriendo (con polvillo en la calle).
+    sim.anim = sim.run ? 'run' : 'walk';
+    sim.frame = sim.run ? Math.floor(sim.stride / 6) % 8 : 1 + (Math.floor(sim.stride / 4.5) % 8);
+    if (sim.run && curScene() !== 'house' && Math.floor(sim.stride / 14) !== sim.lastDust) {
+      sim.lastDust = Math.floor(sim.stride / 14);
+      world()?.emit('puff', sim.x, sim.y - 2, { vy: -4, spread: 4, color: '#d8ccb8' });
+    }
     // Pasitos suaves (solo los tuyos).
-    if (sim.key === meKey() && Math.floor(sim.stride / 18) !== sim.lastStep) {
+    if (!sim.npc && sim.key === meKey() && Math.floor(sim.stride / 18) !== sim.lastStep) {
       sim.lastStep = Math.floor(sim.stride / 18);
       simBlip(140 + Math.random() * 30, 0.03, 'triangle', 0.04);
     }
     if (!sim.path.length) {
       sim.speed = 0;
+      sim.run = false;
       idle(sim);
       const resolve = sim.walkResolve;
       sim.walkResolve = null;
@@ -428,6 +558,10 @@ function stepSim(sim, dt, t) {
     if (sim.extraRoutine) ROUTINES[sim.extraRoutine]?.(sim, t);
   }
   sim.headY = sim.y - (sim.anim === 'sit' ? 50 : 48) + (sim.oy || 0);
+  if (sim.npc) {
+    sim.face = null;
+    return;
+  }
   sim.plumbob = needsLevel(needs);
   sim.moodId = row.mood || null;
   sim.mood = avatarCatalog()?.MOODS[row.mood]?.emoji || '';
@@ -441,7 +575,7 @@ const checkToken = (sim, token) => { if (sim.token !== token) throw SIM_CANCELLE
 // Levanta al muñeco de donde esté (sofá, cama, bañera…) y lo deja de pie al lado.
 function standUp(sim) {
   const exit = sim.exit;
-  Object.assign(sim, { hidden: false, clipY: null, sortY: null, shadow: true, prop: null, seat: null, exit: null, routine: null, extraRoutine: null, ox: 0, oy: 0, lean: 0, expr: null });
+  Object.assign(sim, { hidden: false, clipY: null, sortY: null, shadow: true, prop: null, seat: null, seatClaim: null, exit: null, routine: null, extraRoutine: null, ox: 0, oy: 0, lean: 0, expr: null });
   if (sim.propOn) setProp(sim.propOn, false);
   sim.propOn = null;
   sim.current = null;
@@ -471,11 +605,16 @@ function smoothPath(start, points) {
 
 function walkTo(sim, spot, token, { keepProp = false } = {}) {
   const prop = sim.prop;
+  const claim = sim.seatClaim;
   standUp(sim);
+  sim.seatClaim = claim;
   if (keepProp) sim.prop = prop;
   sim.walkResolve?.();
   return new Promise((resolve) => {
     sim.path = smoothPath(sim, simsWorld.findPath(sim, spot));
+    // Si el camino es largo (y va con su ropa de siempre), corre.
+    const length = sim.path.reduce((sum, point, i) => sum + Math.hypot(point.x - (i ? sim.path[i - 1].x : sim.x), point.y - (i ? sim.path[i - 1].y : sim.y)), 0);
+    sim.run = !sim.npc && length > 230 && (sim.outfit || 'casual') === 'casual';
     sim.walkResolve = resolve;
     sim.walkToken = token;
     if (!sim.path.length) {
@@ -579,25 +718,43 @@ const SEAT_GROUP = { sofa: 'sofa', cuddle: 'sofa', bed: 'bed', spoon: 'bed', cha
 function claimSeat(sim, kind, preferred = 0) {
   const other = Object.values(sims).find((s) => s !== sim);
   const seats = SEATS[kind];
-  const taken = other?.seat && SEAT_GROUP[other.seat.kind] === SEAT_GROUP[kind] ? other.seat.index : -1;
+  const held = other?.seat || other?.seatClaim;
+  const taken = held && SEAT_GROUP[held.kind] === SEAT_GROUP[kind] ? held.index : -1;
   const index = seats.length === 1 ? 0 : preferred !== taken ? preferred : 1 - preferred;
   return { ...seats[index], kind, index };
 }
 
 // Dónde se pone y cómo se coloca para cada acción.
+// Plaza libre de un objeto de la escena (sillas, banco, hamaca…), sin quitársela a nadie.
+function claimObjectSeat(sim, objectId) {
+  const seats = sceneObj(objectId)?.seats || [];
+  const taken = everyone().filter((other) => other !== sim && (other.seat || other.seatClaim)?.kind === objectId).map((other) => (other.seat || other.seatClaim).index);
+  const index = seats.findIndex((_, i) => !taken.includes(i));
+  return index < 0 ? null : { ...seats[index], kind: objectId, index };
+}
+const everyone = () => [...Object.values(sims), ...simsState.npcs];
+
 function placeFor(sim, action) {
+  if (action.pose === 'seat' || action.pose === 'hammock') {
+    const seat = claimObjectSeat(sim, action.object);
+    sim.seatClaim = seat;
+    if (seat) return { approach: { ...seat.exit, dir: 'up' }, seat };
+  }
   const seatKind = { sofa: 'sofa', chair: 'chair', bed: 'bed', bedsit: 'bed', bedjump: 'bed', desk: 'desk' }[action.pose];
   if (seatKind) {
     const seat = claimSeat(sim, seatKind, action.hold === 'shark' ? 1 : 0);
+    // Reserva la plaza ya, para que el otro no se siente en el mismo sitio mientras llega.
+    sim.seatClaim = seat;
     return { approach: { ...seat.exit, dir: seatKind === 'chair' ? seat.dir : 'up' }, seat };
   }
   if (action.pose === 'bath' || action.pose === 'shower') return { approach: SPOTS.shower };
-  return { approach: SPOTS[action.spot || action.object] || SPOTS[action.object] };
+  return { approach: (curScene() === 'house' && (SPOTS[action.spot || action.object] || SPOTS[action.object])) || sceneObj(action.object)?.spot || { x: sim.x, y: sim.y } };
 }
 
 // Sentarse o tumbarse (con un saltito suave).
 function sitOn(sim, seat, pose = 'sit') {
   sim.seat = seat;
+  sim.seatClaim = null;
   sim.exit = seat.exit;
   sim.sortY = seat.sortY;
   sim.shadow = false;
@@ -611,7 +768,12 @@ function enterPose(sim, action, place) {
   sim.prop = action.hold || null;
   sim.exit = null;
   const seat = place.seat;
+  if (['bed', 'bedsit'].includes(action.pose)) setOutfit(sim, 'pajamas');
   if (seat) {
+    if (action.pose === 'hammock') {
+      sitOn(sim, seat);
+      return setAnim(sim, 'sit', { dir: 'down', frames: [0], fps: 1 });
+    }
     if (action.pose === 'bed') return sitOn(sim, seat, 'lie');
     if (action.pose === 'bedjump') {
       sitOn(sim, seat);
@@ -664,6 +826,9 @@ async function doAction(key, id, { autonomous = false } = {}) {
   const sim = sims[key];
   const action = SIM_ACTIONS[id];
   if (!sim || !action) return;
+  if (action.trip) return key === meKey() ? doSocial(action.trip) : null;
+  if (action.social) return key === meKey() ? doSocial(action.social) : null;
+  if (action.dog) return doDogAction(key, id);
   const own = key === meKey();
   const token = ++sim.token;
   sim.busy = true;
@@ -682,6 +847,7 @@ async function doAction(key, id, { autonomous = false } = {}) {
     await walkTo(sim, place.approach, token);
     enterPose(sim, action, place);
     entered = true;
+    if (action.family && own) joinFamilyMeal(id);
     setProp(action.prop, true);
     if (action.propStays) setTimeout(() => setProp(action.prop, false), action.propStays);
     else sim.propOn = action.prop || null;
@@ -702,9 +868,14 @@ async function doAction(key, id, { autonomous = false } = {}) {
     entered = false;
     if (id === 'goout') simBubble(sim, key === 'matteo' ? 'Che bella passeggiata! ☀️' : '¡Qué buen paseo! ☀️', { secs: 2.6 });
     if (own && action.needs) {
-      await boostNeeds(action.needs).catch(() => {});
-      const text = needsText(action.needs);
+      // Si dormís a la vez, la energía sube más a los dos (cada uno en su móvil).
+      const partner = sims[partnerKeyOf()];
+      const together = id === 'sleep' && (partner?.doing === 'sleep' || (avatarRows[simPerson(partner?.key)]?.activity === 'sleep' && Date.now() - Date.parse(avatarRows[simPerson(partner.key)].activity_at || 0) < 20 * 60000));
+      const delta = together ? { ...action.needs, energy: (action.needs.energy || 0) + 20, social: (action.needs.social || 0) + 15 } : action.needs;
+      await boostNeeds(delta).catch(() => {});
+      const text = needsText(delta);
       if (text) simFloat(sim, text);
+      if (together) simBubble(sim, '💞 Dormir juntos', { kind: 'emote', secs: 2.4 });
       simBlip(880, 0.1);
     }
     if (own && action.after) runAfter(action.after, sim);
@@ -723,6 +894,14 @@ async function doAction(key, id, { autonomous = false } = {}) {
 }
 
 function runAfter(after, sim) {
+  if (after === 'shoplist') return shoppingCard();
+  if (after === 'tasklist') return tasksCard();
+  if (after === 'agenda') return agendaCard();
+  if (after === 'gelato' && sim) {
+    sim.prop = 'gelato';
+    sim.expr = 'happy';
+    setTimeout(() => { if (sim.prop === 'gelato') { sim.prop = null; sim.expr = null; } }, 10000);
+  }
   if (after === 'dress') openAvatarEditor('clothes');
   if (after === 'photos') showPhotoCard();
   // Se queda un ratito con la taza de café en la mano.
@@ -774,19 +953,493 @@ async function showPhotoCard() {
   simsHouse.appendChild(card);
 }
 
+// ---------- Ropa: pijama para dormir y, fuera, según el tiempo que haga ----------
+const outsideTemp = () => {
+  const temp = Number(world()?.state.weather.temp ?? 18);
+  return curScene() === 'spain' ? temp + 5 : curScene() === 'chieti' ? temp + 2 : temp;
+};
+function wantedOutfit(sim) {
+  if (curScene() !== 'house') {
+    const temp = outsideTemp();
+    return temp < 13 ? 'cold' : temp >= 26 ? 'hot' : 'casual';
+  }
+  const inBed = ['bed', 'bedsit'].includes(sim.current?.pose) || ['spoon', 'woohoo'].includes(sim.socialKind);
+  const hour = new Date().getHours();
+  return inBed || hour >= 23 || hour < 7 ? 'pajamas' : 'casual';
+}
+// Cambio de ropa con un destello (como en los Sims).
+function setOutfit(sim, outfit, animate = true) {
+  if (!sim || sim.npc || (sim.outfit || 'casual') === outfit) return;
+  sim.outfit = outfit;
+  sim.sprite = outfit === 'casual' ? sim.key : `${sim.key}-${outfit}`;
+  simsWorld.loadSheet(sim.sprite);
+  if (animate && world()) {
+    world().emit('sparkle', sim.x, sim.headY + 14, { count: 8, spread: 18, vy: -14 });
+    simBlip(1240, 0.06);
+  }
+}
+const checkOutfit = (sim, animate = true) => setOutfit(sim, wantedOutfit(sim), animate);
+
+// ---------- Viajes: Turín, Chieti y España ----------
+function showTravelCard(text, ms) {
+  return new Promise((resolve) => {
+    const card = document.createElement('div');
+    card.className = 'sims-travel';
+    card.innerHTML = `<div><span>${escapeHtml(text)}</span><i><b style="animation-duration:${ms}ms"></b></i></div>`;
+    simsHouse.appendChild(card);
+    setTimeout(() => {
+      card.classList.add('is-off');
+      setTimeout(() => { card.remove(); resolve(); }, 400);
+    }, ms);
+  });
+}
+function updateSceneTitle() {
+  const trip = TRIPS[curScene()];
+  document.querySelector('#simsTitle').textContent = trip ? `${trip.icon} ${trip.label}` : 'Vuestra casa';
+}
+function enterScene(id) {
+  const w = world();
+  if (!w) return;
+  w.setScene(id);
+  Object.keys(propUsers).forEach((prop) => { propUsers[prop] = 0; });
+  w.state.props = {};
+  w.state.tram = null;
+  simsState.nextTram = performance.now() + 4000;
+  spawnNpcs(id);
+  updateClock();
+  updateSceneTitle();
+  w.state.cam.x = 0;
+  w.state.cam.y = 0;
+}
+async function doTrip(dest, { incoming = false } = {}) {
+  const trip = TRIPS[dest];
+  if (!trip || curScene() === dest) return;
+  const both = [sims[meKey()], sims[partnerKeyOf()]];
+  const tokens = both.map((sim) => ++sim.token);
+  both.forEach((sim) => { sim.busy = true; sim.doing = `trip-${dest}`; sim.progress = null; stopSim(sim); });
+  hidePie();
+  try {
+    if (curScene() === 'house') await Promise.all(both.map((sim, i) => walkTo(sim, { x: 450 + i * 12, y: 362, dir: 'down' }, tokens[i]).catch(() => {})));
+    simTune([660, 880, 990], 120);
+    await showTravelCard(trip.travel, 2400);
+    enterScene(dest);
+    both.forEach((sim, i) => {
+      standUp(sim);
+      Object.assign(sim, { x: trip.arrive[i].x, y: trip.arrive[i].y, slide: null });
+      idle(sim, 'right');
+      checkOutfit(sim, false);
+    });
+    simBubble(both[0], `${trip.icon} ¡${trip.label}!`, { secs: 2.2 });
+    greetFamily();
+    if (!incoming) {
+      const delta = SOCIALS[dest].needs;
+      await boostNeeds(delta, { poke: dest, poke_at: new Date().toISOString() }).catch(() => {});
+      const poke = avatarCatalog().POKES[dest];
+      if (poke) notifyHousehold(`${poke.emoji} ${myAvatarPerson()} ${poke.text}`, 'Abre Umbral para ir juntos', { open: 'home', tag: 'avatar-poke' });
+      simFloat(both[0], needsText(delta));
+    }
+  } catch (error) {
+    if (error !== SIM_CANCELLED) console.warn('[Umbral] Viaje:', error);
+  } finally {
+    both.forEach((sim, i) => {
+      if (sim.token !== tokens[i]) return;
+      sim.busy = false;
+      sim.doing = null;
+      sim.idleSince = Date.now();
+    });
+  }
+}
+async function goHome() {
+  if (curScene() === 'house') return;
+  const both = [sims[meKey()], sims[partnerKeyOf()]];
+  both.forEach((sim) => { sim.token += 1; stopSim(sim); standUp(sim); sim.busy = true; });
+  hidePie();
+  simsHouse.querySelector('.sims-card')?.remove();
+  await showTravelCard('🏠 Volviendo a casa…', 1800);
+  enterScene('house');
+  both.forEach((sim, i) => {
+    Object.assign(sim, { x: 446 + i * 16, y: 350, busy: false, doing: null, idleSince: Date.now() });
+    idle(sim, 'up');
+    checkOutfit(sim, false);
+  });
+}
+
+// ---------- La familia, los paseantes y Kika ----------
+function syncActors() {
+  const w = world();
+  if (w) w.state.actors = [...Object.values(sims), ...simsState.npcs, ...(simsState.dog ? [simsState.dog] : [])];
+}
+function spawnNpcs(sceneId) {
+  simsState.npcs = (FAMILY[sceneId] || []).map((def) => {
+    const npc = Object.assign(newSim(def.id, def.home?.x ?? 60 + Math.random() * 380, def.home?.y ?? def.lane), { npc: true, sprite: def.id, def, name: def.name });
+    simsWorld.loadSheet(def.id);
+    if (def.seat) {
+      const seat = claimObjectSeat(npc, def.seat);
+      if (seat) { sitOn(npc, seat); Object.assign(npc, { x: seat.x, y: seat.y, slide: null }); }
+    } else idle(npc, 'down');
+    return npc;
+  });
+  simsState.dog = sceneId === 'spain' ? Object.assign(newSim('kika', 302, 266), { kind: 'dog', npc: true, name: 'Kika' }) : null;
+  if (simsState.dog) idle(simsState.dog, 'down');
+  syncActors();
+}
+function npcSay(npc, text) {
+  if (!text) return;
+  simBubble(npc, text, { secs: 2.6 });
+  speak(npc.key, text, npc.def?.voice);
+}
+function dogBark(dog) {
+  simBubble(dog, '¡Guau!', { secs: 1.2 });
+  simBlip(520, 0.06, 'square', 0.04);
+  setTimeout(() => simBlip(470, 0.06, 'square', 0.04), 120);
+}
+async function npcWalk(npc, spot) {
+  const token = ++npc.token;
+  npc.busy = true;
+  try {
+    await walkTo(npc, spot, token);
+  } catch {
+    // Otra orden manda.
+  } finally {
+    if (npc.token === token) { npc.busy = false; npc.idleSince = Date.now(); }
+  }
+}
+// Al llegar, la familia sale a recibiros: un abrazo y un saludo para cada uno.
+function greetFamily() {
+  const mains = [sims[meKey()], sims[partnerKeyOf()]];
+  simsState.npcs.filter((npc) => !npc.def.walker).forEach(async (npc, i) => {
+    const token = ++npc.token;
+    npc.busy = true;
+    try {
+      await simWait(700 + i * 1700);
+      const target = mains[i % 2];
+      if (!npc.seat) {
+        await walkTo(npc, simsWorld.nearestFree(target.x + (i % 2 ? -16 : 16), target.y + 2), token);
+        idle(npc, faceTo(npc, target));
+        if (!target.busy) idle(target, faceTo(target, npc));
+        npc.lean = npc.x < target.x ? 1 : -1;
+        npc.extraRoutine = 'sway';
+        world()?.emit('heart', (npc.x + target.x) / 2, npc.headY + 6, { count: 3, spread: 10, vy: -16 });
+      }
+      npcSay(npc, pickOne(npc.def.greet || npc.def.lines));
+      await simWait(2400);
+      checkToken(npc, token);
+      npc.extraRoutine = null;
+      npc.ox = 0;
+      npc.lean = 0;
+    } catch {
+      // Otra orden manda.
+    } finally {
+      if (npc.token === token) { npc.busy = false; npc.idleSince = Date.now(); }
+    }
+  });
+  if (simsState.dog) setTimeout(() => { if (simsState.dog) { simsState.dog.happy = true; dogBark(simsState.dog); setTimeout(() => { if (simsState.dog) simsState.dog.happy = false; }, 4000); } }, 800);
+}
+// Comer todos juntos: el otro y la familia se sientan a la mesa y charlan.
+function joinFamilyMeal(id) {
+  const action = SIM_ACTIONS[id];
+  const partner = sims[partnerKeyOf()];
+  if (partner && !partner.busy) doAction(partner.key, id);
+  simsState.npcs.filter((npc) => !npc.def.walker).forEach(async (npc, i) => {
+    const token = ++npc.token;
+    npc.busy = true;
+    try {
+      await simWait(300 + i * 450);
+      const seat = claimObjectSeat(npc, action.object);
+      if (!seat) return;
+      await walkTo(npc, { ...seat.exit }, token);
+      sitOn(npc, seat);
+      for (let t = 0; t < action.secs * 1000 - 2000; t += 2600) {
+        await simWait(2600);
+        checkToken(npc, token);
+        if (Math.random() < 0.6) npcSay(npc, pickOne(npc.def.lines));
+        if (Math.random() < 0.3) world()?.emit('heart', npc.x, npc.headY + 6, { vy: -12 });
+      }
+      standUp(npc);
+    } catch {
+      // Otra orden manda.
+    } finally {
+      if (npc.token === token) {
+        npc.busy = false;
+        npc.idleSince = Date.now();
+        if (npc.def.seat && !npc.seat) {
+          const back = claimObjectSeat(npc, npc.def.seat);
+          if (back) { npc.slide = null; sitOn(npc, back); }
+        }
+      }
+    }
+  });
+}
+// Con la familia: charlar, abrazar o dar dos besos (en España y en Italia, siempre dos).
+async function npcInteract(npc, kind) {
+  const me = sims[meKey()];
+  const token = ++me.token;
+  const ntoken = ++npc.token;
+  me.busy = true;
+  npc.busy = true;
+  me.doing = null;
+  hidePie();
+  try {
+    await walkTo(me, simsWorld.nearestFree(npc.x + (me.x < npc.x ? -16 : 16), npc.y), token);
+    idle(me, faceTo(me, npc));
+    if (!npc.seat) idle(npc, faceTo(npc, me));
+    const es = npc.def?.voice?.startsWith('es');
+    if (kind === 'chat') {
+      for (let turn = 0; turn < 4; turn += 1) {
+        if (turn % 2) npcSay(npc, pickOne(npc.def.lines));
+        else simBubble(me, simlish(me.key), { secs: 1.8 });
+        await simWait(1900);
+        checkToken(me, token);
+      }
+    } else {
+      me.lean = me.x < npc.x ? 1 : -1;
+      npc.lean = -me.lean;
+      [me, npc].forEach((sim) => { sim.extraRoutine = 'sway'; });
+      me.expr = 'closed';
+      if (kind === 'kisses') { SMOOCH(); setTimeout(SMOOCH, 500); }
+      npcSay(npc, pickOne(kind === 'kisses' ? (es ? ['¡Dos besos!', '¡Muak, muak!'] : ['Un bacio!', 'Ciao bella!']) : NPC_LINES.hug[es ? 'es' : 'it']));
+      for (let i = 0; i < 6; i += 1) { await simWait(450); world()?.emit('heart', (me.x + npc.x) / 2, me.headY + 6, { vy: -14 }); }
+    }
+    await boostNeeds({ social: 15, fun: 5 }).catch(() => {});
+    simFloat(me, needsText({ social: 15, fun: 5 }));
+  } catch (error) {
+    if (error !== SIM_CANCELLED) console.warn(error);
+  } finally {
+    [me, npc].forEach((sim) => { sim.extraRoutine = null; sim.lean = 0; sim.ox = 0; });
+    if (npc.token === ntoken) { npc.busy = false; npc.idleSince = Date.now(); }
+    if (me.token === token) { me.busy = false; me.expr = null; idle(me); me.idleSince = Date.now(); }
+  }
+}
+// Kika: acariciarla o tirarle la pelota (va, la coge y te la trae).
+async function doDogAction(key, id) {
+  const sim = sims[key];
+  const dog = simsState.dog;
+  const action = SIM_ACTIONS[id];
+  if (!sim || !dog) return showToast('Kika está en España, con tus padres 🐶');
+  const token = ++sim.token;
+  const dogToken = ++dog.token;
+  sim.busy = true;
+  dog.busy = true;
+  sim.doing = id;
+  sim.progress = { start: performance.now(), secs: action.secs };
+  hidePie();
+  try {
+    await walkTo(sim, simsWorld.nearestFree(dog.x + (sim.x < dog.x ? -16 : 16), dog.y), token);
+    idle(sim, faceTo(sim, dog));
+    idle(dog, faceTo(dog, sim));
+    dog.happy = true;
+    sim.expr = 'happy';
+    if (action.dog === 'pet') {
+      setAnim(sim, 'thrust', { frames: [2, 3, 2, 3], fps: 3 });
+      dog.sit = true;
+      simBubble(sim, sim.key === 'ines' ? '¿Quién es la perrita más buena? 🐶' : 'Brava Kika! 🐶', { secs: 2.6 });
+      for (let i = 0; i < 12; i += 1) {
+        await simWait(500);
+        checkToken(sim, token);
+        if (i % 2 === 0) world()?.emit('heart', dog.x, dog.y - 24, { vy: -14 });
+      }
+    } else {
+      for (let round = 0; round < 2; round += 1) {
+        const target = simsWorld.nearestFree(sim.x + (sim.x < 256 ? 130 : -130), 300 + Math.random() * 60);
+        setAnim(sim, 'thrust', { frames: [0, 2, 4, 5, 5], fps: 10, loop: false });
+        world()?.throwItem({ x: sim.x, y: sim.y - 24 }, { x: target.x, y: target.y - 4 }, 700, 'ball');
+        simBubble(sim, sim.key === 'ines' ? '¡Kika, a por ella! 🎾' : 'Vai Kika! 🎾', { secs: 1.6 });
+        simBlip(400, 0.06, 'triangle');
+        dog.sit = false;
+        await simWait(300);
+        await walkTo(dog, target, dogToken);
+        dog.ball = true;
+        dogBark(dog);
+        await walkTo(dog, simsWorld.nearestFree(sim.x + (dog.x < sim.x ? -14 : 14), sim.y), dogToken);
+        dog.ball = false;
+        idle(dog, faceTo(dog, sim));
+        idle(sim, faceTo(sim, dog));
+        world()?.emit('heart', dog.x, dog.y - 24, { count: 2, vy: -14 });
+        await simWait(500);
+        checkToken(sim, token);
+      }
+    }
+    await boostNeeds(action.needs).catch(() => {});
+    simFloat(sim, needsText(action.needs));
+  } catch (error) {
+    if (error !== SIM_CANCELLED) console.warn(error);
+  } finally {
+    Object.assign(dog, { happy: false, sit: false, ball: false });
+    if (dog.token === dogToken) { dog.busy = false; dog.idleSince = Date.now(); }
+    if (sim.token === token) { sim.busy = false; sim.doing = null; sim.progress = null; sim.expr = null; idle(sim); sim.idleSince = Date.now(); }
+  }
+}
+// Cada pocos segundos: la familia charla y pasea, los paseantes van y vienen y Kika te sigue.
+function npcTick() {
+  const mains = Object.values(sims);
+  simsState.npcs.forEach((npc) => {
+    if (npc.busy) return;
+    const near = mains.some((sim) => Math.hypot(sim.x - npc.x, sim.y - npc.y) < 70);
+    const idleFor = Date.now() - npc.idleSince;
+    if (npc.def.walker) {
+      if (idleFor > 1200) npcWalk(npc, { x: npc.x < 256 ? 470 + Math.random() * 20 : 30 + Math.random() * 20, y: npc.def.lane + (Math.random() - 0.5) * 6 });
+      else if (near && Math.random() < 0.15) npcSay(npc, pickOne(npc.def.lines));
+      return;
+    }
+    if (npc.seat) {
+      if (near && Math.random() < 0.12) npcSay(npc, pickOne(npc.def.lines));
+      return;
+    }
+    if (near && Math.random() < 0.15) {
+      const sim = mains.find((other) => Math.hypot(other.x - npc.x, other.y - npc.y) < 70);
+      idle(npc, faceTo(npc, sim));
+      npcSay(npc, pickOne(npc.def.lines));
+    } else if (idleFor > 5000 && Math.random() < 0.5) {
+      npcWalk(npc, simsWorld.nearestFree(npc.def.home.x + (Math.random() - 0.5) * 80, npc.def.home.y + (Math.random() - 0.5) * 30));
+    }
+  });
+  const dog = simsState.dog;
+  const ines = sims.ines || mains[0];
+  if (dog && !dog.busy && ines) {
+    const dist = Math.hypot(ines.x - dog.x, ines.y - dog.y);
+    if (dist > 50) {
+      dog.sit = false;
+      npcWalk(dog, simsWorld.nearestFree(ines.x + (dog.x < ines.x ? -20 : 20), ines.y + 6));
+    } else if (Math.random() < 0.15) dogBark(dog);
+    else if (Math.random() < 0.3) { dog.sit = true; idle(dog, faceTo(dog, ines)); }
+  }
+}
+
+// ---------- La app de verdad dentro del juego: compra, tareas, agenda y plantas ----------
+function showSimsCard(className, html) {
+  simsHouse.querySelector('.sims-card')?.remove();
+  const card = document.createElement('div');
+  card.className = `sims-card ${className}`;
+  card.innerHTML = `<div class="sims-card-paper">${html}<button type="button" class="sims-card-close" data-card-close aria-label="Cerrar">✕</button></div>`;
+  simsHouse.appendChild(card);
+  return card;
+}
+const pendingShopping = () => (typeof shoppingItems !== 'undefined' && Array.isArray(shoppingItems) ? shoppingItems.filter((item) => item.status !== 'done') : []);
+const dueTasks = () => {
+  if (typeof householdTasks === 'undefined' || !Array.isArray(householdTasks)) return [];
+  const limit = typeof addDaysToISO === 'function' ? addDaysToISO(todayISO(), 2) : todayISO();
+  return householdTasks.filter((task) => task.active !== false && (!task.due_date || task.due_date <= limit)).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
+};
+const eventsOn = (iso) => (typeof cachedEvents !== 'undefined' && Array.isArray(cachedEvents) ? cachedEvents.filter((event) => String(event.event_date || '').slice(0, 10) === iso).sort((a, b) => (a.event_time || '').localeCompare(b.event_time || '')) : []);
+
+function shoppingCard() {
+  const items = pendingShopping();
+  const meals = typeof mealAt === 'function' ? ['lunch', 'dinner'].map((slot) => [slot, mealAt(todayISO(), slot)]).filter(([, meal]) => meal) : [];
+  showSimsCard('is-note', `<h3>📝 La lista de la compra</h3>
+    ${meals.length ? `<p class="sims-card-meals">${meals.map(([slot, meal]) => `<span>${slot === 'lunch' ? 'Comida' : 'Cena'}: <b>${escapeHtml(meal.title || '')}</b></span>`).join('')}</p>` : ''}
+    <ul>${items.length ? items.map((item) => `<li><button type="button" data-shop-toggle="${escapeHtml(item.id)}" aria-pressed="${item.status === 'in_cart'}"><i></i>${escapeHtml(item.name || '')}${item.quantity ? ` <small>${escapeHtml(String(item.quantity))}</small>` : ''}</button></li>`).join('') : '<li class="is-empty">No falta nada 🎉</li>'}</ul>
+    <form data-shop-add><input name="item" maxlength="200" placeholder="Añadir… (leche, pan y 6 huevos)" autocomplete="off" enterkeyhint="done" /><button type="submit" aria-label="Añadir">＋</button></form>
+    <button type="button" class="sims-card-link" data-card-open="compra">Abrir la compra en la app</button>`);
+}
+function tasksCard() {
+  const tasks = dueTasks();
+  const today = todayISO();
+  showSimsCard('is-board', `<h3>📌 Tareas pendientes</h3>
+    <ul>${tasks.length ? tasks.slice(0, 8).map((task) => `<li><span>${escapeHtml(task.title)}<small>${task.due_date ? (task.due_date < today ? 'Atrasada' : task.due_date === today ? 'Hoy' : escapeHtml(typeof dueLabel === 'function' ? dueLabel(task.due_date) : task.due_date)) : ''}${task.assignee && task.assignee !== 'both' ? ` · ${escapeHtml(task.assignee)}` : ''}</small></span><button type="button" data-task-done="${escapeHtml(task.id)}">Hecho ✓</button></li>`).join('') : '<li class="is-empty">¡Nada pendiente! A descansar 🛋️</li>'}</ul>
+    <button type="button" class="sims-card-link" data-card-open="tareas">Abrir las tareas en la app</button>`);
+}
+function agendaCard() {
+  const today = todayISO();
+  const tomorrow = typeof addDaysToISO === 'function' ? addDaysToISO(today, 1) : today;
+  const day = (iso, label) => {
+    const list = eventsOn(iso);
+    return `<h4>${label}</h4><ul>${list.length ? list.map((event) => `<li><b>${event.event_time && event.event_time !== '00:00' && event.event_time !== '00:00:00' ? escapeHtml(event.event_time.slice(0, 5)) : 'Todo el día'}</b><span>${escapeHtml(event.title || '')}${event.location ? `<small>${escapeHtml(event.location)}</small>` : ''}</span></li>`).join('') : '<li class="is-empty">Nada apuntado</li>'}</ul>`;
+  };
+  showSimsCard('is-calendar', `<h3>📅 La agenda</h3>${day(today, 'Hoy')}${day(tomorrow, 'Mañana')}
+    <button type="button" class="sims-card-link" data-card-open="calendar">Abrir el calendario</button>`);
+}
+
+// Plantas: en las macetas de la casa van vuestras plantas de la app, con su nombre y su sed.
+const SPECIES_DRAW = { strelitzia: 'strelitzia', monstera: 'monstera', pothos: 'pothos', other: 'herb' };
+const BIG_DRAW = ['strelitzia', 'monstera', 'snake'];
+function mapPlants() {
+  const list = typeof householdPlants !== 'undefined' && Array.isArray(householdPlants) ? householdPlants : [];
+  const slots = simsWorld.PLANT_SLOTS;
+  const out = new Array(slots.length).fill(null);
+  const info = (plant, draw) => ({ id: plant.id, name: plant.name, species: plant.species, draw, mood: typeof plantState === 'function' ? plantState(plant).mood : 'ok' });
+  const rest = [];
+  list.forEach((plant) => {
+    const draw = SPECIES_DRAW[plant.species] || 'herb';
+    const index = slots.findIndex((slot, i) => !out[i] && slot.kind === draw);
+    if (index >= 0) out[index] = info(plant, draw);
+    else rest.push([plant, draw]);
+  });
+  rest.forEach(([plant, draw]) => {
+    let index = slots.findIndex((slot, i) => !out[i] && BIG_DRAW.includes(slot.kind) === BIG_DRAW.includes(draw));
+    if (index < 0) index = slots.findIndex((_, i) => !out[i]);
+    if (index >= 0) out[index] = info(plant, draw);
+  });
+  return out;
+}
+function plantOptions(index) {
+  const info = world()?.state.plants?.[index];
+  const name = info?.name || 'la planta';
+  return [[`plant:water:${index}`, `Regar ${name}`, '💧'], [`plant:talk:${index}`, `Hablarle a ${name}`, '🌱'], ...(info ? [[`plant:sheet:${index}`, 'Ver su ficha', '📋']] : [])];
+}
+async function plantAction(index, kind) {
+  const sim = sims[meKey()];
+  const slot = simsWorld.PLANT_SLOTS[index];
+  const info = world()?.state.plants?.[index];
+  if (kind === 'sheet') {
+    if (info && typeof openPlantSheet === 'function') { closeSims(); setTimeout(() => openPlantSheet(info.id), 300); }
+    return;
+  }
+  const token = ++sim.token;
+  sim.busy = true;
+  sim.doing = kind === 'water' ? 'water' : 'talkplant';
+  sim.progress = { start: 0, secs: 5 };
+  hidePie();
+  try {
+    await walkTo(sim, slot.spot, token);
+    sim.progress = { start: performance.now(), secs: 5 };
+    sim.expr = 'happy';
+    if (kind === 'water') {
+      sim.prop = 'can';
+      setAnim(sim, 'thrust', { frames: [3, 4, 5, 4], fps: 4 });
+      setProp(`plant${index}`, true);
+      for (let i = 0; i < 10; i += 1) { await simWait(500); checkToken(sim, token); world()?.emit('drop', slot.x, slot.y - slot.top + 8, { vy: 30, spread: 10 }); }
+      setProp(`plant${index}`, false);
+      // De verdad: queda regada en la app (y le llega el aviso al otro).
+      if (info && typeof waterPlant === 'function') await waterPlant(info.id);
+      else { await boostNeeds({ fun: 10 }).catch(() => {}); simFloat(sim, needsText({ fun: 10 })); }
+      if (world()) world().state.plants = mapPlants();
+      simBubble(sim, info ? `${info.name}, ¡ya tienes agua! 💧` : '¡Ya está! 💧', { secs: 2.2 });
+    } else {
+      simBubble(sim, sayLine(sim.key, sim.key === 'matteo' ? [`Ciao ${info?.name || 'piantina'}, come stai?`, 'Che belle foglie!'] : [`Hola, ${info?.name || 'bonita'}, ¿qué tal?`, '¡Qué hojas tan bonitas!']), { secs: 2.6 });
+      for (let i = 0; i < 10; i += 1) { await simWait(500); checkToken(sim, token); }
+      await boostNeeds({ social: 5, fun: 5 }).catch(() => {});
+    }
+  } catch (error) {
+    if (error !== SIM_CANCELLED) console.warn(error);
+  } finally {
+    if (sim.token === token) { sim.busy = false; sim.doing = null; sim.progress = null; sim.prop = null; sim.expr = null; idle(sim); sim.idleSince = Date.now(); }
+  }
+}
+// Lo que se ve en la casa con datos de la app: nota de la nevera, corcho, calendario y plantas.
+function refreshAppData() {
+  const w = world();
+  if (!w) return;
+  w.state.data = { shopping: pendingShopping().length, tasks: dueTasks().filter((task) => !task.due_date || task.due_date <= todayISO()).length, events: eventsOn(todayISO()).length, day: new Date().getDate() };
+  w.state.plants = mapPlants();
+}
+
 // ---------- Interacciones entre los dos ----------
 // incoming: la ha empezado el otro (llega por 'umbral:poke').
 async function doSocial(kind, { incoming = false } = {}) {
   const me = sims[meKey()];
   const partner = sims[partnerKeyOf()];
   if (!me || !partner || !SOCIALS[kind]) return;
+  if (SOCIALS[kind].trip) return doTrip(kind, { incoming });
+  // Lo de casa (sofá, cama, cojines…) solo se puede hacer en casa.
+  if (SOCIALS[kind].home && curScene() !== 'house') return showToast('Eso mejor en casa 🏠');
   const config = SOCIALS[kind];
   const actor = incoming ? partner : me;
   const target = incoming ? me : partner;
   const tokens = [++me.token, ++partner.token];
   const tokenOf = (sim) => (sim === me ? tokens[0] : tokens[1]);
-  [me, partner].forEach((sim) => { sim.busy = true; sim.doing = `social-${kind}`; sim.progress = null; stopSim(sim); });
+  [me, partner].forEach((sim) => { sim.busy = true; sim.doing = `social-${kind}`; sim.socialKind = kind; sim.progress = null; stopSim(sim); });
   hidePie();
+  if (kind === 'spoon' || kind === 'woohoo') [me, partner].forEach((sim) => setOutfit(sim, 'pajamas'));
   const poke = avatarCatalog().POKES[kind] || { emoji: '💬', text: '' };
   const w = world();
   const both = [actor, target];
@@ -798,7 +1451,8 @@ async function doSocial(kind, { incoming = false } = {}) {
   try {
     // ¿Se van a algún sitio concreto o se acerca uno al otro?
     if (kind === 'selfie') {
-      await Promise.all(both.map((sim) => walkTo(sim, { ...SELFIE_SPOTS[sim.key], dir: 'up' }, tokenOf(sim))));
+      const spots = curScene() === 'house' ? SELFIE_SPOTS : sceneObj('mole')?.selfie || { ines: simsWorld.nearestFree(me.x, me.y), matteo: simsWorld.nearestFree(me.x + 10, me.y + 8) };
+      await Promise.all(both.map((sim) => walkTo(sim, { ...spots[sim.key], dir: curScene() === 'house' || curScene() === 'turin' ? 'up' : 'down' }, tokenOf(sim))));
     } else if (kind === 'cuddle' || kind === 'spoon' || kind === 'woohoo') {
       const seatKind = kind === 'cuddle' ? 'cuddle' : 'spoon';
       await Promise.all(both.map((sim, i) => walkTo(sim, { ...SEATS[seatKind][i].exit, dir: 'up' }, tokenOf(sim))));
@@ -811,7 +1465,9 @@ async function doSocial(kind, { incoming = false } = {}) {
       await stepTo(actor, { x: 447, y: 136 }, tokenOf(actor));
       idle(actor, 'left');
     } else if (kind === 'slowdance') {
-      await Promise.all([walkTo(actor, { x: 228, y: 306 }, tokenOf(actor)), walkTo(target, { x: 244, y: 306 }, tokenOf(target))]);
+      const c0 = curScene() === 'house' ? { x: 236, y: 306 } : simsWorld.nearestFree((actor.x + target.x) / 2, (actor.y + target.y) / 2);
+      simsState.danceCenter = c0;
+      await Promise.all([walkTo(actor, { x: c0.x - 8, y: c0.y }, tokenOf(actor)), walkTo(target, { x: c0.x + 8, y: c0.y }, tokenOf(target))]);
     } else {
       standUp(target);
       if (kind === 'pillow') {
@@ -929,7 +1585,7 @@ async function doSocial(kind, { incoming = false } = {}) {
       await simWait(1400);
       selfieFlash();
       await simWait(500);
-      w?.emit('heart', 317, 214, { count: 5, spread: 20, vy: -14 });
+      w?.emit('heart', curScene() === 'house' ? 317 : me.x, curScene() === 'house' ? 214 : me.headY, { count: 5, spread: 20, vy: -14 });
       await simWait(2400);
       ines.prop = null;
     } else if (kind === 'dance') {
@@ -960,7 +1616,7 @@ async function doSocial(kind, { incoming = false } = {}) {
       if (w) w.state.romance = 0.4;
       setProp('radio', true);
       ROMANTIC();
-      const center = { x: 236, y: 306 };
+      const center = simsState.danceCenter || { x: 236, y: 306 };
       both.forEach((sim) => { sim.expr = 'closed'; });
       const start = performance.now();
       try {
@@ -1090,7 +1746,7 @@ async function doSocial(kind, { incoming = false } = {}) {
     [me, partner].forEach((sim) => {
       if (sim.token !== tokenOf(sim)) return;
       if (sim.seat || sim.hidden) standUp(sim);
-      Object.assign(sim, { routine: null, extraRoutine: null, prop: null, expr: null, lean: 0, ox: 0, oy: 0, hidden: false });
+      Object.assign(sim, { routine: null, extraRoutine: null, prop: null, expr: null, lean: 0, ox: 0, oy: 0, hidden: false, socialKind: null });
       idle(sim);
       sim.busy = false;
       sim.doing = null;
@@ -1186,6 +1842,7 @@ const pokeOption = (kind, withName = false) => {
   return [`social:${kind}`, withName ? `${poke.label} con ${simPerson(partnerKeyOf())}` : poke.label, poke.emoji];
 };
 const objectOptions = (id) => {
+  if (/^plant\d$/.test(id || '')) return plantOptions(Number(id.slice(5)));
   const info = SIM_OBJECTS[id];
   if (!info) return [];
   return [...info.actions.map((action) => [`act:${action}`, actionLabel(action), SIM_ACTIONS[action].emoji]), ...(info.social || []).map((kind) => pokeOption(kind, true))];
@@ -1194,7 +1851,7 @@ const objectOptions = (id) => {
 // la categoría de enfado sale la primera.
 function partnerMenu() {
   const angry = Object.values(sims).some((sim) => sim.angryUntil > Date.now());
-  const cats = angry ? [SOCIAL_CATS[4], ...SOCIAL_CATS.slice(0, 4)] : SOCIAL_CATS;
+  const cats = angry ? [SOCIAL_CATS[4], ...SOCIAL_CATS.slice(0, 4), SOCIAL_CATS[5]] : SOCIAL_CATS;
   return cats.map(([id, label, emoji]) => [`cat:${id}`, label, emoji]);
 }
 
@@ -1203,6 +1860,7 @@ function handleHouseTap(event) {
   if (!w || event.target.closest('.sims-pie-option') || event.target.closest('.sims-hud') || event.target.closest('.sims-photo-card')) return;
   if (event.target.closest('.sims-pie')) return hidePie();
   if (simsHouse.querySelector('.sims-pie')) return hidePie();
+  if (event.target.closest('.sims-travel')) return;
   const point = w.toWorld(event.clientX, event.clientY);
   const actor = w.actorAt(point.x, point.y);
   const objectId = w.objectAt(point.x, point.y);
@@ -1210,9 +1868,20 @@ function handleHouseTap(event) {
   if (actor && actor.key === me) {
     // Si tu muñeco está delante de un objeto, sus acciones también salen en el menú.
     const own = [['own:look', 'Muñeco del jardín', '👕'], ['own:mood', 'Cómo me siento', '😊'], ['own:need', '¿Qué me falta?', '💭'], ['own:wave', 'Saludar', '👋']];
-    return showPie(event, `${simPerson(me)} (tú)`, [...objectOptions(objectId).filter(([id]) => !id.startsWith('social:')), ...own].slice(0, 7));
+    const extra = curScene() !== 'house' ? [['home:go', 'Volver a casa', '🏠']] : [];
+    return showPie(event, `${simPerson(me)} (tú)`, [...objectOptions(objectId).filter(([id]) => !id.startsWith('social:')), ...extra, ...own].slice(0, 7));
+  }
+  if (actor?.kind === 'dog') return showPie(event, '🐶 Kika', [['act:petkika', 'Acariciar a Kika', '🐶'], ['act:fetch', 'Tirarle la pelota', '🎾']]);
+  if (actor?.npc) {
+    simsState.pieNpc = actor;
+    return showPie(event, actor.name, [['npc:chat', 'Charlar', '💬'], ['npc:hug', 'Un abrazo', '🤗'], ['npc:kisses', 'Dos besos', '😘']]);
   }
   if (actor) return showPie(event, simPerson(actor.key), partnerMenu());
+  if (/^plant\d$/.test(objectId || '')) {
+    const info = w.state.plants?.[Number(objectId.slice(5))];
+    const thirsty = info && ['thirsty', 'parched'].includes(info.mood);
+    return showPie(event, info ? `${info.name}${thirsty ? ' · tiene sed' : ''}` : 'Planta', objectOptions(objectId), w.hitRect(objectId));
+  }
   if (objectId && SIM_OBJECTS[objectId]) return showPie(event, SIM_OBJECTS[objectId].label, objectOptions(objectId), w.hitRect(objectId));
   walkHere(point);
 }
@@ -1223,13 +1892,19 @@ function handlePieChoice(id) {
   if (type === 'cat') {
     const at = simsState.pieAt || { clientX: 0, clientY: 0 };
     const cat = SOCIAL_CATS.find(([catId]) => catId === value);
-    const options = Object.entries(SOCIALS).filter(([, social]) => social.cat === value).map(([kind]) => pokeOption(kind));
+    const options = Object.entries(SOCIALS).filter(([kind, social]) => social.cat === value && !(social.home && curScene() !== 'house') && kind !== curScene()).map(([kind]) => pokeOption(kind));
     return showPie(at, `${cat[2]} ${cat[1]}`, options, at.rect);
   }
   hidePie();
   const me = sims[meKey()];
+  if (type === 'plant') {
+    const [, act, index] = id.split(':');
+    return plantAction(Number(index), act);
+  }
+  if (type === 'npc') return simsState.pieNpc && npcInteract(simsState.pieNpc, value);
   if (type === 'act') return doAction(meKey(), value);
   if (type === 'social') return doSocial(value);
+  if (type === 'home') return goHome();
   if (value === 'look') return openAvatarEditor('clothes');
   if (value === 'mood') return openAvatarEditor('mood');
   if (value === 'wave') {
@@ -1258,11 +1933,14 @@ function renderHud() {
   const doing = me?.doing && SIM_ACTIONS[me.doing] ? me.doing : null;
   const social = me?.doing?.startsWith('social-') ? avatarCatalog()?.POKES[me.doing.slice(7)] : null;
   const progress = doing && me.progress?.start ? Math.min(1, (performance.now() - me.progress.start) / (me.progress.secs * 1000)) : 0;
-  const label = doing ? `${SIM_ACTIONS[doing].emoji} ${ACTION_VERB[doing] || SIM_ACTIONS[doing].label}` : social ? `${social.emoji} ${social.label}` : me?.path?.length ? '🚶 Andando' : '';
-  const key = `${label}|${clock}`;
+  const label = doing ? `${SIM_ACTIONS[doing].emoji} ${ACTION_VERB[doing] || SIM_ACTIONS[doing].label}` : social ? `${social.emoji} ${social.label}` : me?.path?.length ? (me.run ? '🏃 Corriendo' : '🚶 Andando') : '';
+  const trip = TRIPS[curScene()];
+  const temp = world()?.state.weather.temp;
+  const weather = Number.isFinite(Number(temp)) ? ` · ${Math.round(curScene() === 'house' ? temp : outsideTemp())}°` : '';
+  const key = `${label}|${clock}|${curScene()}|${weather}`;
   if (hud.dataset.key !== key) {
     hud.dataset.key = key;
-    hud.innerHTML = `<div class="sims-hud-action"${label ? '' : ' hidden'}><span>${escapeHtml(label)}</span>${doing || social ? '<button type="button" class="sims-hud-cancel" aria-label="Dejar de hacerlo">✕</button>' : ''}<i class="sims-hud-bar"><b></b></i></div><div class="sims-hud-clock">${clock}</div>`;
+    hud.innerHTML = `<div class="sims-hud-action"${label ? '' : ' hidden'}><span>${escapeHtml(label)}</span>${doing || social ? '<button type="button" class="sims-hud-cancel" aria-label="Dejar de hacerlo">✕</button>' : ''}<i class="sims-hud-bar"><b></b></i></div><div class="sims-hud-side"><div class="sims-hud-clock">${clock}${weather}</div>${trip ? `<button type="button" class="sims-hud-home">🏠 Volver a casa</button>` : ''}</div>`;
   }
   const bar = hud.querySelector('.sims-hud-bar b');
   if (bar) bar.style.width = `${Math.round(progress * 100)}%`;
@@ -1293,7 +1971,8 @@ function updateClock() {
   const w = world();
   if (!w) return;
   w.state.time = timeOfDay(new Date().getHours());
-  w.state.lamps = w.state.time !== 'day';
+  w.state.lamps = curScene() === 'house' ? w.state.time !== 'day' : w.state.time === 'night';
+  if (window.umbralWeather) w.state.weather = { code: Number(window.umbralWeather.code ?? 1), temp: Number(window.umbralWeather.temp ?? 18) };
 }
 
 function buildSims() {
@@ -1309,10 +1988,15 @@ function buildSims() {
     idle(sims[key], index ? 'left' : 'right');
   });
   Object.keys(sims).forEach((key) => { if (![meKey(), partnerKeyOf()].includes(key)) delete sims[key]; });
-  w.state.actors = Object.values(sims);
+  simsState.npcs = [];
+  simsState.dog = null;
+  syncActors();
   w.state.follow = sims[meKey()];
   w.state.zoom = simsState.zoom;
   updateClock();
+  updateSceneTitle();
+  refreshAppData();
+  Object.values(sims).forEach((sim) => checkOutfit(sim, false));
 }
 
 function frame(t) {
@@ -1321,11 +2005,23 @@ function frame(t) {
   if (document.hidden) return;
   const dt = Math.min(0.05, (t - (simsState.last || t)) / 1000);
   simsState.last = t;
-  Object.values(sims).forEach((sim) => {
+  everyone().concat(simsState.dog ? [simsState.dog] : []).forEach((sim) => {
     // Si otra orden manda, deja de andar hacia donde iba.
     if (sim.path.length && sim.walkToken !== sim.token) stopSim(sim);
     stepSim(sim, dt, t);
   });
+  // El tranvía de Turín pasa de vez en cuando (con su campanita).
+  const w = world();
+  if (curScene() === 'turin') {
+    if (!w.state.tram && t > simsState.nextTram) {
+      w.state.tram = { x: -130, v: 46 };
+      simTune([1320, 0, 1320], 90, 'triangle');
+    }
+    if (w.state.tram) {
+      w.state.tram.x += w.state.tram.v * dt;
+      if (w.state.tram.x > 540) { w.state.tram = null; simsState.nextTram = t + 18000 + Math.random() * 14000; }
+    }
+  }
   world().render(t, dt);
   simsState.bubbles.forEach(placeOverlay);
   renderHud();
@@ -1337,7 +2033,10 @@ function replayPartnerActivity() {
   const row = avatarRows[simPerson(key)];
   if (!sim || !row?.activity || !row.activity_at || row.activity_at === sim.seenActivity) return;
   sim.seenActivity = row.activity_at;
-  if (Date.now() - Date.parse(row.activity_at) > 30 * 60 * 1000 || !SIM_ACTIONS[row.activity]) return;
+  const action = SIM_ACTIONS[row.activity];
+  if (Date.now() - Date.parse(row.activity_at) > 30 * 60 * 1000 || !action || action.trip || action.social) return;
+  // Solo si eso se puede hacer donde estáis ahora.
+  if (curScene() === 'house' ? !SPOTS[action.spot || action.object] && !SEATS[action.pose] && !['bed', 'bedsit', 'bedjump', 'shower', 'bath', 'desk', 'chair', 'sofa'].includes(action.pose) && !sceneObj(action.object) : !sceneObj(action.object)) return;
   doAction(key, row.activity);
 }
 
@@ -1395,7 +2094,7 @@ async function wander(sim) {
   const token = ++sim.token;
   sim.busy = true;
   try {
-    const spot = pickOne(IDLE_SPOTS);
+    const spot = curScene() === 'house' ? pickOne(IDLE_SPOTS) : { x: 40 + Math.random() * 430, y: 250 + Math.random() * 110 };
     await walkTo(sim, simsWorld.nearestFree(spot.x + (Math.random() - 0.5) * 30, spot.y + (Math.random() - 0.5) * 16), token);
     idle(sim, pickOne(['left', 'right', 'down']));
     await simWait(2500);
@@ -1424,7 +2123,11 @@ function simsTick() {
   if (!simsState.open) return;
   renderSimsNeeds();
   updateClock();
+  refreshAppData();
   lookAtEachOther();
+  npcTick();
+  // Ropa según dónde estéis, la hora y el tiempo (si no están haciendo nada).
+  Object.values(sims).forEach((sim) => { if (!sim.busy) checkOutfit(sim); });
   // Mientras eliges en el menú, nadie hace nada por su cuenta.
   if (simsHouse.querySelector('.sims-pie') || simsHouse.querySelector('.sims-photo-card')) return;
   const me = meKey();
@@ -1432,7 +2135,7 @@ function simsTick() {
     const sim = sims[key];
     if (!sim || sim.busy) return;
     const idleFor = Date.now() - sim.idleSince;
-    if (key === me && idleFor > 14000) {
+    if (key === me && idleFor > 14000 && curScene() === 'house') {
       const needs = currentNeeds(avatarRows[myAvatarPerson()]);
       const [lowest, amount] = Object.entries(needs).sort((a, b) => a[1] - b[1])[0];
       if (amount < 45) return doAction(key, pickOne(NEED_ACTIONS[lowest]), { autonomous: true });
@@ -1465,6 +2168,8 @@ async function openSims() {
   clearInterval(simsState.timer);
   simsState.timer = setInterval(simsTick, 2500);
   loadSimsPhotos();
+  // La ropa de dormir, de abrigo y de verano se carga ya, para cambiarse sin esperas.
+  ['pajamas', 'cold', 'hot'].forEach((outfit) => ['ines', 'matteo'].forEach((key) => simsWorld.loadSheet(`${key}-${outfit}`)));
   setTimeout(() => {
     simBubble(sims[meKey()], simlish(meKey()), { secs: 2 });
     replayPartnerActivity();
@@ -1500,9 +2205,39 @@ function updateSoundButton() {
   button.setAttribute('aria-label', simsState.sound ? 'Quitar el sonido' : 'Poner el sonido');
 }
 
-simsHouse.addEventListener('click', (event) => {
+simsHouse.addEventListener('click', async (event) => {
   const option = event.target.closest('[data-pie]');
   if (option) return handlePieChoice(option.dataset.pie);
+  if (event.target.closest('.sims-hud-home')) return goHome();
+  const appCard = event.target.closest('.sims-card');
+  if (appCard) {
+    if (event.target.closest('[data-card-close]') || event.target === appCard) return appCard.remove();
+    const toggle = event.target.closest('[data-shop-toggle]');
+    if (toggle && typeof toggleShoppingItem === 'function') {
+      await toggleShoppingItem(toggle.dataset.shopToggle);
+      simBlip(1100, 0.05);
+      refreshAppData();
+      return shoppingCard();
+    }
+    const done = event.target.closest('[data-task-done]');
+    if (done && typeof completeTask === 'function') {
+      done.disabled = true;
+      const me = sims[meKey()];
+      if (me && !me.busy) { setAnim(me, 'emote', { dir: 'down', frames: [1, 2, 2, 1], fps: 4, loop: false }); me.expr = 'happy'; setTimeout(() => { me.expr = null; idle(me); }, 1500); }
+      await completeTask(done.dataset.taskDone);
+      world()?.emit('spark', me.x, me.headY + 6, { count: 5, spread: 12, vy: -18 });
+      refreshAppData();
+      return tasksCard();
+    }
+    const open = event.target.closest('[data-card-open]');
+    if (open) {
+      const target = open.dataset.cardOpen;
+      appCard.remove();
+      closeSims();
+      setTimeout(() => (target === 'calendar' ? typeof openCalendar === 'function' && openCalendar() : showView(target)), 300);
+    }
+    return;
+  }
   const card = event.target.closest('.sims-photo-card');
   if (card) {
     if (event.target.closest('[data-photo-next]')) {
@@ -1543,6 +2278,19 @@ simsHouse.addEventListener('pointermove', (event) => {
   w.canvas.style.cursor = (id && SIM_OBJECTS[id]) || w.actorAt(point.x, point.y) ? 'pointer' : 'default';
 });
 simsHouse.addEventListener('pointerleave', () => { if (world()) world().state.hover = null; });
+// Añadir a la lista de la compra desde la nota de la nevera (de verdad).
+simsHouse.addEventListener('submit', async (event) => {
+  const form = event.target.closest('[data-shop-add]');
+  if (!form) return;
+  event.preventDefault();
+  const text = form.item.value.trim();
+  if (!text || typeof addShoppingItems !== 'function') return;
+  form.item.disabled = true;
+  await addShoppingItems(text);
+  refreshAppData();
+  shoppingCard();
+  simsHouse.querySelector('[data-shop-add] input')?.focus();
+});
 document.querySelector('#simsNeeds').addEventListener('click', (event) => {
   const who = event.target.closest('[data-needs-who]');
   if (!who) return;

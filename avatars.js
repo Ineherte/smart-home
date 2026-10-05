@@ -33,6 +33,9 @@ const LIFE_BOOSTS = {
   plan: { fun: 30, social: 15 }
 };
 const clampNeed = (value) => Math.max(0, Math.min(100, Math.round(value)));
+// Lo que una interacción le cambia al que la recibe (sims.js rellena la tabla con la suya:
+// si dormís abrazados, la energía sube a los dos; si discutís, la vida social baja).
+const POKE_NEEDS = { argue: { social: -15, fun: -10 }, sulk: { social: -10 } };
 
 function currentNeeds(row) {
   const base = row?.needs || {};
@@ -154,7 +157,7 @@ function checkPokes() {
   if (window.dispatchEvent(event)) window.umbralScene?.play(row.poke);
   showToast(`${poke.emoji} ${partner} ${poke.text}`);
   // Una discusión o un enfurruñamiento no sube la vida social, la baja.
-  boostNeeds(['argue', 'sulk'].includes(row.poke) ? { social: -10 } : { social: 20 }).catch(() => {});
+  boostNeeds(POKE_NEEDS[row.poke] || { social: 20 }).catch(() => {});
 }
 
 // Muñeco pequeño para otras pantallas (Nosotros).

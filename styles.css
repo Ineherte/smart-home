@@ -2421,6 +2421,41 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-hud-bar { position: absolute; right: 6px; bottom: 3px; left: 6px; height: 3px; overflow: hidden; border-radius: 2px; background: rgba(43, 31, 29, .18); }
 .sims-hud-bar b { display: block; width: 0; height: 100%; background: #3fbf6a; transition: width .3s linear; }
 .sims-hud-clock { padding: 6px 8px; white-space: nowrap; }
+.sims-hud-side { display: grid; justify-items: end; gap: 6px; }
+.sims-hud-home { padding: 6px 9px; border: 2px solid #2b1f1d; border-radius: 6px; background: #3fbf6a; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .15), 0 2px 0 rgba(0, 0, 0, .25); color: #fff; font-family: var(--pixel-font); font-size: 13px; pointer-events: auto; }
+/* Viaje: pantalla de transición con barra */
+.sims-travel { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; background: #1c2436; animation: sims-fade-in .35s ease both; }
+.sims-travel.is-off { animation: sims-fade-out .4s ease both; }
+.sims-travel > div { display: grid; gap: 12px; justify-items: center; padding: 16px; color: #faf4e6; font-family: var(--pixel-font); font-size: 17px; text-align: center; }
+.sims-travel i { display: block; width: 180px; height: 8px; overflow: hidden; border: 2px solid #faf4e6; border-radius: 4px; }
+.sims-travel b { display: block; width: 0; height: 100%; background: #3fbf6a; animation: sims-travel-bar linear forwards; }
+@keyframes sims-travel-bar { to { width: 100%; } }
+@keyframes sims-fade-in { from { opacity: 0; } }
+@keyframes sims-fade-out { to { opacity: 0; } }
+/* Tarjetas con datos de la app: nota de la nevera, corcho y agenda */
+.sims-card { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 14px; background: rgba(20, 14, 12, .45); animation: sims-fade-in .2s ease both; }
+.sims-card-paper { position: relative; width: min(300px, 100%); max-height: calc(100% - 8px); overflow-y: auto; padding: 14px 14px 12px; border: 2px solid #2b1f1d; border-radius: 6px; background: #fbf6dc; box-shadow: 0 5px 0 rgba(0, 0, 0, .3); color: #2b1f1d; font-family: var(--pixel-font); transform: rotate(-1deg); }
+.sims-card.is-board .sims-card-paper { background: #f4efe2; transform: rotate(1deg); }
+.sims-card.is-calendar .sims-card-paper { background: #fbf9f3; border-top: 10px solid #c0503e; transform: none; }
+.sims-card h3 { margin: 0 24px 8px 0; font-family: var(--pixel-font); font-size: 18px; }
+.sims-card h4 { margin: 10px 0 4px; color: #8a7a6a; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.sims-card ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.sims-card li { display: flex; align-items: center; gap: 8px; min-height: 30px; border-bottom: 1px dashed rgba(43, 31, 29, .2); font-size: 15px; }
+.sims-card li.is-empty { color: #8a7a6a; }
+.sims-card li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sims-card li small { display: block; color: #8a7a6a; font-size: 12px; }
+.sims-card li b { flex-shrink: 0; min-width: 52px; color: #3d6a9a; font-size: 13px; }
+.sims-card li > button[data-shop-toggle] { display: flex; flex: 1; align-items: center; gap: 8px; min-height: 30px; color: inherit; font: inherit; text-align: left; }
+.sims-card li > button[data-shop-toggle] i { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid #2b1f1d; border-radius: 3px; background: #fff; }
+.sims-card li > button[aria-pressed="true"] { color: #8a7a6a; text-decoration: line-through; }
+.sims-card li > button[aria-pressed="true"] i { background: #3fbf6a; }
+.sims-card li > button[data-task-done] { flex-shrink: 0; padding: 4px 8px; border: 2px solid #2b1f1d; border-radius: 6px; background: #c8e6a0; color: #2b1f1d; font: 13px var(--pixel-font); }
+.sims-card-meals { display: grid; gap: 2px; margin: 0 0 8px; padding: 6px 8px; border-radius: 4px; background: rgba(63, 191, 106, .15); font-size: 13px; }
+.sims-card form { display: flex; gap: 6px; margin-top: 10px; }
+.sims-card input { flex: 1; min-width: 0; padding: 7px 8px; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; color: #2b1f1d; font: 16px var(--font-body); }
+.sims-card form button { width: 36px; border: 2px solid #2b1f1d; border-radius: 6px; background: #3fbf6a; color: #fff; font: 18px var(--pixel-font); }
+.sims-card-link { display: block; width: 100%; margin-top: 10px; padding: 7px; border: 2px solid #2b1f1d; border-radius: 6px; background: #faf4e6; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); color: #2b1f1d; font: 14px var(--pixel-font); }
+.sims-card-close { position: absolute; top: 8px; right: 8px; display: grid; width: 24px; height: 24px; place-items: center; border-radius: 4px; background: #c0503e; color: #fff; font-size: 12px; font-weight: 900; }
 
 /* Menú circular, bocadillos y números */
 .sims-pie { position: absolute; inset: 0; z-index: 3; pointer-events: none; }

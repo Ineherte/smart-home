@@ -848,6 +848,8 @@ function renderWeather(data) {
   document.querySelector('#weatherDescription').textContent = description;
   document.querySelector('#weatherDetails').textContent = `Sensación ${Math.round(current.apparent_temperature)}° · Humedad ${current.relative_humidity_2m}% · Máx. ${Math.round(daily.temperature_2m_max[0])}° / mín. ${Math.round(daily.temperature_2m_min[0])}°`;
   document.querySelector('#weatherIcon').innerHTML = `<i data-lucide="${icon}"></i>`;
+  // El modo Sims usa el tiempo de verdad (lluvia en las ventanas, ropa al salir…).
+  window.umbralWeather = { code: current.weather_code, temp: current.temperature_2m, isDay: current.is_day };
   window.umbralScene?.update({ weatherCode: current.weather_code, temperature: current.temperature_2m, windSpeed: current.wind_speed_10m, sunrise: new Date(daily.sunrise[0]), sunset: new Date(daily.sunset[0]) });
   renderWeatherForecastStrip(data.hourly);
   lucide.createIcons();

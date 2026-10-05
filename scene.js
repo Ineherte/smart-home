@@ -236,7 +236,10 @@
     woohoo: { emoji: '🔥', label: 'Ñaca-ñaca', text: 'te propone ñaca-ñaca 😏' },
     argue: { emoji: '💢', label: 'Discutir', text: 'está discutiendo contigo' },
     sulk: { emoji: '😤', label: 'Enfurruñarse', text: 'se ha enfurruñado contigo' },
-    apologize: { emoji: '🥺', label: 'Pedir perdón', text: 'te pide perdón' }
+    apologize: { emoji: '🥺', label: 'Pedir perdón', text: 'te pide perdón' },
+    turin: { emoji: '🏛️', label: 'Pasear por Turín', text: 'te invita a pasear por Turín' },
+    chieti: { emoji: '🇮🇹', label: 'Viajar a Chieti', text: 'quiere ir a Chieti a ver a la familia' },
+    spain: { emoji: '🇪🇸', label: 'Viajar a España', text: 'quiere ir a España a ver a la familia y a Kika' }
   };
 
   // Planes posibles. place: 'out' en el jardín, 'in' dentro de casa (room se enciende).
@@ -977,7 +980,7 @@
   // Toques entre los dos: un plan especial unos segundos.
   function play(kind) {
     if (!container) return;
-    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug', shark: 'dance', selfie: 'hug', pillow: 'dance', slowdance: 'dance', cuddle: 'hug', massage: 'hug', makeout: 'hug', spoon: 'hug', woohoo: 'hug', argue: 'wave', sulk: 'wave', apologize: 'hug' }[kind] || 'hug';
+    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug', shark: 'dance', selfie: 'hug', pillow: 'dance', slowdance: 'dance', cuddle: 'hug', massage: 'hug', makeout: 'hug', spoon: 'hug', woohoo: 'hug', argue: 'wave', sulk: 'wave', apologize: 'hug', turin: 'wave', chieti: 'wave', spain: 'wave' }[kind] || 'hug';
     apply();
     if (['kiss', 'hug', 'selfie', 'shark', 'cuddle', 'massage', 'makeout', 'spoon', 'woohoo', 'apologize', 'slowdance'].includes(kind)) {
       container.dataset.love = 'false';
