@@ -153,7 +153,8 @@ function checkPokes() {
   const event = new CustomEvent('umbral:poke', { detail: { kind: row.poke, from: partner }, cancelable: true });
   if (window.dispatchEvent(event)) window.umbralScene?.play(row.poke);
   showToast(`${poke.emoji} ${partner} ${poke.text}`);
-  boostNeeds({ social: 20 }).catch(() => {});
+  // Una discusión o un enfurruñamiento no sube la vida social, la baja.
+  boostNeeds(['argue', 'sulk'].includes(row.poke) ? { social: -10 } : { social: 20 }).catch(() => {});
 }
 
 // Muñeco pequeño para otras pantallas (Nosotros).

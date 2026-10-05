@@ -68,6 +68,8 @@ Estas funciones:
 
 - Raíz (`index.html`, `app.js`, `styles.css`, …): la app web. Es la única fuente de verdad.
 - `www/`: copia generada con `npm run build:www` para Capacitor. No se versiona; no la edites.
+- `sims-world.js` y `sims.js`: el modo Sims (el piso en pixel art y la lógica del juego).
+- `assets/sims/`: los muñecos LPC de Ines y Matteo, su JSON para el generador y los créditos obligatorios.
 - `supabase/sql/`: esquemas y migraciones SQL.
 - `supabase/functions/`: Edge Functions.
 - `android/`: proyecto nativo de Capacitor.

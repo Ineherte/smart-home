@@ -226,7 +226,17 @@
     dance: { emoji: '💃', label: 'Bailar juntos', text: 'te saca a bailar' },
     compliment: { emoji: '🌹', label: 'Un piropo', text: 'te ha dicho un piropo' },
     shark: { emoji: '🦈', label: 'Ataque de tiburón', text: 'te ataca como un tiburón' },
-    selfie: { emoji: '🤳', label: 'Selfie en el espejo', text: 'quiere un selfie contigo en el espejo' }
+    selfie: { emoji: '🤳', label: 'Selfie en el espejo', text: 'quiere un selfie contigo en el espejo' },
+    pillow: { emoji: '🛋️', label: 'Guerra de cojines', text: 'te declara la guerra de cojines' },
+    slowdance: { emoji: '🕺', label: 'Bailar agarrados', text: 'te saca a bailar agarrados' },
+    cuddle: { emoji: '🫶', label: 'Acurrucarse en el sofá', text: 'quiere acurrucarse contigo en el sofá' },
+    massage: { emoji: '💆', label: 'Un masaje', text: 'te da un masaje' },
+    makeout: { emoji: '💋', label: 'Besarse apasionadamente', text: 'te besa apasionadamente' },
+    spoon: { emoji: '🛌', label: 'Dormir abrazados', text: 'quiere que durmáis abrazados' },
+    woohoo: { emoji: '🔥', label: 'Ñaca-ñaca', text: 'te propone ñaca-ñaca 😏' },
+    argue: { emoji: '💢', label: 'Discutir', text: 'está discutiendo contigo' },
+    sulk: { emoji: '😤', label: 'Enfurruñarse', text: 'se ha enfurruñado contigo' },
+    apologize: { emoji: '🥺', label: 'Pedir perdón', text: 'te pide perdón' }
   };
 
   // Planes posibles. place: 'out' en el jardín, 'in' dentro de casa (room se enciende).
@@ -967,9 +977,9 @@
   // Toques entre los dos: un plan especial unos segundos.
   function play(kind) {
     if (!container) return;
-    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug', shark: 'dance', selfie: 'hug' }[kind] || 'hug';
+    tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug', shark: 'dance', selfie: 'hug', pillow: 'dance', slowdance: 'dance', cuddle: 'hug', massage: 'hug', makeout: 'hug', spoon: 'hug', woohoo: 'hug', argue: 'wave', sulk: 'wave', apologize: 'hug' }[kind] || 'hug';
     apply();
-    if (['kiss', 'hug', 'selfie', 'shark'].includes(kind)) {
+    if (['kiss', 'hug', 'selfie', 'shark', 'cuddle', 'massage', 'makeout', 'spoon', 'woohoo', 'apologize', 'slowdance'].includes(kind)) {
       container.dataset.love = 'false';
       void container.getBoundingClientRect();
       container.dataset.love = 'true';

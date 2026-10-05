@@ -2402,315 +2402,55 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sc-door { cursor: pointer; }
 .sims-heading-actions { display: flex; gap: 8px; }
 .sims-sound { font-size: 16px; }
-.sims-house { position: relative; margin: -18px calc(var(--gutter) * -1) 0; overflow: hidden; background: #a8d5ef; }
-/* Lupa: la casa se amplía alrededor de tu muñeco y le sigue (el origen nunca saca la casa del marco). */
-.sims-house .sims-svg { transform-origin: var(--cam-x, 50%) var(--cam-y, 50%); transition: transform .45s ease, transform-origin var(--cam-secs, 0s) linear; }
-.sims-house.is-zoomed .sims-svg { transform: scale(1.75); }
+.sims-house { --pixel-font: "Pixelify Sans", var(--font-body); position: relative; margin: -18px calc(var(--gutter) * -1) 0; overflow: hidden; background: #241c1d; }
+/* El piso en pixel art: se pinta en un canvas a resolución de juego y se amplía sin suavizar. */
+.sims-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.sims-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sims-zoom { font-size: 16px; }
 .sims-zoom[aria-pressed="true"] { background: var(--green); color: var(--lime); }
 .sims-flash { position: absolute; inset: 0; z-index: 4; background: #fff; pointer-events: none; animation: sims-flash .7s ease-out forwards; }
 @keyframes sims-flash { from { opacity: .95; } to { opacity: 0; } }
-.sh-obj { transition: filter .2s ease; }
-@media (hover: hover) { .sh-obj:hover { filter: brightness(1.07) drop-shadow(0 0 2px rgba(255, 255, 255, .9)); } }
-.sh-target { fill: #3fd46a; stroke: #fff; stroke-width: .8; opacity: 0; pointer-events: none; }
-.sh-target.is-on { animation: sh-target 1.1s ease-out; }
-@keyframes sh-target { 0% { opacity: 1; } 70% { opacity: .9; } 100% { opacity: 0; } }
-.sims-svg { display: block; width: 100%; height: auto; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
-.sims-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.sh-front { pointer-events: none; }
 
-/* Cielo y luz según la hora */
-.sims-svg { --sim-sky: #a8d5ef; }
-.sims-svg[data-time="dusk"] { --sim-sky: #f4b183; }
-.sims-svg[data-time="night"] { --sim-sky: #1d2b4f; }
-.sh-sky, .sh-window-glass { fill: var(--sim-sky); }
-.sh-stars { display: none; fill: #fff; }
-.sims-svg[data-time="night"] .sh-stars { display: inline; }
-.sh-grass { fill: #8fc27a; }
-.sh-roof { fill: #c96b4b; }
-.sh-attic { fill: #a8533a; }
-.sh-attic-window { fill: #fbe3b0; stroke: #fffaf0; stroke-width: 2; }
-.sh-bedroom { fill: #f6e4ec; }
-.sh-bathroom { fill: #d9eff2; }
-.sh-kitchen { fill: #fbefd5; }
-.sh-living { fill: #e2eedc; }
-.sh-tiles { fill: none; stroke: rgba(255, 255, 255, .75); stroke-width: .8; }
-.sh-stripes { fill: none; stroke: rgba(255, 255, 255, .4); stroke-width: 7; }
-.sh-backsplash { fill: #f1e2c4; }
-.sh-window-bars, .sh-window-frame { fill: none; stroke: #fffaf0; stroke-width: 2.4; }
-.sh-lamp-cord { stroke: #8a6a4a; stroke-width: 1; }
-.sh-lamp { fill: #f2c230; }
-.sh-lamp-glow { fill: rgba(255, 214, 120, .32); opacity: 0; transition: opacity .6s ease; }
-.sims-svg:is([data-time="night"], [data-time="dusk"]) .sh-lamp-glow { opacity: 1; }
-.sims-svg[data-time="night"] :is(.sh-bedroom, .sh-bathroom, .sh-kitchen, .sh-living) { filter: brightness(.88); }
-.sh-wall { fill: #d1b391; }
-.sh-floor { fill: #b07b52; }
-.sh-frame { fill: none; stroke: #8a5d43; stroke-width: 5; }
-.sh-stairs rect { fill: #c99a6b; stroke: #a7774f; stroke-width: .6; }
-.sh-rail { fill: none; stroke: #8a5d43; stroke-width: 1.8; stroke-linecap: round; }
-.sh-hit { fill: transparent; pointer-events: all; cursor: pointer; }
-
-/* Objetos */
-.sh-fridge { fill: #f4f6f8; stroke: #c3ccd2; stroke-width: 1; }
-.sh-fridge-line { fill: none; stroke: #c3ccd2; stroke-width: 1.2; stroke-linecap: round; }
-.sh-fridge-inside, .sh-fridge-food { display: none; }
-.sh-fridge-inside { fill: #fff7c2; }
-.sh-fridge-food { fill: #e07a5f; }
-.sims-svg[data-fridge="on"] :is(.sh-fridge-inside, .sh-fridge-food) { display: inline; }
-.sims-svg[data-fridge="on"] .sh-fridge-line { display: none; }
-.sh-counter { fill: #e9e1d2; stroke: #cfc4b1; stroke-width: .8; }
-.sh-oven { fill: #3c3f46; }
-.sh-oven-glass { fill: #f2a65a; opacity: .25; }
-.sims-svg[data-stove="on"] .sh-oven-glass { opacity: .9; animation: sh-glow 1s ease-in-out infinite alternate; }
-@keyframes sh-glow { to { opacity: .5; } }
-.sh-burner { fill: #2a2a2e; }
-.sh-pot { fill: #5d6875; }
-.sh-pot-handle { stroke: #5d6875; stroke-width: 1.6; stroke-linecap: round; }
-.sh-board { fill: #c99a6b; }
-.sh-steam { display: none; fill: none; stroke: rgba(255, 255, 255, .9); stroke-width: 1.4; stroke-linecap: round; }
-.sims-svg[data-stove="on"] .sh-steam { display: inline; }
-.sh-steam path { animation: sc-steam 1.6s ease-out infinite; }
-.sh-steam path + path { animation-delay: -.8s; }
-.sh-table { fill: #b88a5e; }
-.sh-table-legs { stroke: #8a6a4a; stroke-width: 2; }
-.sh-croissant { fill: #e6a85a; }
-.sh-cup { fill: #fff; stroke: #d9d4c9; stroke-width: .6; }
-.sh-photo { fill: #fff; stroke: #b88a5e; stroke-width: 2; }
-.sh-photo-heart { fill: #ef476f; }
-.sh-side-table { fill: #b88a5e; }
-.sh-radio { fill: #7a4f3a; }
-.sh-record { fill: #1d1d22; }
-.sh-notes { display: none; fill: #7a62b3; font: 700 9px/1 system-ui, sans-serif; }
-.sims-svg[data-radio="on"] .sh-notes { display: inline; }
-.sh-notes text { animation: sh-note 1.6s ease-out infinite; }
-.sh-notes text + text { animation-delay: -.8s; }
-@keyframes sh-note { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translate(4px, -14px); } }
-.sims-svg[data-radio="on"] .sh-record { animation: sh-spin .6s linear infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes sh-spin { 50% { transform: scaleX(.6); } }
-.sh-sofa { fill: #7d7f52; }
-.sh-cushion { fill: #969869; }
-.sh-sofa-front { fill: #727447; }
-.sh-sofa-arm { fill: #66683e; }
-.sh-sofa-seam { fill: none; stroke: rgba(0, 0, 0, .14); stroke-width: .8; }
-.sh-tv-stand { fill: #8a6a4a; }
-.sh-tv { fill: #2a2a2e; }
-.sh-tv-screen { fill: #3d4a5c; }
-.sh-tv-foot { stroke: #2a2a2e; stroke-width: 2; }
-.sims-svg[data-tv="on"] .sh-tv-screen { animation: sc-tv 2.4s steps(1) infinite; }
-.sh-plant-leaf { fill: #4f9a57; }
-.sh-plant-bird { fill: #f08a2c; }
-.sh-pot { fill: #c47a52; }
-.sh-drops { display: none; fill: #7cc4e6; }
-.sims-svg[data-plant="on"] .sh-drops { display: inline; }
-.sh-drops circle { animation: sh-drop .7s linear infinite; }
-.sh-drops circle:nth-child(2) { animation-delay: -.25s; }
-.sh-drops circle:nth-child(3) { animation-delay: -.5s; }
-@keyframes sh-drop { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(14px); } }
-.sh-headboard { fill: #8a5d43; }
-.sh-bed { fill: #a7774f; }
-.sh-mattress { fill: #fff; }
-.sh-pillow { fill: #f4f1ea; stroke: #e2dccf; stroke-width: .6; }
-.sh-duvet { fill: #7aa6d8; }
-.sh-duvet-pattern { fill: none; stroke: rgba(255, 255, 255, .45); stroke-width: 1.4; }
-.sh-nightstand { fill: #b88a5e; }
-.sh-bedlamp { fill: #f2c230; }
-.sh-bedlamp-glow { fill: rgba(255, 214, 120, .35); opacity: 0; }
-.sims-svg:is([data-time="night"], [data-bed="on"]) .sh-bedlamp-glow { opacity: 1; }
-.sh-wardrobe-inside { fill: #5c3d2a; }
-.sh-clothes { fill: #e58fb4; }
-.sh-wardrobe-door { fill: #c99a6b; stroke: #a7774f; stroke-width: .8; transform-box: fill-box; transition: transform .4s ease; }
-.sh-door-l { transform-origin: left center; }
-.sh-door-r { transform-origin: right center; }
-.sims-svg[data-wardrobe="on"] .sh-wardrobe-door { transform: scaleX(.15); }
-.sh-knobs { stroke: #8a5d43; stroke-width: 1.4; stroke-linecap: round; }
-.sims-svg[data-wardrobe="on"] .sh-knobs { display: none; }
-.sh-mirror { fill: #cfe7f0; stroke: #b0c7d0; stroke-width: 1.4; }
-.sh-mirror-shine { stroke: #fff; stroke-width: 1.2; stroke-linecap: round; }
-.sh-sink { fill: #fff; stroke: #c9d4d9; stroke-width: .8; }
-.sh-sink-leg { fill: #eef2f4; }
-.sh-tap { fill: none; stroke: #a0a8ad; stroke-width: 1.4; }
-.sh-shower-pipe { fill: none; stroke: #a0a8ad; stroke-width: 2; }
-.sh-shower-head { fill: #a0a8ad; }
-.sh-tub, .sh-tub-front { fill: #fff; stroke: #c9d4d9; stroke-width: 1; }
-.sh-shower-water { display: none; stroke: #7cc4e6; stroke-width: 1; stroke-dasharray: 3 4; }
-.sims-svg[data-shower="on"] .sh-shower-water { display: inline; animation: sh-water .4s linear infinite; }
-@keyframes sh-water { to { stroke-dashoffset: -14; } }
-.sh-bubbles { display: none; fill: #fff; stroke: #dfe7ec; stroke-width: .6; }
-.sims-svg[data-bath="on"] .sh-bubbles { display: inline; }
-.sh-rod { stroke: #8a8f96; stroke-width: 1.4; }
-.sh-curtain { display: none; fill: #9ad1c9; }
-.sh-curtain-open { fill: #9ad1c9; }
-.sims-svg:is([data-shower="on"], [data-bath="on"]) .sh-curtain { display: inline; }
-.sims-svg:is([data-shower="on"], [data-bath="on"]) .sh-curtain-open { display: none; }
-.sh-steam-cloud { display: none; fill: rgba(255, 255, 255, .75); }
-.sims-svg:is([data-shower="on"], [data-bath="on"]) .sh-steam-cloud { display: inline; }
-.sh-steam-cloud circle { animation: sh-cloud 2.4s ease-in-out infinite alternate; }
-.sh-steam-cloud circle:nth-child(2) { animation-delay: -1.2s; }
-@keyframes sh-cloud { to { transform: translateY(-5px); opacity: .5; } }
-
-/* Vuestro salón: alfombra roja, puzzle de La gran ola, tiburón de peluche y espejo de gota */
-.sh-rug-base { fill: #b3262c; }
-.sh-rug-border { fill: none; stroke: #e8c27a; stroke-width: .7; }
-.sh-rug-pattern { fill: #7d1519; stroke: #e8c27a; stroke-width: .35; }
-.sh-rug-fringe { fill: none; stroke: #f1e6cf; stroke-width: .5; stroke-linecap: round; }
-.sh-wave-frame { fill: #2b2522; }
-.sh-wave-sky { fill: #ecdcbc; }
-.sh-wave-fuji { fill: #4b6a8c; }
-.sh-wave-snow { fill: #fbf7ee; }
-.sh-wave-big, .sh-wave-small { fill: #1f3d6e; }
-.sh-wave-light { fill: none; stroke: #7fa6c8; stroke-width: .7; stroke-linecap: round; }
-.sh-wave-foam { fill: #fbf7ee; }
-.sh-wave-boat { fill: none; stroke: #d9c49a; stroke-width: 1.1; stroke-linecap: round; }
-.sh-puzzle { fill: none; stroke: rgba(20, 20, 30, .22); stroke-width: .3; }
-.sh-puzzle-box { display: none; }
-.sh-puzzle-box rect { fill: #ecdcbc; stroke: #1f3d6e; stroke-width: .4; }
-.sh-puzzle-box path { stroke: rgba(20, 20, 30, .3); stroke-width: .3; }
-.sims-svg[data-puzzle="on"] .sh-puzzle-box { display: inline; }
-.sims-svg[data-puzzle="on"] :is(.sh-croissant, .sh-cup) { display: none; }
-.sh-shark-body, .sh-shark-fin { fill: #7f9fc0; }
-.sh-shark-belly { fill: #f4f6f8; }
-.sh-shark-eye { fill: #1d1d22; }
-.sh-shark-gill { stroke: rgba(30, 50, 80, .35); stroke-width: .5; }
-.sh-shark { transform-box: fill-box; transform-origin: center bottom; transition: opacity .3s ease; }
-.sims-svg[data-shark="on"] .sh-shark { opacity: 0; }
-.sh-drop-mirror { fill: #d9c3a5; }
-.sh-drop-glass { fill: #c9dfe6; }
-.sh-drop-leaf { fill: rgba(60, 120, 80, .35); }
-.sh-drop-shine { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.1; stroke-linecap: round; }
-
-/* Muñecos dentro de casa */
-.sim { transition: transform 1s linear; }
-.sim .ch-pos { transform: none !important; opacity: 1 !important; }
-.sim .ch-hit { display: none; }
-.sim-flip { transform: scaleX(var(--flip, 1)); transition: transform .15s ease; }
-.sim-hit { fill: transparent; pointer-events: all; cursor: pointer; }
-.sim-progress { display: none; fill: none; stroke: #3fd46a; stroke-width: 2.6; stroke-dasharray: 31.4; stroke-dashoffset: 31.4; transform: rotate(-90deg); transform-box: fill-box; transform-origin: center; }
-.sim.is-working .sim-progress { display: inline; animation: sim-progress var(--secs, 5s) linear forwards; }
-@keyframes sim-progress { to { stroke-dashoffset: 0; } }
-.sim[data-doing="walk"] .ch-person { animation: sim-walk .34s ease-in-out infinite alternate; }
-.sim[data-doing="walk"] .ch-arm-l { animation: sim-swing-l .34s ease-in-out infinite alternate; }
-.sim[data-doing="walk"] .ch-arm-r { animation: sim-swing-r .34s ease-in-out infinite alternate; }
-@keyframes sim-walk { from { transform: rotate(-4deg); } to { transform: rotate(4deg) translateY(-1px); } }
-@keyframes sim-swing-l { from { transform: rotate(-12deg); } to { transform: rotate(22deg); } }
-@keyframes sim-swing-r { from { transform: rotate(12deg); } to { transform: rotate(-22deg); } }
-.sim[data-doing="cook"] .ch-arm-r { animation: sim-stir .5s ease-in-out infinite alternate; }
-@keyframes sim-stir { from { transform: rotate(-45deg); } to { transform: rotate(-80deg); } }
-.sim:is([data-doing="eat"], [data-doing="teeth"]) .ch-arm-r { animation: sim-eat .6s ease-in-out infinite alternate; }
-@keyframes sim-eat { from { transform: rotate(-135deg); } to { transform: rotate(-160deg); } }
-.sim[data-doing="teeth"] .ch-arm-r { animation-duration: .18s; }
-.sim:is([data-doing="dance"], [data-doing="social-dance"]) .ch-body { animation: ch-bounce .42s ease-in-out infinite alternate; }
-.sim:is([data-doing="dance"], [data-doing="social-dance"]) .ch-arm-l { animation: ch-dance-l .84s ease-in-out infinite alternate; }
-.sim:is([data-doing="dance"], [data-doing="social-dance"]) .ch-arm-r { animation: ch-dance-r .84s ease-in-out -.42s infinite alternate; }
-.sim[data-doing="sing"] .ch-arm-r { transform: rotate(-150deg); }
-.sim[data-doing="sing"] .ch-person { animation: sim-sway 1s ease-in-out infinite alternate; }
-@keyframes sim-sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
-.sim:is([data-doing="nap"], [data-doing="sleep"]) :is(.ch-eyes, .ch-glints, .mv-eyes-heart, .mv-eyes-half, .mv-eyes-closed) { display: none !important; }
-.sim:is([data-doing="nap"], [data-doing="sleep"]) .mv-eyes-sleep { display: inline !important; }
-.sim[data-doing="nap"] .ch-head { transform: rotate(14deg); }
-.sim[data-doing="phone"] .ch-arm-r, .sim[data-doing="look"] .ch-arm-r { transform: rotate(-120deg); }
-.sim[data-doing="phone"] .ch-head { transform: rotate(8deg) translateY(.5px); }
-.sim[data-doing="tv"] .ch-head { animation: sim-laugh 2.4s ease-in-out infinite; }
-@keyframes sim-laugh { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(-6deg); } 90% { transform: rotate(4deg); } }
-.sim[data-doing="water"] .ch-arm-r { transform: rotate(-75deg); }
-.sim[data-doing="talk"] .ch-head, .sim[data-doing="social-chat"] .ch-head { animation: sim-nod .5s ease-in-out infinite alternate; }
-.sim[data-doing="talk"] .ch-arm-r { animation: sim-gesture .8s ease-in-out infinite alternate; }
-@keyframes sim-nod { to { transform: rotate(5deg); } }
-@keyframes sim-gesture { from { transform: rotate(-30deg); } to { transform: rotate(-70deg); } }
-.sim[data-pose="lie"] .sim-flip { transform: rotate(-90deg); }
-.sim[data-pose="bed"] .ch-person { animation: sim-jump .6s cubic-bezier(.3, 0, .7, 1) infinite alternate; }
-.sim[data-pose="bed"] .ch-arm-l { transform: rotate(150deg); }
-.sim[data-pose="bed"] .ch-arm-r { transform: rotate(-150deg); }
-@keyframes sim-jump { from { transform: translateY(0); } to { transform: translateY(-16px); } }
-.sim[data-doing="spin"] .sim-flip { animation: sim-spin .5s linear infinite; }
-@keyframes sim-spin { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
-.sim[data-doing="wave"] .ch-arm-r { animation: ch-wave-r .5s ease-in-out infinite alternate; }
-.sim[data-doing="stretch"] .ch-arm-l { transform: rotate(165deg); }
-.sim[data-doing="stretch"] .ch-arm-r { transform: rotate(-165deg); }
-.sim:is([data-doing="social-hug"], [data-doing="social-kiss"], [data-doing="social-compliment"]) .ch-arm-r { transform: rotate(-80deg); }
-.sim:is([data-doing="social-hug"], [data-doing="social-kiss"]) .ch-arm-l { transform: rotate(40deg); }
-.sim[data-doing="social-kiss"] .ch-head { transform: rotate(10deg); }
-.sim:is([data-doing="social-hug"], [data-doing="social-kiss"], [data-doing="social-compliment"])[data-role="target"] .ch-cheek { opacity: .95; fill: #ff6f86; }
-.sim[data-doing="social-highfive"] .ch-arm-r { transform: rotate(-155deg); }
-.sim[data-doing="social-tickle"][data-role="target"] .ch-person { animation: ch-bounce .16s ease-in-out infinite alternate; }
-.sim[data-doing="social-tickle"][data-role="actor"] .ch-arm-r { animation: sim-stir .2s ease-in-out infinite alternate; }
-
-/* Se miran: los ojos van hacia donde está el otro (el muñeco ya está girado hacia él). */
-.sim:is([data-gaze="side"], [data-doing^="social-"]:not([data-doing="social-selfie"])) .ch-gaze { transform: translateX(.34px); }
-.sim[data-gaze="far"] .ch-gaze { transform: translate(.26px, -.08px); }
-.sim[data-pose="sit"] .sim-flip { transform: translateY(5px) scaleX(var(--flip, 1)); }
-.sim[data-doing="phone"] .ch-phone { display: inline; }
-
-/* Abrazar al tiburón de peluche (y dormir la siesta con él) */
-.sim:is([data-doing="sharkhug"], [data-doing="sharknap"]) .ch-shark { display: inline; }
-.sim:is([data-doing="sharkhug"], [data-doing="sharknap"]) .ch-arm-l { transform: rotate(-58deg); }
-.sim:is([data-doing="sharkhug"], [data-doing="sharknap"]) .ch-arm-r { transform: rotate(58deg); }
-.sim[data-doing="sharkhug"] .ch-body { animation: ch-rock 1.3s ease-in-out infinite alternate; }
-.sim[data-doing="sharkhug"] .ch-head { transform: rotate(-8deg); }
-.sim[data-doing="sharkhug"] .ch-cheek { opacity: .95; fill: #ff6f86; }
-.sim[data-doing="sharknap"] .ch-head { transform: rotate(14deg); }
-.sim[data-doing="sharknap"] :is(.ch-eyes, .mv-eyes-heart, .mv-eyes-half, .mv-eyes-closed) { display: none !important; }
-.sim[data-doing="sharknap"] .mv-eyes-sleep { display: inline !important; }
-
-/* Admirar el puzzle, hacer otro y posar en el espejo */
-.sim[data-doing="admire"] .ch-head { transform: rotate(-7deg) translateY(-.3px); }
-.sim[data-doing="admire"] .ch-gaze { transform: translateY(-.25px); }
-.sim[data-doing="admire"] .ch-arm-l { transform: rotate(-25deg); }
-.sim[data-doing="admire"] .ch-arm-r { transform: rotate(-125deg); }
-.sim[data-doing="puzzle"] .ch-arm-r { animation: sim-puzzle .9s ease-in-out infinite alternate; }
-.sim[data-doing="puzzle"] .ch-arm-l { transform: rotate(-40deg); }
-.sim[data-doing="puzzle"] .ch-head { transform: rotate(9deg); }
-@keyframes sim-puzzle { from { transform: rotate(-38deg); } to { transform: rotate(-62deg); } }
-.sim[data-doing="pose"] .ch-arm-l { transform: rotate(-150deg) translateY(-1px); }
-.sim[data-doing="pose"] .ch-arm-r { transform: rotate(-35deg); }
-.sim[data-doing="pose"] .ch-person { animation: sim-pose 2.4s ease-in-out infinite; }
-.sim[data-doing="pose"] .ch-head { transform: rotate(-6deg); }
-@keyframes sim-pose { 0%, 45% { transform: rotate(0); } 55%, 100% { transform: rotate(-4deg) translateX(-.5px); } }
-
-/* Selfie en el espejo, como en vuestra foto: Ines con el móvil y Matteo abrazándola por detrás */
-.sim-ines[data-doing="social-selfie"] .ch-phone, .sim-ines[data-doing="social-selfie"] .ch-embrace { display: inline; }
-.sim-ines[data-doing="social-selfie"] .ch-arm-r { transform: rotate(-148deg); }
-.sim-ines[data-doing="social-selfie"] .ch-arm-l { transform: rotate(-52deg); }
-.sim-ines[data-doing="social-selfie"] .ch-head { transform: rotate(-5deg); }
-.sim-ines[data-doing="social-selfie"] :is(.ch-eyes, .ch-glints) { display: none; }
-.sim-ines[data-doing="social-selfie"] .mv-eyes-closed { display: inline !important; }
-.sim-ines[data-doing="social-selfie"] .ch-mouth { display: none; }
-.sim-ines[data-doing="social-selfie"] .mv-mouth-big { display: inline !important; }
-.sim-matteo[data-doing="social-selfie"] .ch-arm-l { transform: rotate(-18deg); }
-.sim-matteo[data-doing="social-selfie"] .ch-arm-r { transform: rotate(18deg); }
-.sim-matteo[data-doing="social-selfie"] .ch-head { transform: rotate(7deg) translateY(.4px); }
-.sim-matteo[data-doing="social-selfie"] .ch-gaze { transform: translate(-.3px, .3px); }
-.sim[data-doing="social-selfie"] :is(.ch-plumbob, .ch-mood-badge) { display: none !important; }
-
-/* Ataque de tiburón: manos de mandíbula que muerden y el otro muerto de risa */
-.sim[data-doing="social-shark"][data-role="actor"] .ch-arm-l { animation: sim-jaw-l .32s ease-in-out infinite alternate; }
-.sim[data-doing="social-shark"][data-role="actor"] .ch-arm-r { animation: sim-jaw-r .32s ease-in-out infinite alternate; }
-.sim[data-doing="social-shark"][data-role="actor"] .ch-body { animation: sim-prowl .64s ease-in-out infinite alternate; }
-.sim[data-doing="social-shark"][data-role="target"] .ch-person { animation: ch-bounce .16s ease-in-out infinite alternate; }
-.sim[data-doing="social-shark"][data-role="target"] .ch-arm-l { transform: rotate(150deg); }
-.sim[data-doing="social-shark"][data-role="target"] .ch-arm-r { transform: rotate(-150deg); }
-.sim[data-doing="social-shark"][data-role="target"] :is(.ch-eyes, .ch-glints) { display: none; }
-.sim[data-doing="social-shark"][data-role="target"] .mv-eyes-closed, .sim[data-doing="social-shark"][data-role="target"] .mv-mouth-open { display: inline !important; }
-.sim[data-doing="social-shark"][data-role="target"] .ch-mouth { display: none; }
-@keyframes sim-jaw-l { from { transform: rotate(-70deg); } to { transform: rotate(-110deg); } }
-@keyframes sim-jaw-r { from { transform: rotate(-110deg); } to { transform: rotate(-70deg); } }
-@keyframes sim-prowl { from { transform: translateY(0) rotate(3deg); } to { transform: translateY(-.8px) rotate(6deg); } }
+/* Marcador: qué hace tu muñeco (con su barra) y la hora */
+.sims-hud { position: absolute; inset: 8px 8px auto; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none; font-family: var(--pixel-font); }
+.sims-hud-action, .sims-hud-clock { border: 2px solid #2b1f1d; border-radius: 6px; background: rgba(250, 244, 230, .94); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12), 0 2px 0 rgba(0, 0, 0, .25); color: #2b1f1d; font-size: 13px; line-height: 1; }
+.sims-hud-action { position: relative; display: flex; align-items: center; gap: 6px; max-width: 70%; padding: 6px 8px 9px; pointer-events: auto; }
+.sims-hud-action[hidden] { display: none; }
+.sims-hud-action span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sims-hud-cancel { display: grid; width: 18px; height: 18px; flex-shrink: 0; place-items: center; border-radius: 4px; background: #c0503e; color: #fff; font-size: 10px; font-weight: 900; }
+.sims-hud-bar { position: absolute; right: 6px; bottom: 3px; left: 6px; height: 3px; overflow: hidden; border-radius: 2px; background: rgba(43, 31, 29, .18); }
+.sims-hud-bar b { display: block; width: 0; height: 100%; background: #3fbf6a; transition: width .3s linear; }
+.sims-hud-clock { padding: 6px 8px; white-space: nowrap; }
 
 /* Menú circular, bocadillos y números */
 .sims-pie { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .sims-pie-title, .sims-pie-option { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: auto; }
-.sims-pie-title { padding: 4px 10px; border-radius: 999px; background: rgba(20, 34, 60, .85); color: #fff; font-size: 12px; font-weight: 800; pointer-events: none; }
-.sims-pie-option { display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px 7px 8px; border: 2px solid #4a8fe0; border-radius: 999px; background: #f4f9ff; color: #16365e; box-shadow: 0 4px 12px rgba(20, 50, 100, .25); font-size: 13px; font-weight: 700; animation: sims-pop .22s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: calc(var(--i) * 30ms); }
+.sims-pie-title { padding: 5px 10px; border: 2px solid #2b1f1d; border-radius: 6px; background: #2f4a5a; color: #fff; font-family: var(--pixel-font); font-size: 13px; pointer-events: none; }
+.sims-pie-option { display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px 7px 8px; border: 2px solid #2b1f1d; border-radius: 8px; background: #faf4e6; color: #2b1f1d; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .12), 0 3px 0 rgba(0, 0, 0, .3); font-family: var(--pixel-font); font-size: 14px; animation: sims-pop .22s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: calc(var(--i) * 30ms); }
 .sims-pie-option span { font-size: 16px; line-height: 1; }
-.sims-pie-option:active { background: #4a8fe0; color: #fff; }
+.sims-pie-list { position: absolute; display: grid; grid-template-columns: repeat(2, max-content); gap: 6px; transform: translateX(-50%); pointer-events: auto; }
+.sims-pie.is-list .sims-pie-option { position: static; transform: none; font-size: 13px; }
+.sims-pie.is-list .sims-pie-option:active { transform: translateY(2px); }
+.sims-pie-option.is-cat { background: #2f4a5a; color: #fff; }
+.sim-float.is-down { color: #ef6f6f; }
+/* Vuestra foto, en grande, como una polaroid */
+.sims-photo-card { position: absolute; inset: 0; z-index: 5; display: grid; place-content: center; gap: 10px; padding: 16px; background: rgba(20, 14, 12, .55); animation: sims-bubble .25s ease; }
+.sims-photo-card figure { width: min(240px, 70vw); margin: 0; padding: 10px 10px 8px; border: 2px solid #2b1f1d; border-radius: 4px; background: #fbf9f3; box-shadow: 0 6px 0 rgba(0, 0, 0, .3); transform: rotate(-2deg); }
+.sims-photo-card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #e9e1d2; }
+.sims-photo-card figcaption { margin-top: 8px; color: #2b1f1d; font-family: var(--pixel-font); font-size: 14px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
+.sims-photo-card small { display: block; margin-top: 2px; color: #8a7a6a; font-size: 12px; }
+.sims-photo-actions { display: flex; justify-content: center; gap: 8px; }
+.sims-photo-actions button { padding: 7px 12px; border: 2px solid #2b1f1d; border-radius: 8px; background: #faf4e6; color: #2b1f1d; box-shadow: 0 3px 0 rgba(0, 0, 0, .3); font-family: var(--pixel-font); font-size: 14px; }
+.sims-pie-option:active { background: #3fbf6a; color: #fff; transform: translate(-50%, calc(-50% + 2px)); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .12), 0 1px 0 rgba(0, 0, 0, .3); }
 @keyframes sims-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(.4); } }
-.sim-bubble { position: absolute; z-index: 2; max-width: 200px; padding: 6px 10px; border-radius: 14px; background: #fff; box-shadow: 0 4px 12px rgba(20, 30, 25, .18); color: #1d2a26; font-size: 13px; font-weight: 700; line-height: 1.3; transform: translate(-50%, -100%); animation: sims-bubble .25s cubic-bezier(.34, 1.56, .64, 1); }
-.sim-bubble::after { position: absolute; top: 100%; left: 50%; border: 6px solid transparent; border-top-color: #fff; content: ""; transform: translateX(-50%); }
+.sim-bubble { position: absolute; z-index: 2; max-width: 200px; padding: 5px 9px; border: 2px solid #2b1f1d; border-radius: 8px; background: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, .25); color: #2b1f1d; font-family: var(--pixel-font); font-size: 14px; line-height: 1.25; transform: translate(-50%, -100%); animation: sims-bubble .25s cubic-bezier(.34, 1.56, .64, 1); }
+.sim-bubble::after { position: absolute; top: 100%; left: 50%; width: 8px; height: 8px; margin-top: -3px; border-right: 2px solid #2b1f1d; border-bottom: 2px solid #2b1f1d; background: #fff; content: ""; transform: translateX(-50%) rotate(45deg); }
 .sim-bubble.is-think { border-radius: 20px; background: #f4f9ff; color: #16365e; }
-.sim-bubble.is-think::after { top: calc(100% + 2px); width: 8px; height: 8px; border: 0; border-radius: 50%; background: #f4f9ff; }
-.sim-bubble.is-emote { padding: 0; background: none; box-shadow: none; font-size: 24px; }
+.sim-bubble.is-think::after { top: calc(100% + 3px); width: 7px; height: 7px; border: 2px solid #2b1f1d; border-radius: 50%; background: #f4f9ff; transform: translateX(-50%); }
+.sim-bubble.is-emote { padding: 0; border: 0; background: none; box-shadow: none; font-size: 24px; }
 .sim-bubble.is-emote::after { display: none; }
 @keyframes sims-bubble { from { opacity: 0; transform: translate(-50%, -80%) scale(.6); } }
-.sim-float { position: absolute; z-index: 2; color: #1f9d4c; font-size: 15px; font-weight: 900; text-shadow: 0 1px 0 #fff, 0 0 6px rgba(255, 255, 255, .9); white-space: nowrap; transform: translate(-50%, 0); animation: sims-float 1.8s ease-out forwards; }
+.sim-float { position: absolute; z-index: 2; color: #3fd46a; font-family: var(--pixel-font); font-size: 16px; text-shadow: 2px 0 0 #2b1f1d, -2px 0 0 #2b1f1d, 0 2px 0 #2b1f1d, 0 -2px 0 #2b1f1d; white-space: nowrap; transform: translate(-50%, 0); animation: sims-float 1.8s ease-out forwards; }
 @keyframes sims-float { to { opacity: 0; transform: translate(-50%, -40px); } }
 
 /* Necesidades */

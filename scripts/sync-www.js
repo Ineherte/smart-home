@@ -27,4 +27,17 @@ for (const file of FILES) {
   copied += 1;
 }
 
+// Carpetas con imágenes y otros recursos (por ejemplo, los muñecos del modo Sims).
+function copyDir(from, to) {
+  if (!fs.existsSync(from)) return;
+  fs.mkdirSync(to, { recursive: true });
+  for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+    const src = path.join(from, entry.name);
+    const dest = path.join(to, entry.name);
+    if (entry.isDirectory()) copyDir(src, dest);
+    else { fs.copyFileSync(src, dest); copied += 1; }
+  }
+}
+copyDir(path.join(root, 'assets'), path.join(wwwDir, 'assets'));
+
 console.log(`sync-www: ${copied} archivo(s) copiados de la raíz a www/`);
