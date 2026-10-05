@@ -26,6 +26,12 @@ alter table public.avatars add column if not exists needs jsonb not null default
 alter table public.avatars add column if not exists needs_at timestamptz;
 alter table public.avatars add column if not exists activity text;
 alter table public.avatars add column if not exists activity_at timestamptz;
+-- Dónde está cada uno en el modo Sims (casa, Turín, Chieti o España): si uno viaja, el otro
+-- aparece con él aunque abra la app más tarde.
+alter table public.avatars add column if not exists place text;
+alter table public.avatars add column if not exists place_at timestamptz;
+alter table public.avatars drop constraint if exists avatars_place_check;
+alter table public.avatars add constraint avatars_place_check check (place is null or char_length(place) <= 20);
 alter table public.avatars drop constraint if exists avatars_activity_check;
 alter table public.avatars add constraint avatars_activity_check check (activity is null or char_length(activity) <= 30);
 alter table public.avatars drop constraint if exists avatars_needs_check;

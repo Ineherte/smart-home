@@ -393,141 +393,171 @@
   });
 
   // =====================================================================================
-  // ESPAÑA: la casa de los padres de Ines (con Kika)
+  // ESPAÑA: la casa de campo de los padres de Ines (Mari Cruz, Pedro y Alex) y Kika
   // =====================================================================================
   function bakeSpain() {
     const canvas = canvasOf();
     const c = canvas.getContext('2d');
-    // Lomas secas con olivos y un campanario a lo lejos.
-    ridge(c, (x) => 128 - Math.abs(Math.sin(x / 53)) * 16, 160, '#d6c08e');
-    ridge(c, (x) => 140 - Math.abs(Math.sin(x / 33 + 2)) * 8, 160, '#c4ac78');
-    for (let i = 0; i < 24; i += 1) ovalBox(c, (i * 47) % W, 132 + ((i * 13) % 14), 2, 2, '#7a8a52');
-    box(c, 390, 54, 14, 46, '#efe6d4');
-    R(c, 388, 50, 18, 5, '#c0603e');
-    R(c, 395, 40, 4, 10, '#c0603e');
-    R(c, 395, 62, 4, 7, '#4a3a30');
-    // La casa encalada: tejas, zócalo azul, rejas, macetas y buganvilla.
-    R(c, 0, 90, W, 12, '#b85a3a');
-    for (let x = 0; x < W; x += 5) { R(c, x, 90, 3, 12, '#c96b4b'); R(c, x, 100, 3, 2, '#8a3a2a'); }
-    R(c, 0, 102, W, 2, OL);
-    R(c, 0, 104, W, 128, '#f6f3ec');
-    for (let i = 0; i < 160; i += 1) R(c, (i * 37) % W, 104 + ((i * 53) % 118), 1, 1, '#e6e1d6');
-    R(c, 0, 220, W, 12, '#3d6a9a');
-    R(c, 0, 220, W, 1, '#6a94c0');
-    [[36, 130], [120, 130], [340, 130], [430, 130], [36, 174], [430, 174]].forEach(([wx, wy]) => {
-      box(c, wx, wy, 22, 26, '#3a4a5a');
-      R(c, wx + 2, wy + 2, 18, 22, '#5a7a9a');
-      for (let k = 3; k < 22; k += 4) R(c, wx + k, wy + 1, 1, 24, OL);
-      R(c, wx + 1, wy + 12, 20, 1, OL);
-      R(c, wx - 6, wy, 6, 26, '#4a7a4a');
-      R(c, wx + 22, wy, 6, 26, '#4a7a4a');
-      for (let k = 0; k < 3; k += 1) { box(c, wx - 2 + k * 9, wy + 27, 7, 5, '#3d6a9a'); R(c, wx - 1 + k * 9, wy + 25, 5, 2, '#3a8a4a'); R(c, wx + k * 9, wy + 24, 3, 2, '#e0303e'); }
+    // Sierra azulada al fondo, lomas con olivares en hileras y un campo de trigo.
+    ridge(c, (x) => 112 - Math.abs(Math.sin(x / 61 + 0.5)) * 22 - Math.abs(Math.sin(x / 23)) * 6, 170, '#9aa7c0');
+    ridge(c, (x) => 132 - Math.abs(Math.sin(x / 47 + 2)) * 12, 180, '#b9b27c');
+    for (let row = 0; row < 4; row += 1) for (let i = 0; i < 26; i += 1) {
+      const ox = i * 20 + (row % 2) * 10;
+      oval(c, ox, 138 + row * 7, 3, 2, row % 2 ? '#6f7f48' : '#7a8a52');
+    }
+    ridge(c, (x) => 162 - Math.abs(Math.sin(x / 71 + 1)) * 8, 200, '#d8b85a');
+    for (let i = 0; i < 160; i += 1) R(c, (i * 37) % W, 156 + ((i * 17) % 40), 1, 2, i % 3 ? '#c9a548' : '#e8cc78');
+    ridge(c, (x) => 196 - Math.abs(Math.sin(x / 53)) * 6, 232, '#9cb468');
+    [[330, 150], [352, 154], [496, 148]].forEach(([cx, cy]) => { oval(c, cx, cy - 9, 2, 10, '#2f4a32'); R(c, cx, cy, 1, 3, '#4a3a2a'); });
+    // Cortijo lejano.
+    box(c, 420, 128, 22, 12, '#f4f1ea');
+    R(c, 418, 124, 26, 5, '#c0603e');
+    // La casa de campo: zócalo de piedra, paredes encaladas, vigas de madera y tejas.
+    const hx = 8;
+    const hw = 236;
+    R(c, hx - 4, 104, hw + 8, 14, '#b85a3a');
+    for (let i = hx - 4; i < hx + hw + 4; i += 5) { R(c, i, 104, 3, 14, '#c96b4b'); R(c, i, 116, 3, 2, '#8a3a2a'); }
+    R(c, hx - 4, 117, hw + 8, 2, OL);
+    R(c, hx, 119, hw, 113, '#f6f2ea');
+    for (let i = 0; i < 120; i += 1) R(c, hx + ((i * 37) % hw), 120 + ((i * 53) % 90), 1, 1, '#e8e2d6');
+    // Zócalo de piedra.
+    for (let y = 206; y < 232; y += 6) for (let x = hx + ((y / 6) % 2) * 6; x < hx + hw; x += 12) {
+      R(c, x, y, 12, 6, OL);
+      R(c, x + 1, y + 1, 10, 4, ['#a89a86', '#b8aa94', '#9a8c78'][((x + y) / 6) % 3 | 0]);
+    }
+    // Chimenea.
+    box(c, 52, 84, 14, 22, '#e8e2d6');
+    R(c, 50, 82, 18, 4, '#8a7a6a');
+    // Ventanas con contraventanas verdes, viga encima y macetas.
+    [[30, 140], [96, 140], [190, 140]].forEach(([wx, wy]) => {
+      R(c, wx - 4, wy - 5, 30, 4, '#7a4e30');
+      box(c, wx, wy, 22, 24, '#3a4a5a');
+      R(c, wx + 2, wy + 2, 18, 20, '#6a8aa8');
+      R(c, wx + 10, wy + 1, 2, 22, OL);
+      R(c, wx + 1, wy + 11, 20, 2, OL);
+      R(c, wx - 7, wy, 7, 24, '#4f7a4a');
+      R(c, wx + 22, wy, 7, 24, '#4f7a4a');
+      for (let k = 0; k < 3; k += 1) { box(c, wx - 1 + k * 9, wy + 25, 7, 5, '#c47a52'); R(c, wx + k * 9, wy + 22, 5, 3, '#3a8a4a'); R(c, wx + 1 + k * 9, wy + 21, 2, 2, k % 2 ? '#e0303e' : '#f08ab0'); }
     });
-    // Macetas azules colgadas en la pared (como en los patios del sur).
-    for (let row = 0; row < 2; row += 1) for (let i = 0; i < 6; i += 1) {
-      const px = 188 + i * 14 + row * 7;
-      const py = 118 + row * 18;
-      box(c, px, py, 7, 6, '#3d6a9a');
-      ovalBox(c, px + 3, py - 2, 4, 3, '#3a8a4a');
-      R(c, px + 2, py - 4, 3, 2, i % 2 ? '#e0303e' : '#f08ab0');
-    }
-    // Puerta verde con arco y azulejo con el número.
-    R(c, 234, 178, 44, 54, OL);
-    R(c, 236, 184, 40, 48, '#3f6a4a');
-    R(c, 240, 180, 32, 5, '#3f6a4a');
-    R(c, 255, 186, 2, 46, '#2f5a3a');
-    R(c, 250, 206, 2, 2, '#e3b86a');
-    R(c, 260, 206, 2, 2, '#e3b86a');
-    box(c, 282, 190, 10, 10, '#f4f1ea');
-    R(c, 284, 192, 6, 6, '#3d6a9a');
-    pixelText(c, '7', 286, 193, '#f4f1ea');
-    // Buganvilla trepando por la derecha.
-    for (let i = 0; i < 90; i += 1) {
-      const bx = 470 + Math.round(Math.sin(i * 1.7) * 26);
-      const by = 104 + ((i * 23) % 120);
-      R(c, bx, by, 3, 3, i % 4 ? '#d6337a' : '#4a8a3c');
-    }
-    R(c, 488, 120, 2, 112, '#6a4a34');
-    // Patio: barro con olambrillas azules, la camita de Kika y su cuenco.
-    for (let y = 232; y < H; y += 24) {
-      for (let x = 0; x < W; x += 24) {
-        R(c, x, y, 24, 24, tone('#cf8e62', ((((x + y) / 24) % 3) - 1) * 0.025));
-        R(c, x, y, 24, 1, '#dca07a');
-        R(c, x, y, 1, 24, '#b8784e');
-        if (((x + y) / 24) % 2 === 0) {
-          R(c, x - 2, y - 2, 5, 5, '#f4f1ea');
-          R(c, x - 1, y - 1, 3, 3, '#5a86b4');
-        }
-      }
-    }
-    // Faroles de hierro en la fachada.
-    [[200, 186], [320, 186]].forEach(([lx, ly]) => { R(c, lx - 1, ly - 6, 2, 6, OL); box(c, lx - 4, ly, 8, 10, '#2b2b2b'); R(c, lx - 2, ly + 2, 4, 6, '#ffe9a8'); });
-    for (let i = 0; i < 6; i += 1) { c.globalAlpha = 0.2 * (1 - i / 6); R(c, 0, 232 + i, W, 1, '#000000'); }
+    // Puerta de madera con su dintel.
+    R(c, 142, 166, 34, 66, OL);
+    R(c, 144, 170, 30, 62, '#6a4228');
+    for (let k = 147; k < 172; k += 6) R(c, k, 172, 1, 58, '#55331e');
+    R(c, 138, 162, 42, 6, '#7a4e30');
+    R(c, 166, 198, 2, 3, '#e3b86a');
+    // El porche: tejadillo de tejas sobre vigas y postes de madera.
+    R(c, 244, 140, 200, 8, '#b85a3a');
+    for (let i = 244; i < 444; i += 5) R(c, i, 140, 3, 8, '#c96b4b');
+    R(c, 244, 148, 200, 4, '#7a4e30');
+    R(c, 244, 152, 200, 1, OL);
+    // Sombra del porche sobre la pared de fondo (encalada) y el suelo del porche.
+    R(c, 244, 153, 200, 79, '#efe9de');
+    c.globalAlpha = 0.18;
+    R(c, 244, 153, 200, 79, '#000000');
     c.globalAlpha = 1;
-    ovalBox(c, 302, 248, 14, 6, '#8a5aa8');
-    oval(c, 302, 247, 10, 4, '#b08ad0');
-    ovalBox(c, 324, 250, 4, 2, '#c0c8cc');
-    oval(c, 324, 250, 3, 1, '#7cc4e6');
-    ovalBox(c, 290, 256, 2, 2, '#e8e04a');
+    [252, 346, 436].forEach((px) => { R(c, px - 2, 152, 5, 82, OL); R(c, px - 1, 152, 3, 82, '#8a5a3a'); });
+    // Parra/buganvilla trepando por el poste.
+    for (let i = 0; i < 40; i += 1) R(c, 432 + Math.round(Math.sin(i * 1.3) * 7), 150 + ((i * 11) % 80), 3, 3, i % 3 ? '#4a8a3c' : '#d6337a');
+    for (let i = 0; i < 26; i += 1) R(c, 256 + i * 7, 152 + (i % 3), 4, 3, i % 4 ? '#4a8a3c' : '#5a9a4a');
+    // Farol del porche.
+    R(c, 299, 156, 2, 6, OL);
+    box(c, 296, 162, 8, 10, '#2b2b2b');
+    R(c, 298, 164, 4, 6, '#ffe9a8');
+    // Suelo: hierba con camino de tierra y, bajo el porche, baldosa de barro.
+    for (let y = 232; y < H; y += 1) R(c, 0, y, W, 1, tone('#8fb05e', ((y * 7) % 5 - 2) * 0.012));
+    for (let i = 0; i < 260; i += 1) R(c, (i * 41) % W, 234 + ((i * 29) % 148), 1, 2, i % 2 ? '#7a9c4e' : '#a6c472');
+    for (let y = 232; y < 306; y += 12) for (let x = 248 + ((y / 12) % 2) * 8 - 8; x < 444; x += 16) {
+      const color = tone('#c67b55', (((x * 3 + y * 5) % 7) - 3) * 0.025);
+      R(c, Math.max(x, 248), y, Math.min(16, 444 - Math.max(x, 248)), 12, color);
+      R(c, Math.max(x, 248), y, Math.min(16, 444 - Math.max(x, 248)), 1, tone(color, 0.12));
+    }
+    R(c, 248, 306, 196, 2, '#a85e3e');
+    // Camino de tierra desde la puerta.
+    for (let y = 232; y < H; y += 1) {
+      const cx = 159 + Math.round(Math.sin(y / 30) * 10 + (y - 232) * 0.15);
+      R(c, cx - 14, y, 28, 1, ((y * 13) % 7) ? '#c9ac7a' : '#b89a68');
+    }
+    // Huerto vallado (lechugas y pimientos) y valla de madera.
+    R(c, 386, 330, 118, 48, '#6a4a30');
+    for (let i = 0; i < 6; i += 1) for (let k = 0; k < 3; k += 1) {
+      const vx = 396 + i * 18;
+      const vy = 340 + k * 13;
+      ovalBox(c, vx, vy, 5, 3, k === 1 ? '#5aa04a' : '#4a8a3c');
+      if (k === 2) R(c, vx - 1, vy - 1, 3, 2, '#d6333f');
+    }
+    for (let x = 382; x < 508; x += 10) { R(c, x, 322, 3, 14, OL); R(c, x + 1, 323, 1, 12, '#c9a06a'); }
+    R(c, 382, 326, 126, 2, '#a88050');
+    // Fardos de paja y la camita de Kika en el porche, con su cuenco.
+    [[16, 236], [36, 240]].forEach(([fx, fy]) => { box(c, fx, fy, 20, 14, '#e2c25a'); for (let k = fx + 3; k < fx + 18; k += 4) R(c, k, fy + 2, 1, 10, '#c8a640'); });
+    ovalBox(c, 330, 252, 14, 6, '#8a5aa8');
+    oval(c, 330, 251, 10, 4, '#b08ad0');
+    ovalBox(c, 352, 254, 4, 2, '#c0c8cc');
+    oval(c, 352, 254, 3, 1, '#7cc4e6');
+    ovalBox(c, 316, 260, 2, 2, '#e8e04a');
     return canvas;
   }
-  function fountain(c, s, t) {
-    shadow(c, 150, 280, 20, 3, 0.25);
-    ovalBox(c, 150, 270, 18, 8, '#e6dccb');
-    oval(c, 150, 269, 14, 5, '#5aa8d0');
-    for (let i = 0; i < 8; i += 1) R(c, 134 + i * 4, 275, 3, 3, i % 2 ? '#3d6a9a' : '#f4f1ea');
-    R(c, 149, 252, 2, 16, '#d8ccb8');
-    ovalBox(c, 150, 252, 4, 2, '#e6dccb');
-    c.globalAlpha = 0.8;
-    for (let i = 0; i < 3; i += 1) R(c, 147 + i * 3, 254 + ((t / 50 + i * 5) % 12), 1, 2, '#bfe6f6');
-    c.globalAlpha = 1;
+  // El pozo de piedra con su tejadillo.
+  function well(c) {
+    shadow(c, 470, 312, 18, 3, 0.25);
+    R(c, 456, 268, 2, 32, OL);
+    R(c, 482, 268, 2, 32, OL);
+    R(c, 452, 264, 36, 6, '#b85a3a');
+    R(c, 452, 264, 36, 1, '#d07a5a');
+    R(c, 458, 276, 24, 1, '#8a6a4a');
+    R(c, 469, 277, 2, 8, '#a89070');
+    box(c, 466, 284, 8, 6, '#7a5a3a');
+    ovalBox(c, 470, 300, 16, 7, '#a89a86');
+    oval(c, 470, 298, 12, 4, '#2f4a5a');
+    for (let i = 0; i < 6; i += 1) R(c, 456 + i * 5, 302, 4, 3, i % 2 ? '#9a8c78' : '#b8aa94');
   }
-  function paellaTable(c) {
-    shadow(c, 280, 326, 66, 3, 0.25);
-    box(c, 216, 296, 128, 26, '#f4f1ea');
-    R(c, 218, 318, 124, 3, '#d8d2c4');
-    ovalBox(c, 280, 308, 16, 8, '#3a3a3a');
-    oval(c, 280, 308, 14, 6, '#e8b830');
-    for (let i = 0; i < 10; i += 1) R(c, 270 + ((i * 7) % 20), 304 + ((i * 5) % 8), 2, 1, i % 2 ? '#c0303e' : '#3a8a4a');
-    ovalBox(c, 238, 308, 7, 4, '#ffffff');
-    oval(c, 238, 307, 5, 3, '#e8c060');
-    box(c, 318, 300, 6, 10, '#8e1f3a');
-    [252, 300, 330].forEach((gx) => { R(c, gx, 312, 3, 4, '#d6e6ee'); R(c, gx, 313, 3, 2, '#8e1f3a'); });
+  function farmTable(c) {
+    shadow(c, 340, 290, 64, 3, 0.25);
+    box(c, 276, 260, 128, 26, '#a87048');
+    R(c, 280, 262, 120, 20, '#f4f1ea');
+    for (let i = 280; i < 400; i += 8) R(c, i, 262, 4, 20, 'rgba(61,106,154,.18)');
+    ovalBox(c, 340, 272, 16, 8, '#3a3a3a');
+    oval(c, 340, 272, 14, 6, '#e8b830');
+    for (let i = 0; i < 10; i += 1) R(c, 330 + ((i * 7) % 20), 268 + ((i * 5) % 8), 2, 1, i % 2 ? '#c0303e' : '#3a8a4a');
+    ovalBox(c, 298, 272, 7, 4, '#ffffff');
+    oval(c, 298, 271, 5, 3, '#e8c060');
+    box(c, 378, 264, 6, 10, '#8e1f3a');
+    box(c, 388, 266, 6, 8, '#e3b86a');
   }
-  function spainChairs(c, back) {
-    if (back === 'up') [236, 280, 324].forEach((x) => chair(c, x, 292, 'up', '#c9a06a'));
-    else [248, 312].forEach((x) => chair(c, x, 334, 'down', '#c9a06a'));
+  function farmChairs(c, back) {
+    if (back === 'up') [296, 340, 384].forEach((x) => chair(c, x, 256, 'up', '#8a5a3a'));
+    else [308, 372].forEach((x) => chair(c, x, 298, 'down', '#8a5a3a'));
   }
-  function hammock(c) {
-    [40, 140].forEach((px) => { shadow(c, px, 352, 3, 1, 0.25); R(c, px - 2, 312, 4, 40, OL); R(c, px - 1, 312, 2, 40, '#8a6a4a'); });
-    for (let x = 42; x < 140; x += 1) {
-      const sag = Math.round(Math.sin(((x - 42) / 98) * Math.PI) * 10);
-      R(c, x, 330 + sag, 1, 6, ['#e0533f', '#f2c230', '#3d8ac0', '#3a9a5a'][Math.floor((x - 42) / 6) % 4]);
-      R(c, x, 336 + sag, 1, 1, OL);
+  function hammockTrees(c) {
+    [[40, 350], [150, 350]].forEach(([tx, ty]) => roundTree(c, tx, ty, 16, '#4c7a3a'));
+    for (let x = 44; x < 146; x += 1) {
+      const sag = Math.round(Math.sin(((x - 44) / 102) * Math.PI) * 10);
+      R(c, x, 326 + sag, 1, 6, ['#e0533f', '#f2c230', '#3d8ac0', '#3a9a5a'][Math.floor((x - 44) / 6) % 4]);
+      R(c, x, 332 + sag, 1, 1, OL);
     }
-    line(c, 40, 316, 42, 330, '#c8b090');
-    line(c, 140, 316, 138, 330, '#c8b090');
+    line(c, 40, 318, 44, 326, '#c8b090');
+    line(c, 150, 318, 146, 326, '#c8b090');
   }
   registerScene({
     id: 'spain',
     label: 'España',
     indoor: false,
-    horizon: 150,
+    horizon: 140,
     bake: bakeSpain,
     walk: [[6, 238, 500, 140]],
-    lights: [[200, 200, 40], [320, 200, 40], [90, 170, 26], [440, 170, 26]],
+    lights: [[300, 172, 50], [41, 152, 26], [107, 152, 26], [201, 152, 26]],
     objects: [
-      { id: 'fountain', sort: 280, hit: [128, 246, 44, 36], block: [132, 262, 36, 16], draw: fountain, spot: { x: 150, y: 292, dir: 'up' } },
-      { id: 'chairsBack', sort: 288, draw: (c) => spainChairs(c, 'up') },
-      { id: 'paellatable', sort: 323, hit: [214, 284, 132, 56], block: [216, 296, 128, 26], draw: paellaTable,
+      { id: 'chairsBack', sort: 252, draw: (c) => farmChairs(c, 'up') },
+      { id: 'paellatable', sort: 287, hit: [274, 248, 132, 56], block: [276, 260, 128, 26], draw: farmTable,
         seats: [
-          ...[236, 280, 324].map((x) => ({ x, y: 300, dir: 'down', sortY: 304, exit: { x, y: 280 } })),
-          ...[248, 312].map((x) => ({ x, y: 338, dir: 'up', sortY: 340, exit: { x, y: 356 } }))
+          ...[296, 340, 384].map((x) => ({ x, y: 264, dir: 'down', sortY: 268, exit: { x, y: 244 } })),
+          ...[308, 372].map((x) => ({ x, y: 302, dir: 'up', sortY: 304, exit: { x, y: 320 } }))
         ] },
-      { id: 'chairsFront', sort: 335, draw: (c) => spainChairs(c, 'down') },
-      { id: 'orange', sort: 304, hit: [396, 230, 52, 80], block: [410, 290, 20, 14], draw: (c) => { box(c, 408, 290, 24, 14, '#e9e1d2'); roundTree(c, 420, 292, 16, '#3f7a3f', '#f28a1e'); }, spot: { x: 396, y: 300, dir: 'right' } },
-      { id: 'hammock', sort: 345, hit: [34, 308, 112, 44], block: [36, 344, 8, 8], draw: hammock, seats: [{ x: 90, y: 340, dir: 'down', sortY: 348, exit: { x: 90, y: 362 } }] },
-      { id: 'kikabed', sort: 1, hit: [284, 240, 48, 20], spot: { x: 302, y: 266, dir: 'up' } }
+      { id: 'chairsFront', sort: 299, draw: (c) => farmChairs(c, 'down') },
+      { id: 'fountain', sort: 312, hit: [450, 258, 42, 54], block: [454, 290, 32, 16], draw: well, spot: { x: 440, y: 304, dir: 'right' } },
+      { id: 'orange', sort: 296, hit: [196, 226, 52, 78], block: [212, 284, 20, 14], draw: (c) => { box(c, 210, 284, 24, 14, '#c47a52'); roundTree(c, 222, 286, 15, '#3f7a3f', '#f28a1e'); }, spot: { x: 246, y: 300, dir: 'left' } },
+      { id: 'hammock', sort: 351, hit: [24, 300, 140, 56], block: [32, 340, 16, 12], draw: hammockTrees, seats: [{ x: 95, y: 336, dir: 'down', sortY: 346, exit: { x: 95, y: 362 } }] },
+      { id: 'kikabed', sort: 1, hit: [312, 244, 48, 20], spot: { x: 330, y: 268, dir: 'up' } },
+      { id: 'huerto', sort: 1, hit: [382, 320, 126, 60], block: [384, 324, 122, 54], spot: { x: 370, y: 350, dir: 'right' } }
     ]
   });
 })();

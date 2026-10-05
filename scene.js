@@ -732,6 +732,8 @@
   }
 
   let container = null;
+  // El jardín en pixel art (garden.js). Si no está, se usa la escena SVG de siempre.
+  let garden = null;
   let lastSignature = '';
   let currentAct = null;
   let actOptions = [];
@@ -813,6 +815,60 @@
     Object.entries(vars).forEach(([key, value]) => {
       container.style.setProperty(`--sc-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`, value);
     });
+
+    if (garden) {
+      const temperatureNow = Number.isFinite(Number(state.temperature)) ? Number(state.temperature) : 16;
+      const thirstyNow = (state.plants || []).some((plant) => ['thirsty', 'parched'].includes(plant.mood));
+      const specialNow = specialAct({ minutes: minutesOf(now), condition, nightness });
+      actOptions = specialNow ? [specialNow] : eligibleActs({ condition, nightness, temperature: temperatureNow, minutes: minutesOf(now), season, thirsty: thirstyNow });
+      if (tempAct) currentAct = tempAct;
+      else if (state.act && ACTS[state.act]) currentAct = state.act;
+      else if (!actOptions.includes(currentAct)) currentAct = pick(actOptions);
+      const actNow = ACTS[currentAct];
+      const litNow = new Set(state.lights.map(normalizeRoom).map((room) => (WINDOW_ROOMS.includes(room) ? room : 'salon')));
+      if (actNow.room) litNow.add(actNow.room);
+      if (currentAct === 'sleep' || currentAct === 'away') litNow.clear();
+      const code = Number(state.weatherCode);
+      const clearishNow = condition === 'clear' || condition === 'partly';
+      const decorNow = decorFor(now);
+      garden.set({
+        vars,
+        nightness,
+        warmth,
+        condition,
+        season,
+        wind: numbers.wind,
+        sun: { x: sunPosition.x, y: sunPosition.y, visible: numbers.sunVisible },
+        moon: { x: moonPosition.x, y: moonPosition.y, visible: numbers.moon, phase: moonPhase(now) },
+        stars: numbers.stars,
+        cityLights: numbers.cityLights,
+        porch: numbers.porch > 0,
+        snowGround: numbers.snowGround,
+        clouds: condition === 'clear' && nightness > 0.5 ? 0 : conditionConfig.clouds,
+        drops: condition === 'storm' ? 60 : condition === 'rain' ? (code === 61 || code === 80 ? 32 : 48) : condition === 'drizzle' ? 20 : 0,
+        flakes: condition === 'snow' ? (code === 71 ? 22 : code === 75 ? 46 : 34) : 0,
+        act: currentAct,
+        place: actNow.place,
+        outfit: outfitFor({ condition, temperature: temperatureNow, place: actNow.place }),
+        lit: [...litNow],
+        decor: decorNow,
+        mail: Number(state.pendingBills) > 0,
+        note: Number(state.urgentNotes) > 0,
+        smoke: temperatureNow < 15 || (nightness > 0.7 && temperatureNow < 18),
+        birds: nightness < 0.2 && clearishNow && season !== 'winter',
+        fireflies: season === 'summer' && nightness > 0.7 && clearishNow,
+        shooting: nightness > 0.8 && condition === 'clear',
+        fireworks: isNewYearNight(now) || state.decor === 'newyear',
+        bats: decorNow === 'halloween' && nightness > 0.3,
+        plants: (state.plants || []).slice(0, 3),
+        avatars: state.avatars || {},
+        tripName: state.tripName
+      });
+      Object.assign(container.dataset, { act: currentAct, place: actNow.place, night: String(nightness > 0.55) });
+      const momentText = nightness > 0.7 ? 'Noche' : moment.from === 'dawn' || moment.to === 'dawn' ? 'Amanecer' : moment.from === 'dusk' || moment.to === 'dusk' ? 'Atardecer' : 'Día';
+      container.setAttribute('aria-label', `${momentText} de ${seasonConfig.label} ${conditionConfig.label} en Turín. Ines y Matteo ${currentAct === 'away' && state.tripName ? `están de viaje en ${state.tripName}` : actNow.label}`);
+      return;
+    }
 
     const svg = container.querySelector('svg');
     svg.querySelector('.sc-sun').setAttribute('transform', `translate(${sunPosition.x.toFixed(1)} ${sunPosition.y.toFixed(1)})`);
@@ -983,6 +1039,7 @@
     tempAct = { kiss: 'hug', hug: 'hug', tickle: 'dance', highfive: 'highfive', chat: 'wave', dance: 'dance', compliment: 'hug', shark: 'dance', selfie: 'hug', pillow: 'dance', slowdance: 'dance', cuddle: 'hug', massage: 'hug', makeout: 'hug', spoon: 'hug', woohoo: 'hug', argue: 'wave', sulk: 'wave', apologize: 'hug', turin: 'wave', chieti: 'wave', spain: 'wave' }[kind] || 'hug';
     apply();
     if (['kiss', 'hug', 'selfie', 'shark', 'cuddle', 'massage', 'makeout', 'spoon', 'woohoo', 'apologize', 'slowdance'].includes(kind)) {
+      garden?.love();
       container.dataset.love = 'false';
       void container.getBoundingClientRect();
       container.dataset.love = 'true';
@@ -1118,11 +1175,39 @@
     apply();
   }
 
+  // Monta el jardín en pixel art (con los mismos botones y bocadillos que la escena SVG).
+  function mountGarden() {
+    container.classList.add('is-garden');
+    container.innerHTML = `<div class="garden-host"></div><div class="sc-bubble" hidden aria-live="polite"></div><button type="button" class="sc-wardrobe" aria-label="Personaliza tu muñeco" title="Tu muñeco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg></button>
+<button type="button" class="sc-enter" aria-label="Entrar en casa (modo Sims)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20h14V9.5"></path><path d="M10 20v-5h4v5"></path></svg><span>Entrar</span></button>`;
+    const tap = (detail) => window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail }));
+    garden = window.umbralGarden.create(container.querySelector('.garden-host'), {
+      onTap(target) {
+        if (target.type === 'person') {
+          say(target.key, { getBoundingClientRect: () => garden.rectOf(target.key) });
+          garden.love();
+        } else if (target.type === 'plant') tap({ plant: target.id });
+        else if (target.type === 'mail') { if (Number(state.pendingBills) > 0) tap({ target: 'finance' }); }
+        else if (target.type === 'note') tap({ target: 'pendientes' });
+        else if (target.type === 'door') tap({ target: 'house' });
+      }
+    });
+    container.querySelector('.sc-wardrobe').addEventListener('click', (event) => { event.stopPropagation(); tap({ target: 'avatar' }); });
+    container.querySelector('.sc-enter').addEventListener('click', (event) => { event.stopPropagation(); tap({ target: 'house' }); });
+    apply();
+    setInterval(apply, 5 * 60 * 1000);
+    setInterval(changeAct, 45 * 1000);
+    const setPaused = (paused) => garden.setPaused(paused);
+    document.addEventListener('visibilitychange', () => setPaused(document.hidden));
+    if ('IntersectionObserver' in window) new IntersectionObserver(([entry]) => setPaused(!entry.isIntersecting || document.hidden)).observe(container);
+  }
+
   function mount(element) {
     if (!element || container) return;
     container = element;
     container.classList.add('scene');
     container.setAttribute('role', 'img');
+    if (window.umbralGarden) return mountGarden();
     container.innerHTML = `${buildMarkup()}<div class="sc-bubble" hidden aria-live="polite"></div><button type="button" class="sc-wardrobe" aria-label="Personaliza tu muñeco" title="Tu muñeco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"></path></svg></button>
 <button type="button" class="sc-enter" aria-label="Entrar en casa (modo Sims)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20h14V9.5"></path><path d="M10 20v-5h4v5"></path></svg><span>Entrar</span></button>`;
     container.querySelector('.sc-wardrobe').addEventListener('click', (event) => {

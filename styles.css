@@ -2341,6 +2341,11 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .scene[data-act="highfive"] .ch-matteo .ch-arm-l { transform: rotate(150deg); }
 .scene[data-act="highfive"] .ch-body { animation: ch-hop 1.2s ease-in-out infinite; }
 
+/* Jardín en pixel art (garden.js) */
+.scene.is-garden { background: #a9d495; }
+.garden-host, .garden-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.garden-canvas { image-rendering: pixelated; image-rendering: crisp-edges; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
 /* Botón para personalizar el muñeco */
 .sc-wardrobe { position: absolute; top: 8px; left: 8px; z-index: 2; display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, .82); box-shadow: 0 2px 8px rgba(20, 30, 25, .15); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .sc-wardrobe svg { width: 17px; height: 17px; fill: none; stroke: #1f5a48; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -2422,6 +2427,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-hud-bar b { display: block; width: 0; height: 100%; background: #3fbf6a; transition: width .3s linear; }
 .sims-hud-clock { padding: 6px 8px; white-space: nowrap; }
 .sims-hud-side { display: grid; justify-items: end; gap: 6px; }
+.sims-hud-live { padding: 4px 8px; border: 2px solid #2b1f1d; border-radius: 6px; background: rgba(250, 244, 230, .94); color: #2b1f1d; font-family: var(--pixel-font); font-size: 12px; white-space: nowrap; }
 .sims-hud-home { padding: 6px 9px; border: 2px solid #2b1f1d; border-radius: 6px; background: #3fbf6a; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .15), 0 2px 0 rgba(0, 0, 0, .25); color: #fff; font-family: var(--pixel-font); font-size: 13px; pointer-events: auto; }
 /* Viaje: pantalla de transición con barra */
 .sims-travel { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; background: #1c2436; animation: sims-fade-in .35s ease both; }

@@ -103,8 +103,10 @@ async function saveAvatar(changes) {
       updated_at: row.updated_at
     };
     const upsert = (values) => supabaseClient.from('avatars').upsert(values, { onConflict: 'household_id,person' }).select().single();
-    let { data, error } = await upsert({ ...base, needs: row.needs || {}, needs_at: row.needs_at || null, activity: row.activity || null, activity_at: row.activity_at || null });
-    // Sin la parte nueva de avatars.sql (necesidades y actividad) se guarda lo de siempre.
+    const full = { ...base, needs: row.needs || {}, needs_at: row.needs_at || null, activity: row.activity || null, activity_at: row.activity_at || null };
+    let { data, error } = await upsert({ ...full, place: row.place || null, place_at: row.place_at || null });
+    // Sin las partes nuevas de avatars.sql (dónde estáis; necesidades y actividad) se guarda lo que se pueda.
+    if (error && /place/i.test(error.message)) ({ data, error } = await upsert(full));
     if (error && /needs|activity|column/i.test(error.message)) ({ data, error } = await upsert(base));
     if (error && /avatars_poke_check/i.test(error.message)) throw new Error('Para este toque hay que volver a ejecutar avatars.sql en Supabase');
     if (error) throw new Error(/relation|schema cache|does not exist/i.test(error.message) ? 'Falta ejecutar avatars.sql en Supabase' : error.message);

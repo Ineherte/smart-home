@@ -22,8 +22,9 @@
   ['pajamas', 'cold', 'hot'].forEach((outfit) => ['ines', 'matteo'].forEach((key) => {
     SHEETS[`${key}-${outfit}`] = { src: `assets/sims/outfits/${key}-${outfit}.png?v=1`, rows: OUTFIT_ROWS, base: key };
   }));
-  ['ines-mom', 'ines-dad', 'ines-brother', 'matteo-mom', 'matteo-dad', 'matteo-nonna', 'ped-a', 'ped-b'].forEach((id) => {
-    SHEETS[id] = { src: `assets/sims/npc/${id}.png?v=1`, rows: NPC_ROWS };
+  ['ines-mom', 'ines-dad', 'ines-brother', 'matteo-mom', 'matteo-francesca', 'matteo-clara', 'matteo-claudia', 'matteo-paolo',
+    'kid-cecilia', 'kid-giulia', 'kid-vittoria', 'kid-agnese', 'kid-teresa', 'kid-tommaso', 'ped-a', 'ped-b'].forEach((id) => {
+    SHEETS[id] = { src: `assets/sims/npc/${id}.png?v=3`, rows: NPC_ROWS };
   });
   // Expresiones (solo los píxeles de la cara que cambian respecto a la neutra), en un atlas:
   // una franja de 54 filas × 13 columnas por expresión. box: dónde va dentro del fotograma.
@@ -1511,65 +1512,90 @@
   const nearestFree = (x, y) => navOf(activeScene).nearestFree(x, y);
   const findPath = (from, to) => navOf(activeScene).findPath(from, to);
 
-  // ---------- Kika, la perra de Ines ----------
-  // Dibujada a mano: de lado cuando va a izquierda o derecha y de frente o de espaldas.
+  // ---------- Los perros: Kika (salchicha arlequín) y Loco (labrador rubio) ----------
+  // Dibujados a mano: de lado cuando van a izquierda o derecha y de frente o de espaldas.
+  const BREEDS = {
+    dachshund: { len: 24, legs: 3, body: 7, head: 7, snout: 5, ear: 6, fur: '#5a3220', light: '#d2ab82', belly: '#7a4a30', earColor: '#3e2215', spots: true, collar: '#d6333f' },
+    labrador: { len: 22, legs: 7, body: 9, head: 9, snout: 4, ear: 5, fur: '#e6c68a', light: '#f6e6c2', belly: '#f2ddb0', earColor: '#cfa864', spots: false, collar: '#3d6a9a', thickTail: true }
+  };
+  // Manchas claras del arlequín (en coordenadas del cuerpo, de 0 a 1).
+  const DAPPLE = [[0.15, 0.2], [0.32, 0.55], [0.5, 0.15], [0.62, 0.6], [0.78, 0.3], [0.9, 0.65], [0.42, 0.35]];
   function drawDog(c, a, t) {
+    const b = BREEDS[a.breed] || BREEDS.dachshund;
     const x = Math.round(a.x);
     const y = Math.round(a.y);
-    const fur = '#c99a5e';
-    const dark = '#8a5e34';
-    const white = '#f6efe2';
     const walking = a.anim === 'walk';
     const step = walking ? Math.floor(a.stride / 3) % 2 : 0;
     const wag = Math.floor(t / (a.happy ? 80 : 260)) % 2;
-    shadow(c, x, y, 9, 2, 0.25);
+    shadow(c, x, y, b.len / 2 + 3, 2, 0.25);
     if (a.dir === 'left' || a.dir === 'right') {
       c.save();
       c.translate(x, y);
       if (a.dir === 'right') c.scale(-1, 1);
-      const bob = walking ? step : 0;
-      // Patas.
-      [[-6, step], [-3, -step], [3, step], [6, -step]].forEach(([lx, off]) => { R(c, lx - 1, -5, 3, 5 + (a.sit && lx > 0 ? -3 : 0), OL); R(c, lx, -5, 1, 4 + off * 0 + (a.sit && lx > 0 ? -3 : 0), lx < 0 ? white : fur); });
-      // Cuerpo.
-      R(c, -9, -12 - bob, 18, 8, OL);
-      R(c, -8, -11 - bob, 16, 6, fur);
-      R(c, -8, -7 - bob, 9, 2, white);
-      R(c, -8, -11 - bob, 16, 1, tone(fur, 0.2));
-      // Cola.
-      pixels(c, [[8, -14 - bob - wag * 2, 2, 4], [9, -16 - bob - wag * 2, 2, 3]], OL);
-      pixels(c, [[8, -13 - bob - wag * 2, 1, 3], [9, -15 - bob - wag * 2, 1, 2]], fur);
-      // Cabeza, oreja, hocico y ojo.
-      R(c, -14, -19 - bob, 9, 9, OL);
-      R(c, -13, -18 - bob, 7, 7, fur);
-      R(c, -16, -14 - bob, 4, 4, OL);
-      R(c, -15, -13 - bob, 3, 2, white);
-      R(c, -16, -14 - bob, 1, 1, '#1d1d22');
-      R(c, -11, -16 - bob, 1, 1, '#1d1d22');
-      R(c, -8, -20 - bob, 3, 5, OL);
-      R(c, -7, -19 - bob, 2, 4, dark);
-      if (a.collar !== false) R(c, -8, -11 - bob, 2, 4, '#d6333f');
-      if (a.ball) ovalBox(c, -17, -12 - bob, 2, 2, '#e8e04a');
+      const half = b.len / 2;
+      const sitDrop = a.sit ? Math.min(b.legs, 4) : 0;
+      const top = -b.legs - b.body;
+      const bob = walking && step ? 1 : 0;
+      // Patas (las de atrás dobladas si está sentado).
+      [[-half + 3, step], [-half + 6, -step], [half - 6, step], [half - 3, -step]].forEach(([lx, off], i) => {
+        const back = i >= 2;
+        const h = b.legs - (back ? sitDrop : 0);
+        R(c, lx - 1 + off, -h, 3, h, OL);
+        R(c, lx + off, -h, 1, h - 1, b.fur);
+      });
+      // Cuerpo, con la tripa más clara y las manchas.
+      const bodyTop = top - bob + (a.sit ? sitDrop : 0);
+      R(c, -half - 1, bodyTop - 1, b.len + 2, b.body + 2, OL);
+      R(c, -half, bodyTop, b.len, b.body, b.fur);
+      R(c, -half, bodyTop, b.len, 1, tone(b.fur, 0.18));
+      R(c, -half + 2, bodyTop + b.body - 2, b.len - 4, 2, b.belly);
+      if (b.spots) DAPPLE.forEach(([sx, sy], i) => R(c, -half + Math.round(sx * (b.len - 3)), bodyTop + Math.round(sy * (b.body - 2)), i % 2 ? 2 : 3, 2, b.light));
+      // Cola: fina y curva (Kika) o gruesa de nutria (Loco).
+      const tw = b.thickTail ? 2 : 1;
+      pixels(c, [[half, bodyTop + 1 - wag * 2, tw + 2, 3], [half + 2, bodyTop - 1 - wag * 3, tw + 1, 3]], OL);
+      pixels(c, [[half, bodyTop + 2 - wag * 2, tw + 1, 1], [half + 2, bodyTop - wag * 3, tw, 2]], b.fur);
+      // Cabeza con hocico largo, nariz, ojo y oreja caída.
+      const hx = -half - b.head + 4;
+      const hy = bodyTop - b.head + (b.legs > 4 ? 2 : 4);
+      R(c, hx - 1, hy - 1, b.head + 2, b.head + 2, OL);
+      R(c, hx, hy, b.head, b.head, b.fur);
+      R(c, hx, hy, b.head, 1, tone(b.fur, 0.18));
+      R(c, hx - b.snout - 1, hy + b.head - 5, b.snout + 2, 5, OL);
+      R(c, hx - b.snout, hy + b.head - 4, b.snout + 1, 3, b.spots ? b.fur : b.light);
+      R(c, hx - b.snout - 1, hy + b.head - 5, 2, 2, '#1d1d22');
+      R(c, hx + 1, hy + 2, 1, 1, '#1d1d22');
+      R(c, hx + b.head - 4, hy - 1, 4, b.ear + 1, OL);
+      R(c, hx + b.head - 3, hy, 2, b.ear, b.earColor);
+      if (b.spots) { R(c, hx + 2, hy + 1, 2, 1, b.light); R(c, hx - 2, hy + b.head - 3, 1, 1, b.light); }
+      if (a.happy && !walking) R(c, hx - b.snout + 1, hy + b.head - 1, 2, 2, '#e87a8a');
+      R(c, hx + b.head - 1, hy + b.head - 3, 2, 3, b.collar);
+      if (a.ball) ovalBox(c, hx - b.snout - 2, hy + b.head - 2, 2, 2, '#e8e04a');
       c.restore();
     } else {
+      // De frente o de espaldas.
       const back = a.dir === 'up';
-      [[-4, step], [3, -step]].forEach(([lx, off]) => { R(c, x + lx - 1, y - 5 + off, 3, 5 - off, OL); R(c, x + lx, y - 5 + off, 1, 4 - off, white); });
-      R(c, x - 6, y - 13, 12, 9, OL);
-      R(c, x - 5, y - 12, 10, 7, fur);
-      if (!back) R(c, x - 3, y - 11, 6, 5, white);
-      if (back) pixels(c, [[x - 1, y - 16 - wag, 2, 4]], fur);
-      R(c, x - 5, y - 21, 10, 9, OL);
-      R(c, x - 4, y - 20, 8, 7, fur);
-      R(c, x - 6, y - 21, 3, 6, OL);
-      R(c, x + 3, y - 21, 3, 6, OL);
-      R(c, x - 5, y - 20, 1, 4, dark);
-      R(c, x + 4, y - 20, 1, 4, dark);
+      const w = b.legs > 4 ? 12 : 10;
+      const bh = b.legs > 4 ? 10 : 7;
+      [[-4, step], [3, -step]].forEach(([lx, off]) => { R(c, x + lx - 1, y - b.legs - 1 + off, 3, b.legs + 1 - off, OL); R(c, x + lx, y - b.legs + off, 1, b.legs - off, b.fur); });
+      R(c, x - w / 2 - 1, y - b.legs - bh - 1, w + 2, bh + 2, OL);
+      R(c, x - w / 2, y - b.legs - bh, w, bh, b.fur);
+      if (!back) R(c, x - 2, y - b.legs - bh + 1, 4, bh - 2, b.light);
+      if (back) pixels(c, [[x - 1, y - b.legs - bh - 4 - wag, 2, 5]], b.fur);
+      if (b.spots) DAPPLE.slice(0, 4).forEach(([sx, sy]) => R(c, x - w / 2 + Math.round(sx * (w - 2)), y - b.legs - bh + Math.round(sy * (bh - 2)), 2, 1, b.light));
+      const hy = y - b.legs - bh - b.head + 2;
+      R(c, x - b.head / 2 - 1, hy - 1, b.head + 2, b.head + 2, OL);
+      R(c, x - b.head / 2, hy, b.head, b.head, b.fur);
+      R(c, x - b.head / 2 - 2, hy, 3, b.ear + 1, OL);
+      R(c, x + b.head / 2 - 1, hy, 3, b.ear + 1, OL);
+      R(c, x - b.head / 2 - 1, hy + 1, 1, b.ear - 1, b.earColor);
+      R(c, x + b.head / 2, hy + 1, 1, b.ear - 1, b.earColor);
       if (!back) {
-        R(c, x - 2, y - 17, 1, 1, '#1d1d22');
-        R(c, x + 1, y - 17, 1, 1, '#1d1d22');
-        R(c, x - 1, y - 15, 2, 2, white);
-        R(c, x - 1, y - 15, 2, 1, '#1d1d22');
-        if (a.happy) R(c, x - 1, y - 13, 2, 1, '#e87a8a');
-        R(c, x - 2, y - 12, 4, 1, '#d6333f');
+        R(c, x - 2, hy + 2, 1, 1, '#1d1d22');
+        R(c, x + 1, hy + 2, 1, 1, '#1d1d22');
+        R(c, x - 1, hy + b.head - 3, 3, 3, b.light);
+        R(c, x - 1, hy + b.head - 3, 2, 1, '#1d1d22');
+        if (a.happy) R(c, x - 1, hy + b.head, 2, 1, '#e87a8a');
+        R(c, x - 3, hy + b.head + 1, 6, 1, b.collar);
       }
     }
   }
@@ -1670,6 +1696,16 @@
       R(c, x - 4, y - 3, 8, 6, '#c9714a');
       R(c, x - 3, y - 2, 6, 1, '#e08e66');
     }
+    if (a.prop === 'baby') {
+      // El bebé en brazos, envuelto en su mantita.
+      if (a.dir === 'up') return;
+      const bx = Math.round(a.x + (a.dir === 'left' ? -3 : a.dir === 'right' ? 3 : 0));
+      const by = Math.round(a.y - 24 * (a.scale || 1) + (sitting ? 4 : 0));
+      ovalBox(c, bx, by, 5, 3, a.babyColor || '#f4f1ea');
+      oval(c, bx + (a.dir === 'right' ? 2 : -2), by - 1, 2, 2, '#f1c7a5');
+      R(c, bx + (a.dir === 'right' ? 1 : -3), by - 3, 3, 1, a.babyHair || '#c9a06a');
+      return;
+    }
     if (a.prop === 'gelato') {
       R(c, x - 1, y, 3, 5, OL);
       R(c, x, y + 1, 1, 3, '#d8a860');
@@ -1719,7 +1755,7 @@
     if (a.kind === 'dog') return drawDog(c, a, t);
     if (a.shadow !== false) shadow(c, a.x, a.y, 9, 3, 0.26);
     if (a.clipY) clipRect(c, a.x - 40, a.y - 70, 80, a.clipY - (a.y - 70));
-    drawActorFrame(c, a, a.x + (a.ox || 0), a.y + (a.oy || 0));
+    drawActorFrame(c, a, a.x + (a.ox || 0), a.y + (a.oy || 0), a.scale || 1);
     if (a.clipY) c.restore();
     drawProp(c, a);
   }
@@ -2176,6 +2212,8 @@
 
   window.simsWorld = {
     W, H, ANIMS, OL, loadSprites, loadSheet, createWorld, findPath, nearestFree, free, lineFree, registerScene, PLANT_SLOTS,
+    // Para el jardín de la pantalla de inicio (garden.js): mismos muñecos, perros y diamante.
+    drawActor, drawPlumbob, drawMoodFx,
     // Pinceles para dibujar los sitios de fuera (sims-places.js).
     paint: { R, box, oval, ovalBox, shadow, pixels, tone, line, pixelText, textWidth, planks, checker, rug, shifted, clipRect }
   };

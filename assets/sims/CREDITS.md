@@ -321,7 +321,7 @@ Las expresiones (ines-faces.png y matteo-faces.png) salen de las mismas hojas co
 
 ## Ropa (pijama, abrigo y verano), familias y paseantes
 
-Hojas de assets/sims/outfits y assets/sims/npc, hechas con el mismo generador: Ines (pijama), Ines (abrigo), Ines (verano), Matteo (pijama), Matteo (abrigo), Matteo (verano), madre de Ines, padre de Ines, hermano de Ines, madre de Matteo, padre de Matteo, nonna de Matteo, paseante. Están recortadas a las animaciones que usa el juego.
+Hojas de assets/sims/outfits y assets/sims/npc, hechas con el mismo generador: Ines (pijama), Ines (abrigo), Ines (verano), Matteo (pijama), Matteo (abrigo), Matteo (verano), Mari Cruz, Pedro y Alex (familia de Ines), Giuliana, Francesca, Clara, Claudia y Paolo (familia de Matteo), sus sobrinos Cecilia, Giulia, Vittoria, Agnese, Teresa y Tommaso, y los paseantes. Están recortadas a las animaciones que usa el juego.
 
 ```
 head/faces/female/neutral/walk.png
@@ -573,6 +573,130 @@ torso/jacket/collared/male/walk/navy.png
 	- Licenses: CC-BY-SA 3.0, GPL 3.0
 	- Authors: bluecarrot16
 	- Links: https://opengameart.org/content/lpc-gentleman https://opengameart.org/content/lpc-pirates
+
+body/bodies/child
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: bluecarrot16, Benjamin K. Smith (BenCreating), ElizaWy, MuffinElZangano, Durrani, Nila122, kheftel, Stephen Challener (Redshrike)
+	- Links: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://opengameart.org/content/lpc-child-standing-template https://opengameart.org/content/lpc-children-walk-animation https://opengameart.org/content/lpc-male-jumping-animation-by-durrani https://opengameart.org/content/lpc-male-jumping-animation-by-durrani https://opengameart.org/content/lpc-jump-expanded https://opengameart.org/content/lpc-jump-expanded
+
+facial/glasses/glasses
+	- Licenses: OGA-BY 3.0
+	- Authors: ElizaWy
+	- Links: https://github.com/ElizaWy/LPC/tree/main/Characters/Head%20Accessories https://opengameart.org/content/lpc-expanded-sit-run-jump-more
+
+hair/bangsshort
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman, Manuel Riecke (MrBeast)
+	- Links: https://opengameart.org/content/lpc-medieval-fantasy-character-sprites https://opengameart.org/content/lpc-expanded-hair
+
+hair/bob
+	- Note: Original by bluecarrot16. Edited and animated by ElizaWy.
+	- Licenses: CC0
+	- Authors: ElizaWy, bluecarrot16
+	- Links: https://opengameart.org/content/lpc-hair https://github.com/ElizaWy/LPC/blob/main/Characters/Hair https://opengameart.org/content/lpc-expanded-sit-run-jump-more
+
+hair/extensions/ponytails/topknot_short
+	- Licenses: OGA-BY 3.0+, CC-BY 3.0+, CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman
+	- Links: https://opengameart.org/content/lpc-1-hairstyle-2-hair-extensions-3-previously-unofficially-released-hairstyles
+
+hair/long
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman, Manuel Riecke (MrBeast)
+	- Links: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://opengameart.org/content/lpc-expanded-hair
+
+hair/parted_side_bangs
+	- Licenses: OGA-BY 3.0+, CC-BY 3.0+, CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman
+	- Links: https://opengameart.org/content/lpc-1-hairstyle-2-hair-extensions-3-previously-unofficially-released-hairstyles https://github.com/jrconway3/Universal-LPC-spritesheet/commit/46ddcf05a0e43e7aa6ffd47d350eef0eb529ac24
+
+hair/relm_short
+	- Licenses: OGA-BY 3.0+, CC-BY 3.0+, GPL 3.0
+	- Authors: JaidynReiman
+	- Links: https://opengameart.org/content/lpc-relm-hair-xlong-ponytail
+
+hair/shoulderr
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman, Lanea Zimmerman (Sharm), Manuel Riecke (MrBeast)
+	- Links: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://github.com/jrconway3/Universal-LPC-spritesheet/commit/c32ce8a7edd9fc7fe7daa62a39cf64e5946020a2 https://opengameart.org/content/lpc-expanded-hair
+
+hair/swoop_side
+	- Licenses: OGA-BY 3.0+, CC-BY 3.0+, CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman
+	- Links: https://opengameart.org/content/lpc-1-hairstyle-2-hair-extensions-3-previously-unofficially-released-hairstyles https://github.com/jrconway3/Universal-LPC-spritesheet/commit/46ddcf05a0e43e7aa6ffd47d350eef0eb529ac24
+
+hair/wavy/child
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 2.0, GPL 3.0
+	- Authors: Nila122
+	- Links: https://opengameart.org/content/3-hairs-for-lpc
+
+head/faces/elderly/happy
+	- Note: Original by Redshrike, Happy Expression by ElizaWy, mapped to all frames by JaidynReiman
+	- Licenses: OGA-BY 3.0
+	- Authors: JaidynReiman, ElizaWy, Stephen Challener (Redshrike)
+	- Links: https://github.com/ElizaWy/LPC/tree/main/Characters/Head https://opengameart.org/content/ulpc-expanded-expressions
+
+head/faces/female/happy
+	- Note: Original by Redshrike, Happy Expression by ElizaWy, mapped to all frames by JaidynReiman
+	- Licenses: OGA-BY 3.0
+	- Authors: JaidynReiman, ElizaWy, Stephen Challener (Redshrike)
+	- Links: https://github.com/ElizaWy/LPC/tree/main/Characters/Head https://opengameart.org/content/ulpc-expanded-expressions
+
+head/faces/male/happy
+	- Note: Original by Redshrike, Happy Expression by ElizaWy, mapped to all frames by JaidynReiman
+	- Licenses: OGA-BY 3.0
+	- Authors: JaidynReiman, ElizaWy, Stephen Challener (Redshrike)
+	- Links: https://github.com/ElizaWy/LPC/tree/main/Characters/Head https://opengameart.org/content/ulpc-expanded-expressions
+
+head/heads/human/child
+	- Licenses: OGA-BY 3.0, CC-BY 3.0, GPL 3.0
+	- Authors: Stephen Challener (Redshrike), kheftel, bluecarrot16
+	- Links: https://opengameart.org/content/ https://opengameart.org/content/lpc-child-standing-template https://opengameart.org/content/lpc-character-bases
+
+legs/pants/child
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: Nila122
+	- Links: https://opengameart.org/content/lpc-clothes-for-children
+
+legs/pants2/male
+	- Note: original overalls by ElizaWy, base animations adapted from v3 overalls by bluecarrot16, pants by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: JaidynReiman, ElizaWy, Bluecarrot16, Johannes Sjölund (wulax), Stephen Challener (Redshrike)
+	- Links: https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing https://opengameart.org/content/lpc-expanded-sit-run-jump-more https://opengameart.org/content/lpc-expanded-pants
+
+legs/skirts/child
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: Nila122
+	- Links: https://opengameart.org/content/lpc-clothes-for-children
+
+torso/clothes/longsleeve/scoop/male
+	- Note: body by Redshrike, scoop shirt by ElizaWy derived from base; adapted to v3 bodies by bluecarrot16; male version adapted from female cutouts and male longsleeve by JaidynReiman, climb/jump/run/sit/emote/revised combat adapted from LPC Revised by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: bluecarrot16, ElizaWy, JaidynReiman, Stephen Challener (Redshrike)
+	- Links: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles http://opengameart.org/content/lpc-clothing-updates https://opengameart.org/content/lpc-revised-character-basics https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing https://opengameart.org/content/lpc-expanded-sit-run-jump-more https://opengameart.org/content/lpc-expanded-simple-shirts
+
+torso/clothes/longsleeve/scoop/pregnant
+	- Note: body by Redshrike, scoop shirt by ElizaWy derived from base; pregnant tanktop by ElizaWy; tanktop edited by bluecarrot16 to make other pregnant shirts and match v3 bases; climb/jump/run/sit/emote/revised combat adapted from LPC Revised by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: bluecarrot16, ElizaWy, Stephen Challener (Redshrike), Johannes Sjölund (wulax)
+	- Links: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles https://opengameart.org/content/lpc-pregnancy-bases-maternity-wear https://opengameart.org/content/lpc-7-womens-shirts http://opengameart.org/content/lpc-clothing-updates https://opengameart.org/content/lpc-revised-character-basics https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing https://opengameart.org/content/lpc-expanded-sit-run-jump-more https://opengameart.org/content/lpc-expanded-simple-shirts
+
+torso/clothes/longsleeve/scoop/teen
+	- Note: body by Redshrike, scoop shirt by ElizaWy derived from base; adapted to v3 bodies by bluecarrot16; teen version adapted from female cutouts and teen longsleeve by JaidynReiman, climb/jump/run/sit/emote/revised combat adapted from LPC Revised by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: bluecarrot16, ElizaWy, JaidynReiman, Stephen Challener (Redshrike)
+	- Links: https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles http://opengameart.org/content/lpc-clothing-updates https://opengameart.org/content/lpc-revised-character-basics https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing https://opengameart.org/content/lpc-expanded-sit-run-jump-more https://opengameart.org/content/lpc-expanded-simple-shirts
+
+torso/clothes/shirt/child
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: Nila122
+	- Links: https://opengameart.org/content/lpc-clothes-for-children
+
+torso/clothes/shortsleeve/tshirt_scoop
+	- Note: original by ElizaWy; spellcast/thrust/shoot/hurt/male adapted from original by JaidynReiman
+	- Licenses: OGA-BY 3.0
+	- Authors: ElizaWy, JaidynReiman, Stephen Challener (Redshrike), Johannes Sjölund (wulax)
+	- Links: http://opengameart.org/content/lpc-revised-character-basics https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing https://opengameart.org/content/lpc-expanded-sit-run-jump-more https://opengameart.org/content/lpc-expanded-simple-shirts
 ```
 
 Kika (la perra de Ines), la casa, Turín, Chieti y España están dibujados a mano en código para esta app (sims-world.js y sims-places.js).
