@@ -19,7 +19,7 @@
     ines: { src: 'assets/sims/ines.png?v=1' },
     matteo: { src: 'assets/sims/matteo.png?v=2' }
   };
-  ['pajamas', 'cold', 'hot'].forEach((outfit) => ['ines', 'matteo'].forEach((key) => {
+  ['pajamas', 'cold', 'hot', 'elegant', 'halloween', 'xmas'].forEach((outfit) => ['ines', 'matteo'].forEach((key) => {
     SHEETS[`${key}-${outfit}`] = { src: `assets/sims/outfits/${key}-${outfit}.png?v=1`, rows: OUTFIT_ROWS, base: key };
   }));
   ['ines-mom', 'ines-dad', 'ines-brother', 'matteo-mom', 'matteo-francesca', 'matteo-clara', 'matteo-claudia', 'matteo-paolo',
@@ -240,19 +240,21 @@
       R(c, x0, y0, w, 14, '#f2efe6');
       R(c, x0, y0 + 13, w, 1, '#9fbdb8');
     } else {
-      const base = { bedroom: '#e8d3c3', kitchen: '#f0e3c6', living: '#ece4d4' }[style];
+      const paint = decorOf('walls');
+      const base = { bedroom: paint.bed, kitchen: '#f0e3c6', living: paint.base }[style];
       R(c, x0, y0, w, h, base);
       if (style === 'bedroom') {
         for (let y = y0 + 6; y < y1 - 8; y += 8) for (let x = x0 + (((y - y0) / 8) % 2 ? 2 : 6); x < x1; x += 8) R(c, x, y, 1, 1, tone(base, -0.12));
       }
       if (style === 'living') {
         // Zócalo de madera pintada en verde salvia, con su moldura.
-        R(c, x0, y1 - 20, w, 15, '#a9b59a');
+        const trim = paint.trim;
+        R(c, x0, y1 - 20, w, 15, trim);
         R(c, x0, y1 - 20, w, 1, '#f6f1e8');
-        R(c, x0, y1 - 19, w, 1, '#c3cdb5');
+        R(c, x0, y1 - 19, w, 1, tone(trim, 0.2));
         for (let x = x0 + 6; x < x1 - 4; x += 16) {
-          R(c, x, y1 - 16, 12, 8, '#9eab8e');
-          R(c, x, y1 - 16, 12, 1, '#8e9b7e');
+          R(c, x, y1 - 16, 12, 8, tone(trim, -0.05));
+          R(c, x, y1 - 16, 12, 1, tone(trim, -0.12));
         }
       }
       if (style === 'kitchen') {
@@ -288,34 +290,35 @@
   function rug(c, x = 30, y = 276) {
     const w = 124;
     const h = 60;
+    const [rBase, rDark, rMid, rGold] = decorOf('rug');
     // Flecos en los lados cortos.
     for (let fy = y + 2; fy < y + h - 2; fy += 2) {
       R(c, x - 3, fy, 3, 1, '#efe2c8');
       R(c, x + w, fy, 3, 1, '#efe2c8');
     }
     R(c, x, y, w, h, OL);
-    R(c, x + 1, y + 1, w - 2, h - 2, '#a3242b');
-    R(c, x + 4, y + 4, w - 8, h - 8, '#701519');
-    R(c, x + 6, y + 6, w - 12, h - 12, '#a3242b');
+    R(c, x + 1, y + 1, w - 2, h - 2, rBase);
+    R(c, x + 4, y + 4, w - 8, h - 8, rDark);
+    R(c, x + 6, y + 6, w - 12, h - 12, rBase);
     // Grecas de la cenefa.
     for (let i = x + 8; i < x + w - 8; i += 6) {
-      R(c, i, y + 4, 2, 2, '#e3b86a');
-      R(c, i + 3, y + h - 6, 2, 2, '#e3b86a');
+      R(c, i, y + 4, 2, 2, rGold);
+      R(c, i + 3, y + h - 6, 2, 2, rGold);
     }
     for (let j = y + 8; j < y + h - 8; j += 6) {
-      R(c, x + 4, j, 2, 2, '#e3b86a');
-      R(c, x + w - 6, j + 3, 2, 2, '#e3b86a');
+      R(c, x + 4, j, 2, 2, rGold);
+      R(c, x + w - 6, j + 3, 2, 2, rGold);
     }
     // Medallón central y motivos.
     const cx = x + w / 2;
     const cy = y + h / 2;
-    for (let r = 0; r < 14; r += 1) R(c, cx - (14 - r) * 1.6, cy - r, (14 - r) * 3.2, 1, r % 4 < 2 ? '#c94a3a' : '#701519');
-    for (let r = 0; r < 14; r += 1) R(c, cx - (14 - r) * 1.6, cy + r, (14 - r) * 3.2, 1, r % 4 < 2 ? '#c94a3a' : '#701519');
-    R(c, cx - 3, cy - 3, 6, 6, '#e3b86a');
-    R(c, cx - 1, cy - 1, 2, 2, '#701519');
+    for (let r = 0; r < 14; r += 1) R(c, cx - (14 - r) * 1.6, cy - r, (14 - r) * 3.2, 1, r % 4 < 2 ? rMid : rDark);
+    for (let r = 0; r < 14; r += 1) R(c, cx - (14 - r) * 1.6, cy + r, (14 - r) * 3.2, 1, r % 4 < 2 ? rMid : rDark);
+    R(c, cx - 3, cy - 3, 6, 6, rGold);
+    R(c, cx - 1, cy - 1, 2, 2, rDark);
     [[x + 18, y + 16], [x + w - 22, y + 16], [x + 18, y + h - 20], [x + w - 22, y + h - 20]].forEach(([mx, my]) => {
-      R(c, mx + 1, my, 2, 4, '#e3b86a');
-      R(c, mx, my + 1, 4, 2, '#e3b86a');
+      R(c, mx + 1, my, 2, 4, rGold);
+      R(c, mx, my + 1, 4, 2, rGold);
     });
     c.globalAlpha = 0.1;
     R(c, x + 1, y + 1, w - 2, 3, '#ffffff');
@@ -466,16 +469,277 @@
     R(c, 133, 14, 2, 2, '#6a5a4a');
   }
 
+  // ---------- Decoración que elegís desde el juego (sims.js la guarda y la sincroniza) ----------
+  // Por defecto, vuestro piso tal cual: suelo de roble, paredes crema con zócalo salvia,
+  // alfombra roja, sofá caqui y edredón crema.
+  const DECOR = {
+    floor: { oak: ['#b4834f', '#c99a64'], light: ['#d3b07e', '#dcbc8c'], dark: ['#7a5232', '#8a5e3a'], grey: ['#a0948a', '#b3a89c'] },
+    walls: {
+      cream: { base: '#ece4d4', bed: '#e8d3c3', trim: '#a9b59a' },
+      sage: { base: '#dfe6d2', bed: '#dfe6d2', trim: '#8fa286' },
+      terracotta: { base: '#f0d2bd', bed: '#f0d2bd', trim: '#c98a6a' },
+      blue: { base: '#d8e3ec', bed: '#d8e3ec', trim: '#7f9bb3' },
+      white: { base: '#f6f3ee', bed: '#f6f3ee', trim: '#cfc7ba' },
+      pink: { base: '#f3dcd8', bed: '#f3dcd8', trim: '#c99a9a' }
+    },
+    rug: {
+      red: ['#a3242b', '#701519', '#c94a3a', '#e3b86a'],
+      blue: ['#2f5f8a', '#1d3d5e', '#4a7fae', '#e8d9b0'],
+      beige: ['#cdb88f', '#a8925f', '#e0cfa8', '#8a5a3a'],
+      green: ['#5e7a52', '#3f5637', '#7c9a6c', '#e3c98a'],
+      pink: ['#d79a9a', '#a86868', '#e8b8b0', '#f6ead8']
+    },
+    sofa: { khaki: '#7d7f4f', mustard: '#c39a3c', grey: '#8b8d92', navy: '#4c6585', rose: '#c48c8a', terracotta: '#b8674a' },
+    bedding: { cream: ['#e4dccb', '#8a8c5a'], white: ['#f2efe8', '#9db4c8'], blue: ['#9fb8d0', '#3f5f86'], rose: ['#e8c4c0', '#b86a6a'], green: ['#c8d4b4', '#5e7a52'], mustard: ['#ecd9a8', '#c39a3c'] },
+    theme: ['auto', 'none', 'halloween', 'xmas', 'valentine', 'spring']
+  };
+  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto' };
+  let decor = { ...DEFAULT_DECOR };
+  const decorOf = (key) => DECOR[key][decor[key]] || DECOR[key][DEFAULT_DECOR[key]];
+  function setDecorValues(next = {}) {
+    const clean = { ...DEFAULT_DECOR };
+    Object.keys(DEFAULT_DECOR).forEach((key) => {
+      const value = next[key];
+      if (key === 'theme' ? DECOR.theme.includes(value) : DECOR[key][value]) clean[key] = value;
+    });
+    decor = clean;
+    return clean;
+  }
+  // Temática de temporada: Halloween, Navidad, San Valentín o primavera (si está en «auto»).
+  function seasonalTheme(date = new Date()) {
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+    if ((m === 10 && d >= 20) || (m === 11 && d <= 2)) return 'halloween';
+    if (m === 12 || (m === 1 && d <= 6)) return 'xmas';
+    if (m === 2 && d >= 7 && d <= 14) return 'valentine';
+    if ((m === 3 && d >= 20) || m === 4) return 'spring';
+    return 'none';
+  }
+  const themeNow = () => (decor.theme === 'auto' ? seasonalTheme() : decor.theme);
+
+  // ---------- Ciclo de día y noche: avanza solo con la hora de verdad ----------
+  // Entre medias se mezclan los colores poco a poco (amanecer, atardecer), así que la luz,
+  // el cielo y las lámparas cambian sin saltos mientras jugáis.
+  const DAY_KEYS = [[0, 'night'], [375, 'night'], [435, 'dawn'], [510, 'day'], [1125, 'day'], [1200, 'dusk'], [1275, 'night'], [1440, 'night']];
+  const PHASE = {
+    day: { amb: '#ffffff', top: '#6fb6e6', bottom: '#cfeaf8', dark: 0 },
+    dawn: { amb: '#f0c8bc', top: '#e9a28a', bottom: '#f7d8b8', dark: 0.42 },
+    dusk: { amb: '#f4c8a0', top: '#e7895c', bottom: '#f7cf94', dark: 0.5 },
+    night: { amb: '#47507e', top: '#0e1532', bottom: '#2a3664', dark: 1 }
+  };
+  function mixHex(a, b, f) {
+    const pa = parseInt(a.slice(1), 16);
+    const pb = parseInt(b.slice(1), 16);
+    const ch = (shift) => Math.round(((pa >> shift) & 255) + ((((pb >> shift) & 255) - ((pa >> shift) & 255)) * f));
+    return `#${((1 << 24) + (ch(16) << 16) + (ch(8) << 8) + ch(0)).toString(16).slice(1)}`;
+  }
+  function dayPhase(date = new Date()) {
+    const min = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+    let i = 0;
+    while (i < DAY_KEYS.length - 2 && min >= DAY_KEYS[i + 1][0]) i += 1;
+    const [m0, a] = DAY_KEYS[i];
+    const [m1, b] = DAY_KEYS[i + 1];
+    const f = m1 > m0 ? Math.min(1, Math.max(0, (min - m0) / (m1 - m0))) : 0;
+    const A = PHASE[a];
+    const B = PHASE[b];
+    const dark = A.dark + (B.dark - A.dark) * f;
+    return {
+      min,
+      dark,
+      amb: mixHex(A.amb, B.amb, f),
+      top: mixHex(A.top, B.top, f),
+      bottom: mixHex(A.bottom, B.bottom, f),
+      warm: (a === 'dusk' || b === 'dusk' || a === 'dawn' || b === 'dawn') && a !== b ? Math.sin(f * Math.PI) : a === 'dusk' || a === 'dawn' ? 1 : 0
+    };
+  }
+
+  // ---------- Adornos de cada temática ----------
+  // En la pared del salón (guirnaldas, telarañas, murciélagos, calcetines), en el rincón de abajo
+  // a la izquierda (árbol, calabazas, globos o tulipanes) y en las mesas.
+  function bunting(c, t, bulbs) {
+    segmentsWithout(8, 504, DOORS).forEach(([x0, x1]) => {
+      for (let x = x0 + 3; x < x1 - 2; x += 1) {
+        const sag = Math.sin(((x - x0) / Math.max(1, x1 - x0)) * Math.PI) * 4;
+        R(c, x, 187 + sag, 1, 1, '#3a3028');
+      }
+      for (let x = x0 + 7, i = 0; x < x1 - 4; x += 11, i += 1) {
+        const sag = Math.sin(((x - x0) / Math.max(1, x1 - x0)) * Math.PI) * 4;
+        bulbs(x, 188 + sag, i);
+      }
+    });
+  }
+  function drawThemeWall(c, t) {
+    const theme = themeNow();
+    if (theme === 'none') return;
+    const blink = (i, speed = 700) => Math.floor(t / speed + i * 0.7) % 3 !== 0;
+    if (theme === 'halloween') {
+      bunting(c, t, (x, y, i) => {
+        const color = i % 2 ? '#a05ad8' : '#ff9a2a';
+        R(c, x - 1, y, 3, 4, OL);
+        R(c, x, y + 1, 1, 2, blink(i) ? color : tone(color, -0.4));
+      });
+      // Telarañas en las esquinas.
+      [[8, 184, 1], [504, 184, -1], [8, 8, 1]].forEach(([wx, wy, dir]) => {
+        c.globalAlpha = 0.75;
+        for (let r = 4; r <= 16; r += 4) line(c, wx + dir * r, wy, wx, wy + r, '#f2efe6');
+        line(c, wx, wy, wx + dir * 16, wy + 16, '#f2efe6');
+        line(c, wx, wy, wx + dir * 18, wy + 6, '#f2efe6');
+        line(c, wx, wy, wx + dir * 6, wy + 18, '#f2efe6');
+        c.globalAlpha = 1;
+      });
+      // Murciélagos que vuelan por la pared.
+      for (let i = 0; i < 3; i += 1) {
+        const bx = ((t / (60 + i * 15)) + i * 170) % 520 - 8;
+        const by = 198 + Math.sin(t / 500 + i * 2) * 6 + i * 4;
+        const flap = Math.floor(t / 140 + i) % 2;
+        R(c, bx - 1, by, 3, 2, '#1a1418');
+        R(c, bx - 4, by - (flap ? 2 : 0), 3, 1, '#1a1418');
+        R(c, bx + 2, by - (flap ? 2 : 0), 3, 1, '#1a1418');
+        R(c, bx - 5, by - (flap ? 3 : -1), 1, 1, '#1a1418');
+        R(c, bx + 5, by - (flap ? 3 : -1), 1, 1, '#1a1418');
+      }
+    } else if (theme === 'xmas') {
+      bunting(c, t, (x, y, i) => {
+        ovalBox(c, x, y + 1, 4, 2, '#2f6a3a');
+        const colors = ['#ff4d4d', '#ffd23f', '#4dc3ff', '#7dff6a'];
+        R(c, x - 1, y + 2, 2, 2, blink(i, 500) ? colors[i % 4] : '#3a3a3a');
+      });
+      // Calcetines colgados en la pared, sobre el tocadiscos.
+      [[150, '#c0303a'], [164, '#2f6a3a']].forEach(([sx, color], i) => {
+        R(c, sx + 2, 192, 1, 4, '#8a7a6a');
+        box(c, sx, 196, 6, 10, color, { hi: 0.2, lo: -0.2 });
+        box(c, sx + (i ? -3 : 3), 203, 6, 4, color, { hi: 0.2, lo: -0.2 });
+        R(c, sx, 196, 6, 3, '#f7f3ea');
+      });
+      // Nieve en las ventanas.
+      [[16, 13, 26, 25], [236, 14, 18, 14], [474, 14, 26, 26], [340, 191, 36, 30]].forEach(([wx, wy, ww, wh]) => {
+        R(c, wx, wy + wh - 2, ww, 2, '#ffffff');
+        R(c, wx, wy + wh - 4, 3, 2, '#ffffff');
+        R(c, wx + ww - 3, wy + wh - 4, 3, 2, '#ffffff');
+      });
+    } else if (theme === 'valentine' || theme === 'spring') {
+      const colors = theme === 'valentine' ? ['#e0405a', '#f49ab0', '#ffffff'] : ['#f7b2c4', '#ffe08a', '#a8d8f0', '#b8e0a0'];
+      bunting(c, t, (x, y, i) => {
+        const color = colors[i % colors.length];
+        if (theme === 'valentine') {
+          pixels(c, [[x - 2, y, 2, 2], [x + 1, y, 2, 2], [x - 2, y + 1, 5, 2], [x - 1, y + 3, 3, 1], [x, y + 4, 1, 1]], color);
+        } else {
+          for (let k = 0; k < 4; k += 1) R(c, x - 3 + k, y + k, 7 - k * 2, 1, color);
+        }
+      });
+    }
+  }
+  function drawThemeSpot(c, s, t) {
+    const theme = themeNow();
+    const x = 26;
+    const y = 368;
+    if (theme === 'xmas') {
+      shadow(c, x, y, 14, 3, 0.3);
+      R(c, x - 2, y - 6, 4, 6, '#6a4a34');
+      [[30, 0], [24, 10], [18, 19], [11, 27]].forEach(([w, dy], i) => {
+        const ty = y - 8 - dy;
+        for (let k = 0; k < 10; k += 1) R(c, x - (w / 2) * (1 - k / 12), ty - k, w * (1 - k / 12), 1, k === 0 ? '#1f4f2a' : i % 2 ? '#2f6a3a' : '#357a42');
+      });
+      const colors = ['#ff4d4d', '#ffd23f', '#4dc3ff', '#ff8ad8'];
+      [[-10, -12], [6, -14], [-5, -22], [8, -26], [-3, -33], [4, -40], [-8, -28], [0, -18]].forEach(([dx, dy], i) => {
+        R(c, x + dx, y + dy, 2, 2, Math.floor(t / 450 + i) % 3 ? colors[i % 4] : '#fff6c8');
+      });
+      pixels(c, [[x - 1, y - 52, 3, 3], [x, y - 54, 1, 7], [x - 3, y - 51, 7, 1]], '#ffd23f');
+      // Regalos.
+      [[x + 10, y - 2, 9, 7, '#c0303a', '#ffd23f'], [x - 18, y - 1, 8, 6, '#3d6a9a', '#f4f1ea'], [x + 2, y + 1, 7, 5, '#8a5ab8', '#f7d8e8']].forEach(([gx, gy, gw, gh, col, rib]) => {
+        box(c, gx, gy - gh, gw, gh, col, { hi: 0.2, lo: -0.2 });
+        R(c, gx + Math.floor(gw / 2), gy - gh, 1, gh, rib);
+        R(c, gx, gy - gh + 2, gw, 1, rib);
+      });
+    } else if (theme === 'halloween') {
+      shadow(c, x, y, 16, 3, 0.3);
+      [[x - 8, y - 4, 8, 6], [x + 7, y - 3, 7, 5], [x, y - 13, 6, 5]].forEach(([px, py, rx, ry], i) => {
+        ovalBox(c, px, py, rx, ry, '#e8751f');
+        R(c, px - 1, py - ry, 1, ry * 2, tone('#e8751f', -0.2));
+        R(c, px - 1, py - ry - 3, 2, 3, '#4a6a2a');
+        if (i !== 1) {
+          const lit = s.time !== 'day' ? '#ffd23f' : '#3a2010';
+          pixels(c, [[px - 4, py - 2, 2, 2], [px + 2, py - 2, 2, 2], [px - 3, py + 2, 6, 1], [px - 2, py + 3, 1, 1], [px + 1, py + 3, 1, 1]], lit);
+        }
+      });
+      // Un fantasmita que flota encima.
+      const gy = y - 34 + Math.sin(t / 400) * 3;
+      c.globalAlpha = 0.9;
+      ovalBox(c, x, gy, 6, 6, '#f7f5f0');
+      R(c, x - 6, gy, 12, 6, '#f7f5f0');
+      pixels(c, [[x - 6, gy + 6, 2, 2], [x - 2, gy + 6, 2, 2], [x + 2, gy + 6, 2, 2]], '#f7f5f0');
+      c.globalAlpha = 1;
+      pixels(c, [[x - 3, gy - 2, 2, 2], [x + 1, gy - 2, 2, 2], [x - 1, gy + 2, 2, 2]], OL);
+    } else if (theme === 'valentine') {
+      shadow(c, x, y, 8, 2, 0.25);
+      box(c, x - 4, y - 5, 8, 5, '#c0303a');
+      [[-8, -44, '#e0405a'], [4, -50, '#f49ab0'], [-1, -38, '#ff6a8a']].forEach(([dx, dy, col], i) => {
+        const sway = Math.sin(t / 700 + i) * 2;
+        line(c, x, y - 5, x + dx + sway, y + dy + 8, '#8a7a6a');
+        const hx = x + dx + sway;
+        const hy = y + dy;
+        pixels(c, [[hx - 4, hy - 3, 4, 4], [hx + 1, hy - 3, 4, 4], [hx - 5, hy - 1, 11, 4], [hx - 3, hy + 3, 7, 2], [hx - 1, hy + 5, 3, 2]], OL);
+        pixels(c, [[hx - 3, hy - 2, 3, 3], [hx + 1, hy - 2, 3, 3], [hx - 4, hy, 9, 3], [hx - 2, hy + 3, 5, 1], [hx, hy + 4, 1, 1]], col);
+        R(c, hx - 2, hy - 1, 1, 1, '#ffffff');
+      });
+    } else if (theme === 'spring') {
+      shadow(c, x, y, 10, 3, 0.28);
+      box(c, x - 8, y - 12, 16, 12, '#c9714a');
+      R(c, x - 9, y - 13, 18, 3, '#b8603e');
+      ['#f7b2c4', '#ffd23f', '#e0405a', '#a05ad8', '#f7f5f0'].forEach((col, i) => {
+        const fx = x - 8 + i * 4;
+        const fy = y - 22 - ((i * 5) % 7);
+        R(c, fx, fy + 3, 1, y - 13 - fy - 3, '#4c9a5a');
+        ovalBox(c, fx, fy, 2, 3, col);
+      });
+    }
+  }
+  function drawThemeTable(c, s, t) {
+    const theme = themeNow();
+    const x = 392;
+    const y = 120;
+    if (theme === 'xmas') {
+      ovalBox(c, x, y + 2, 7, 3, '#2f6a3a');
+      pixels(c, [[x - 4, y, 2, 2], [x + 3, y + 1, 2, 2]], '#c0303a');
+      box(c, x - 1, y - 7, 3, 8, '#f7f3ea');
+      R(c, x, y - 9 + Math.round(Math.sin(t / 120)), 1, 2, '#ffb030');
+    } else if (theme === 'halloween') {
+      ovalBox(c, x, y, 6, 5, '#e8751f');
+      R(c, x - 1, y - 7, 2, 3, '#4a6a2a');
+      pixels(c, [[x - 3, y - 2, 2, 2], [x + 1, y - 2, 2, 2], [x - 2, y + 2, 4, 1]], Math.floor(t / 300) % 4 ? '#ffd23f' : '#ffb030');
+    } else if (theme === 'valentine' || theme === 'spring') {
+      box(c, x - 3, y - 6, 6, 8, '#bfe1ea', { hi: 0.3, lo: -0.15 });
+      const colors = theme === 'valentine' ? ['#c0303a', '#e0405a', '#c0303a'] : ['#f7b2c4', '#ffd23f', '#a05ad8'];
+      colors.forEach((col, i) => { R(c, x - 3 + i * 3, y - 12 + (i % 2) * 2, 1, 6, '#4c9a5a'); ovalBox(c, x - 3 + i * 3, y - 13 + (i % 2) * 2, 2, 2, col); });
+    }
+  }
+  function drawThemeCoffee(c) {
+    const theme = themeNow();
+    const x = 84;
+    const y = 300;
+    if (theme === 'xmas') {
+      ovalBox(c, x, y, 6, 2, '#f7f3ea');
+      pixels(c, [[x - 4, y - 2, 3, 2], [x, y - 2, 3, 2], [x + 3, y - 1, 2, 2]], '#b8743e');
+    } else if (theme === 'halloween') {
+      ovalBox(c, x, y - 1, 6, 3, '#5a3a8a');
+      pixels(c, [[x - 3, y - 3, 2, 2], [x, y - 4, 2, 2], [x + 2, y - 3, 2, 2]], '#ff9a2a');
+      R(c, x - 1, y - 3, 1, 1, '#7dff6a');
+    } else if (theme === 'valentine') {
+      pixels(c, [[x - 4, y - 4, 4, 4], [x + 1, y - 4, 4, 4], [x - 5, y - 2, 11, 3], [x - 3, y + 1, 7, 1], [x - 1, y + 2, 3, 1]], '#c0303a');
+      R(c, x - 3, y - 3, 1, 1, '#f49ab0');
+    }
+  }
+
   function bakeBackground() {
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const c = canvas.getContext('2d');
     R(c, 0, 0, W, H, '#33292a');
-    planks(c, ...ROOMS.bedroom, '#c99a64');
+    planks(c, ...ROOMS.bedroom, decorOf('floor')[1]);
     bathTiles(c, ...ROOMS.bathroom);
     checker(c, ...ROOMS.kitchen);
-    planks(c, 8, 176, 496, 200, '#b4834f');
+    planks(c, 8, 176, 496, 200, decorOf('floor')[0]);
     // Sombra del suelo junto a las paredes.
     const ao = (x, y, w, h, dir) => {
       for (let i = 0; i < 6; i += 1) {
@@ -697,7 +961,7 @@
   function drawSofa(c, s) {
     const x = 52;
     const y = 222;
-    const khaki = '#7d7f4f';
+    const khaki = decorOf('sofa');
     shadow(c, x + 52, y + 46, 54, 4, 0.25);
     // Respaldo.
     box(c, x + 6, y, 92, 18, tone(khaki, -0.08));
@@ -719,8 +983,9 @@
     R(c, x + 4, y + 44, 3, 2, '#3a2a20');
     R(c, x + 97, y + 44, 3, 2, '#3a2a20');
     // Cojín terracota y la manta.
-    box(c, x + 14, y + 6, 14, 12, '#c9714a');
-    R(c, x + 17, y + 9, 8, 1, '#e08e66');
+    const cushion = decor.sofa === 'terracotta' ? '#efe2c8' : '#c9714a';
+    box(c, x + 14, y + 6, 14, 12, cushion);
+    R(c, x + 17, y + 9, 8, 1, tone(cushion, 0.15));
     // El tiburón de peluche, si nadie lo tiene en brazos.
     if (!s.props.shark) drawShark(c, x + 70, y + 22, 1);
   }
@@ -792,15 +1057,16 @@
   function drawDuvet(c) {
     const x = 28;
     const y = 38;
+    const [duvet, blanket] = decorOf('bedding');
     R(c, x + 3, y + 40, 66, 44, OL);
-    R(c, x + 4, y + 41, 64, 42, '#e4dccb');
-    R(c, x + 4, y + 41, 64, 3, '#f4efe4');
-    for (let i = 0; i < 4; i += 1) R(c, x + 6, y + 50 + i * 9, 60, 1, '#d4cab4');
-    // Manta a los pies, en verde caqui como el sofá.
+    R(c, x + 4, y + 41, 64, 42, duvet);
+    R(c, x + 4, y + 41, 64, 3, tone(duvet, 0.3));
+    for (let i = 0; i < 4; i += 1) R(c, x + 6, y + 50 + i * 9, 60, 1, tone(duvet, -0.07));
+    // Manta a los pies (por defecto, en verde caqui como el sofá).
     R(c, x + 3, y + 68, 66, 16, OL);
-    R(c, x + 4, y + 69, 64, 14, '#8a8c5a');
-    for (let i = x + 6; i < x + 66; i += 4) R(c, i, y + 69, 1, 14, '#7a7c4c');
-    R(c, x + 4, y + 69, 64, 1, '#a4a670');
+    R(c, x + 4, y + 69, 64, 14, blanket);
+    for (let i = x + 6; i < x + 66; i += 4) R(c, i, y + 69, 1, 14, tone(blanket, -0.12));
+    R(c, x + 4, y + 69, 64, 1, tone(blanket, 0.2));
   }
 
   // Mesillas: la izquierda con un libro y gafas; la derecha con vuestra foto.
@@ -808,8 +1074,8 @@
     shifted(c, 38, 0, () => drawDuvet(c));
     if (s.bedMode === 'woohoo') {
       const wig = Math.sin(t / 80) * 1.5;
-      ovalBox(c, 96 + wig, 99 + Math.cos(t / 95), 10, 8, '#e4dccb');
-      ovalBox(c, 110 - wig, 101 - Math.cos(t / 85), 10, 8, '#ece5d6');
+      ovalBox(c, 96 + wig, 99 + Math.cos(t / 95), 10, 8, decorOf('bedding')[0]);
+      ovalBox(c, 110 - wig, 101 - Math.cos(t / 85), 10, 8, tone(decorOf('bedding')[0], 0.1));
       R(c, 92 + wig, 96, 6, 1, '#f4efe4');
       R(c, 106 - wig, 98, 6, 1, '#f8f4ea');
     }
@@ -1363,7 +1629,11 @@
     { id: 'polaroids', sort: 2, hit: [68, 12, 70, 26] },
     { id: 'window', sort: 1, hit: [334, 186, 46, 40] },
     { id: 'yoga', sort: 1, hit: [338, 298, 56, 20] },
-    { id: 'door', sort: 1, hit: [434, 354, 46, 30] }
+    { id: 'door', sort: 1, hit: [434, 354, 46, 30] },
+    // Adornos de la temática (si no hay, no se dibuja nada).
+    { id: 'themeSpot', sort: 368, block: [14, 356, 26, 14], draw: drawThemeSpot },
+    { id: 'themeTable', sort: 142, draw: drawThemeTable },
+    { id: 'themeCoffee', sort: 311, draw: drawThemeCoffee }
   ];
   const OBJECT_BY_ID = Object.fromEntries(OBJECTS.map((object) => [object.id, object]));
 
@@ -1614,6 +1884,18 @@
   function loadSheet(id) {
     return SHEETS[id] ? loadImage(images, id, SHEETS[id].src, true) : Promise.resolve();
   }
+  // Retrato de frente (para el armario): el primer fotograma de estar de pie mirando abajo.
+  async function portrait(id, canvas) {
+    await loadSheet(id);
+    const img = images[id];
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!img?.naturalWidth) return;
+    const rows = SHEETS[id].rows;
+    const row = rows ? rows.indexOf(24) : 24;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 16, row * 64 + 8, 32, 56, 0, 0, canvas.width, canvas.height);
+  }
   function loadSprites() {
     return Promise.all([
       ...['ines', 'matteo'].map((key) => loadImage(images, key, SHEETS[key].src)),
@@ -1840,7 +2122,9 @@
       plants: [],
       data: {},
       weather: { code: 1, temp: 18 },
-      tram: null
+      tram: null,
+      phase: dayPhase(),
+      phaseAt: 0
     };
     let scale = 2;
     // Muebles fijos y fotos de las paredes: se pintan una vez (y otra si llegan vuestras fotos).
@@ -1886,12 +2170,6 @@
     observer?.observe(canvas);
     resize();
 
-    const SKIES = {
-      day: ['#8fcbee', '#cfeaf8'],
-      dusk: Object.assign(['#f2a36e', '#f7d39a'], { dusk: true }),
-      night: Object.assign(['#141c3a', '#2c3866'], { night: true })
-    };
-    const AMBIENT = { day: null, dusk: '#f4d2b0', night: '#47507e' };
     // Luces del techo de cada habitación y las que se encienden con cosas.
     const LIGHTS = [[112, 112, 80], [280, 118, 56], [424, 118, 70], [90, 300, 90], [300, 300, 90], [440, 300, 70]];
 
@@ -1903,35 +2181,53 @@
       const horizon = scene.horizon || 170;
       const code = state.weather.code;
       const grey = isCloudy(code);
-      const colors = state.time === 'night' ? ['#0e1532', '#2a3664'] : state.time === 'dusk' ? (grey ? ['#8a7a86', '#c8aca0'] : ['#e7895c', '#f7cf94']) : grey ? ['#9fb2c4', '#d6dee6'] : ['#6fb6e6', '#cfeaf8'];
+      const ph = state.phase || dayPhase();
+      // Con nubes, el cielo se agrisa (menos de noche, que ya es oscuro).
+      const greyF = grey ? 0.55 * (1 - ph.dark * 0.6) : 0;
+      const colors = [mixHex(ph.top, '#9aa8b6', greyF), mixHex(ph.bottom, '#d0d6dc', greyF)];
       const grad = c.createLinearGradient(0, 0, 0, horizon);
       grad.addColorStop(0, colors[0]);
       grad.addColorStop(1, colors[1]);
       c.fillStyle = grad;
       c.fillRect(0, 0, W, horizon);
-      if (state.time === 'night') {
+      // Estrellas que aparecen poco a poco al anochecer.
+      if (ph.dark > 0.35) {
+        const starA = Math.min(1, (ph.dark - 0.35) / 0.5);
         for (let i = 0; i < 40; i += 1) {
           const sx = (i * 97) % W;
           const sy = (i * 53) % (horizon - 30);
-          c.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t / 900 + i));
+          c.globalAlpha = starA * (0.4 + 0.6 * Math.abs(Math.sin(t / 900 + i)));
           R(c, sx, sy, 1, 1, '#ffffff');
         }
         c.globalAlpha = 1;
-        oval(c, 70, 30, 9, 9, '#f6f0c8');
-        oval(c, 74, 27, 8, 8, colors[0]);
-      } else if (!grey) {
-        const sy = state.time === 'dusk' ? 70 : 28;
+      }
+      // El sol cruza el cielo de 7:00 a 21:00 y la luna, de 20:00 a 7:00.
+      const arc = (from, to, min) => {
+        const span = (to - from + 1440) % 1440;
+        const f = ((min - from + 1440) % 1440) / span;
+        return f >= 0 && f <= 1 ? { x: 30 + f * (W - 60), y: horizon - 14 - Math.sin(f * Math.PI) * (horizon - 40), f } : null;
+      };
+      const sun = arc(420, 1260, ph.min);
+      if (sun && !grey) {
+        const low = 1 - Math.sin(sun.f * Math.PI);
         c.globalAlpha = 0.35;
-        oval(c, 70, sy, 16, 16, '#fff6c8');
+        oval(c, sun.x, sun.y, 16, 16, '#fff6c8');
         c.globalAlpha = 1;
-        oval(c, 70, sy, 10, 10, state.time === 'dusk' ? '#ffb070' : '#fff2a8');
+        oval(c, sun.x, sun.y, 10, 10, mixHex('#fff2a8', '#ff9a5a', Math.min(1, low * 1.3)));
+      }
+      const moon = arc(1200, 420, ph.min);
+      if (moon && ph.dark > 0.3) {
+        c.globalAlpha = Math.min(1, (ph.dark - 0.3) / 0.4);
+        oval(c, moon.x, moon.y, 9, 9, '#f6f0c8');
+        oval(c, moon.x + 4, moon.y - 3, 8, 8, colors[0]);
+        c.globalAlpha = 1;
       }
       // Nubes que pasan despacio (más y más grises si está nublado).
       const clouds = grey ? 8 : 4;
       for (let i = 0; i < clouds; i += 1) {
         const cx = ((t / (900 + i * 300)) * 8 + i * 140) % (W + 80) - 40;
         const cy = 14 + ((i * 37) % 60);
-        const tint = grey ? (state.time === 'night' ? '#3a4466' : '#b9c3cc') : state.time === 'night' ? '#2c3a66' : '#ffffff';
+        const tint = mixHex(grey ? '#b9c3cc' : '#ffffff', grey ? '#3a4466' : '#2c3a66', ph.dark);
         c.globalAlpha = grey ? 0.95 : 0.85;
         oval(c, cx, cy, 14, 4, tint);
         oval(c, cx + 8, cy - 3, 9, 4, tint);
@@ -1981,8 +2277,11 @@
     }
 
     function drawLighting(t) {
-      const ambient = AMBIENT[state.time];
-      if (!ambient) return;
+      const ph = state.phase || dayPhase();
+      const theme = scene.id === 'house' ? themeNow() : 'none';
+      const ambient = ph.amb;
+      const busy = state.props.tv || state.props.games || state.bedMode === 'woohoo';
+      if (ph.dark < 0.02 && !busy) return;
       lc.globalCompositeOperation = 'source-over';
       lc.fillStyle = ambient;
       lc.fillRect(0, 0, W, H);
@@ -1997,7 +2296,7 @@
         lc.globalAlpha = 1;
       };
       if (state.lamps) {
-        (scene.lights || []).forEach(([x, y, r]) => glow(x, y, r, 'rgba(255,214,150,.9)', state.time === 'night' ? 0.8 : 0.5));
+        (scene.lights || []).forEach(([x, y, r]) => glow(x, y, r, 'rgba(255,214,150,.9)', 0.35 + ph.dark * 0.45));
         if (scene.id === 'house') {
           glow(55, 42, 30, 'rgba(255,200,120,.9)');
           glow(154, 42, 30, 'rgba(255,200,120,.9)');
@@ -2010,6 +2309,10 @@
         glow(90, 300, 70, `rgba(150,190,255,${flicker})`);
       }
       if (state.props.laptop) glow(262, 330, 24, 'rgba(170,210,255,.7)');
+      // Luces de la temática: el árbol de Navidad o las calabazas encendidas.
+      if (theme === 'xmas') glow(26, 340, 40, `rgba(255,220,150,${0.6 + Math.sin(t / 300) * 0.1})`);
+      if (theme === 'halloween') { glow(26, 356, 30, 'rgba(255,150,60,.85)'); glow(392, 120, 16, 'rgba(255,170,60,.7)'); }
+      if (theme === 'xmas') glow(392, 112, 14, 'rgba(255,190,110,.7)');
       if (state.bedMode === 'woohoo') glow(102, 100, 60, 'rgba(255,140,180,.9)');
       if (state.props.fridge) glow(358, 70, 34, 'rgba(255,250,200,.9)');
       if (state.props.stove) glow(394, 40, 20, 'rgba(255,140,80,.8)');
@@ -2020,9 +2323,10 @@
 
     // Rayos de sol que entran por las ventanas durante el día.
     function drawSunbeams() {
-      if (state.time === 'night' || !scene.indoor || isCloudy(state.weather.code)) return;
-      c.globalAlpha = state.time === 'dusk' ? 0.08 : 0.06;
-      c.fillStyle = state.time === 'dusk' ? '#ffb070' : '#fff6c8';
+      const ph = state.phase || dayPhase();
+      if (ph.dark > 0.6 || !scene.indoor || isCloudy(state.weather.code)) return;
+      c.globalAlpha = (0.06 + ph.warm * 0.03) * (1 - ph.dark / 0.6);
+      c.fillStyle = mixHex('#fff6c8', '#ffb070', ph.warm);
       [[16, 40, 26, 70], [474, 42, 26, 60], [340, 222, 36, 70]].forEach(([x, y, w, h]) => {
         c.beginPath();
         c.moveTo(x, y);
@@ -2143,6 +2447,7 @@
     }
 
     function render(t, dt) {
+      if (!state.phaseAt || t - state.phaseAt > 2000) { state.phase = dayPhase(); state.phaseAt = t; }
       updateCamera();
       stepParticles(dt);
       const cam = state.cam;
@@ -2152,12 +2457,14 @@
       if (!scene.indoor) drawSky(t);
       c.drawImage(background, 0, 0);
       if (scene.indoor) {
-        const sky = Object.assign([...SKIES[state.time]], { night: state.time === 'night', dusk: state.time === 'dusk', rain: isRain(state.weather.code), snow: isSnow(state.weather.code) });
+        const ph = state.phase;
+        const sky = Object.assign([ph.top, ph.bottom], { night: ph.dark > 0.7, dusk: ph.dark > 0.25 && ph.dark <= 0.7, rain: isRain(state.weather.code), snow: isSnow(state.weather.code) });
         WINDOWS.forEach((win) => windowAt(c, win, sky, t));
         drawClock();
       }
       scene.drawBack?.(c, state, t);
       c.drawImage(staticLayer, 0, 0);
+      if (scene.id === 'house') drawThemeWall(c, t);
       drawSunbeams();
       // Muebles y muñecos ordenados por profundidad.
       const drawables = scene.objects.filter((object) => object.draw && object.layer !== 'static').map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));
@@ -2230,12 +2537,19 @@
         state.pan = { x: Math.max(0, Math.min(W - state.view.w / cam.z, from.x - dx * k)), y: Math.max(0, Math.min(H - state.view.h / cam.z, from.y - dy * k)) };
       },
       endPan: () => { state.pan = null; },
+      // Cambiar la decoración: se vuelve a pintar el piso con los colores nuevos.
+      setDecor(next) {
+        setDecorValues(next);
+        if (scene.id === 'house') { background = scene.bake(); bakeStatic(); }
+        return { ...decor };
+      },
       destroy: () => observer?.disconnect()
     };
   }
 
   window.simsWorld = {
     W, H, ANIMS, OL, loadSprites, loadSheet, createWorld, findPath, nearestFree, free, lineFree, registerScene, PLANT_SLOTS,
+    portrait, DECOR, DEFAULT_DECOR, getDecor: () => ({ ...decor }), setDecorValues, seasonalTheme, themeNow, dayPhase, mixHex,
     // Para el jardín de la pantalla de inicio (garden.js): mismos muñecos, perros y diamante.
     drawActor, drawPlumbob, drawMoodFx,
     // Pinceles para dibujar los sitios de fuera (sims-places.js).

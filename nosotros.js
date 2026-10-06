@@ -316,6 +316,17 @@ async function saveMoment(form) {
   }
 }
 
+// Fotos hechas dentro del modo Sims: van al mismo álbum, con su frase.
+async function saveGameMoment(blob, caption) {
+  const path = await uploadPhoto(blob, 'moments');
+  const [created] = await momentsStore.insert({ day: todayISO(), path, caption: String(caption || '').trim().slice(0, 200) || null, author: currentUser });
+  if (created) moments.unshift(created);
+  window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'moment' } }));
+  try { if (typeof renderUs === 'function') renderUs(); } catch {}
+  notifyHousehold(`${currentUser} hizo una foto en el modo Sims 📸`, created?.caption || 'Mírala en Nosotros', { open: 'nosotros', tag: 'moment' });
+  return created;
+}
+
 function openMoment(id) {
   const moment = moments.find((entry) => entry.id === id);
   if (!moment) return;

@@ -22,16 +22,16 @@ const SIM_OBJECTS = {
   table: { label: 'Mesa', actions: ['eat', 'wine', 'puzzle'] },
   winerack: { label: 'Botellero', actions: ['wine'] },
   radio: { label: 'Tocadiscos', actions: ['dance', 'sing'] },
-  sofa: { label: 'Sofá', actions: ['tv', 'games', 'readsofa', 'nap', 'phone'], social: ['cuddle'] },
-  tv: { label: 'Tele', actions: ['tv', 'games'] },
+  sofa: { label: 'Sofá', actions: ['tv', 'games', 'sharkgame', 'readsofa', 'nap', 'phone'], social: ['cuddle'] },
+  tv: { label: 'Tele', actions: ['tv', 'games', 'sharkgame'] },
   photo: { label: 'Vuestras fotos', actions: ['photos'] },
   photo2: { label: 'Vuestras fotos', actions: ['photos'] },
   polaroids: { label: 'Polaroids', actions: ['photos'] },
   wave: { label: 'La gran ola (vuestro puzzle)', actions: ['admire', 'puzzle'] },
-  shark: { label: 'Tiburón de peluche', actions: ['sharkhug', 'sharknap'] },
+  shark: { label: 'Tiburón de peluche', actions: ['sharkhug', 'sharknap', 'sharkgame'] },
   mirror: { label: 'Espejo', actions: ['pose'], social: ['selfie'] },
   bed: { label: 'Cama', actions: ['sleep', 'readbed', 'jump'], social: ['spoon', 'woohoo'] },
-  wardrobe: { label: 'Armario', actions: ['dress'] },
+  wardrobe: { label: 'Armario', actions: ['outfit', 'dress'] },
   sink: { label: 'Lavabo', actions: ['teeth', 'mirror'] },
   shower: { label: 'Bañera', actions: ['shower', 'bath'] },
   washer: { label: 'Lavadora', actions: ['laundry'] },
@@ -146,6 +146,8 @@ const SIM_ACTIONS = {
   readbed: { object: 'bed', label: 'Leer en la cama', emoji: '📖', secs: 10, pose: 'bedsit', hold: 'book', expr: [null, 'happy', 'closed'], needs: { fun: 15, energy: 10 } },
   jump: { object: 'bed', label: 'Saltar en la cama', emoji: '🤸', secs: 7, pose: 'bedjump', expr: 'happy', needs: { fun: 25, energy: -10 } },
   dress: { object: 'wardrobe', label: 'Cambiar el muñeco del jardín', emoji: '👗', secs: 1.5, prop: 'wardrobe', after: 'dress', own: true },
+  outfit: { object: 'wardrobe', label: 'Cambiarse de ropa', emoji: '👚', secs: 1.2, prop: 'wardrobe', after: 'outfit', own: true },
+  sharkgame: { object: 'tv', label: 'Jugar a Tiburón hambriento', emoji: '🦈', secs: 1, pose: 'sofa', hold: 'controller', after: 'sharkgame', own: true, needs: { fun: 5 } },
   teeth: { object: 'sink', label: 'Lavarse los dientes', emoji: '🪥', secs: 5, anim: ['thrust', [1, 2, 1, 2], 8], needs: { hygiene: 20 } },
   mirror: { object: 'sink', label: 'Hablar con el espejo', emoji: '🪞', secs: 6, talk: true, expr: 'happy', needs: { social: 10, fun: 10 } },
   shower: { object: 'shower', label: 'Ducharse', emoji: '🚿', secs: 8, pose: 'shower', prop: 'shower', talk: true, needs: { hygiene: 60 } },
@@ -321,6 +323,9 @@ const curScene = () => world()?.state.scene || 'house';
 const sceneObj = (id) => world()?.scene().objects.find((object) => object.id === id);
 const NPC_NEEDS = { hunger: 80, energy: 80, fun: 80, hygiene: 80, social: 80 };
 const needsOf = (sim) => currentNeeds(avatarRows[simPerson(sim.key)]);
+// Sitio fijo de cada uno al llegar a los sitios (Ines a la izquierda, Matteo a la derecha): igual
+// en los dos móviles, para que al sincronizar posiciones no acaben uno encima del otro.
+const slotOf = (sim) => (simPerson(sim.key) === householdPeople[0] ? 0 : 1);
 
 // ---------- Sonido (opcional) ----------
 let simsAudio = null;
@@ -990,6 +995,8 @@ function runAfter(after, sim) {
     setTimeout(() => { if (sim.prop === 'gelato') { sim.prop = null; sim.expr = null; } }, 10000);
   }
   if (after === 'dress') openAvatarEditor('clothes');
+  if (after === 'outfit') wardrobeCard();
+  if (after === 'sharkgame') startSharkGame();
   if (after === 'photos') showPhotoCard();
   // Se queda un ratito con la taza de café en la mano.
   if (after === 'cup' && sim) {
@@ -1011,6 +1018,8 @@ async function loadSimsPhotos() {
       const url = urls.get(moment.path);
       if (!url) return resolve(null);
       const img = new Image();
+      // Con permiso CORS, para que las fotos del juego (que incluyen estas) se puedan guardar.
+      if (!url.startsWith('data:')) img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
       img.onerror = () => resolve(null);
       img.src = url;
@@ -1046,6 +1055,16 @@ const outsideTemp = () => {
   return curScene() === 'spain' ? temp + 5 : curScene() === 'chieti' ? temp + 2 : temp;
 };
 function wantedOutfit(sim) {
+  const inBedNow = ['bed', 'bedsit'].includes(sim.current?.pose) || ['spoon', 'woohoo'].includes(sim.socialKind);
+  if (inBedNow) return 'pajamas';
+  // Lo que hayáis elegido en el armario manda.
+  const pick = simsState.outfitPick?.[sim.key];
+  if (pick && pick !== 'auto') return pick;
+  // Y en Nochebuena, Navidad y la noche de Halloween, disfraz.
+  const today = new Date();
+  const md = `${today.getMonth() + 1}-${today.getDate()}`;
+  if (md === '10-31' && today.getHours() >= 17) return 'halloween';
+  if (md === '12-24' || md === '12-25') return 'xmas';
   if (curScene() !== 'house') {
     const temp = outsideTemp();
     return temp < 13 ? 'cold' : temp >= 26 ? 'hot' : 'casual';
@@ -1106,13 +1125,13 @@ async function doTrip(dest, { incoming = false, at = new Date().toISOString() } 
   both.forEach((sim) => { sim.busy = true; sim.doing = `trip-${dest}`; sim.progress = null; stopSim(sim); });
   hidePie();
   try {
-    if (curScene() === 'house') await Promise.all(both.map((sim, i) => walkTo(sim, { x: 450 + i * 12, y: 362, dir: 'down' }, tokens[i]).catch(() => {})));
+    if (curScene() === 'house') await Promise.all(both.map((sim, i) => walkTo(sim, { x: 450 + slotOf(sim) * 12, y: 362, dir: 'down' }, tokens[i]).catch(() => {})));
     simTune([660, 880, 990], 120);
     await showTravelCard(trip.travel, 2400);
     enterScene(dest);
-    both.forEach((sim, i) => {
+    both.forEach((sim) => {
       standUp(sim);
-      Object.assign(sim, { x: trip.arrive[i].x, y: trip.arrive[i].y, slide: null });
+      Object.assign(sim, { x: trip.arrive[slotOf(sim)].x, y: trip.arrive[slotOf(sim)].y, slide: null });
       idle(sim, 'right');
       checkOutfit(sim, false);
     });
@@ -1152,8 +1171,8 @@ async function goHome({ incoming = false } = {}) {
   simsHouse.querySelector('.sims-card')?.remove();
   await showTravelCard('🏠 Volviendo a casa…', 1800);
   enterScene('house');
-  both.forEach((sim, i) => {
-    Object.assign(sim, { x: 446 + i * 16, y: 350, busy: false, doing: null, idleSince: Date.now() });
+  both.forEach((sim) => {
+    Object.assign(sim, { x: 446 + slotOf(sim) * 16, y: 350, busy: false, doing: null, idleSince: Date.now() });
     idle(sim, 'up');
     checkOutfit(sim, false);
   });
@@ -1651,7 +1670,9 @@ function onLive(msg) {
   live.partnerOnline = true;
   // Si estáis en sitios distintos, primero te vas con él (salvo que lo que llegue sea un viaje).
   const travelling = msg.type === 'home' || (msg.type === 'social' && SOCIALS[msg.kind]?.trip);
-  if (msg.scene && msg.scene !== curScene() && !travelling && msg.type !== 'hello') { followScene(msg.scene); return; }
+  // Mensajes, ropa, decoración, fotos y minijuego valen estés donde estés.
+  const anywhere = ['chat', 'outfit', 'decor', 'photo', 'game'].includes(msg.type);
+  if (msg.scene && msg.scene !== curScene() && !travelling && msg.type !== 'hello' && !anywhere) { followScene(msg.scene); return; }
   switch (msg.type) {
     case 'hello':
       liveSend('state', { pos: myPos() });
@@ -1695,6 +1716,32 @@ function onLive(msg) {
       standUp(partner);
       Object.assign(partner, { busy: false, doing: null, idleSince: Date.now() });
       break;
+    case 'chat': {
+      const text = String(msg.text || '').slice(0, 120);
+      if (!text) break;
+      simBubble(partner, text, { secs: Math.min(7, 2.5 + text.length / 14) });
+      pushChat(simPerson(partner.key), text);
+      simBlip(1180, 0.06);
+      break;
+    }
+    case 'outfit':
+      pickOutfit(msg.id, { key: partner.key, remote: true });
+      break;
+    case 'decor':
+      if (msg.decor && (!simsState.decorAt || String(msg.at) > simsState.decorAt)) {
+        applyDecor(msg.decor, msg.at);
+        const card = simsHouse.querySelector('.sims-card.is-decor');
+        if (card) decorCard();
+        simBubble(partner, '🎨', { kind: 'emote', secs: 1.6 });
+      }
+      break;
+    case 'photo':
+      takeSimPhoto({ remote: true });
+      simBubble(partner, '📸 ¡Patata!', { secs: 2 });
+      break;
+    case 'game':
+      simBubble(partner, `🦈 ${msg.record ? '¡Récord! ' : ''}${Number(msg.score) || 0} puntos`, { secs: 3.5 });
+      break;
     case 'wave':
       setAnim(partner, 'emote', { dir: 'down', frames: [0, 2, 1, 2], fps: 4 });
       simBubble(partner, simlish(partner.key), { secs: 2 });
@@ -1713,8 +1760,8 @@ function startWherePartnerIs() {
   if (!latest || latest.place === 'house' || !TRIPS[latest.place]) return;
   enterScene(latest.place);
   const trip = TRIPS[latest.place];
-  [sims[meKey()], sims[partnerKeyOf()]].forEach((sim, i) => {
-    Object.assign(sim, { x: trip.arrive[i].x + 30, y: trip.arrive[i].y });
+  [sims[meKey()], sims[partnerKeyOf()]].forEach((sim) => {
+    Object.assign(sim, { x: trip.arrive[slotOf(sim)].x + 30, y: trip.arrive[slotOf(sim)].y });
     idle(sim, 'down');
     checkOutfit(sim, false);
   });
@@ -2281,7 +2328,9 @@ function updateClock() {
   const w = world();
   if (!w) return;
   w.state.time = timeOfDay(new Date().getHours());
-  w.state.lamps = curScene() === 'house' ? w.state.time !== 'day' : w.state.time === 'night';
+  // Las lámparas se encienden poco a poco según oscurece (ciclo de día y noche continuo).
+  const dark = simsWorld.dayPhase().dark;
+  w.state.lamps = curScene() === 'house' ? dark > 0.2 : dark > 0.55;
   if (window.umbralWeather) w.state.weather = { code: Number(window.umbralWeather.code ?? 1), temp: Number(window.umbralWeather.temp ?? 18) };
 }
 
@@ -2290,12 +2339,13 @@ function buildSims() {
   simsState.bubbles = [];
   const w = simsWorld.createWorld(simsHouse);
   simsState.world = w;
-  simsHouse.insertAdjacentHTML('beforeend', '<div class="sims-hud"></div>');
+  simsHouse.insertAdjacentHTML('beforeend', `<div class="sims-hud"></div><div class="sims-chatlog" aria-live="polite"></div><div class="sims-toolbar">${SIM_TOOLS.map(([id, emoji, label]) => `<button type="button" data-tool="${id}" aria-label="${label}" title="${label}">${emoji}</button>`).join('')}</div>`);
   Object.keys(propUsers).forEach((prop) => { propUsers[prop] = 0; });
   const starts = [{ x: 210, y: 300 }, { x: 262, y: 310 }];
-  [meKey(), partnerKeyOf()].forEach((key, index) => {
-    sims[key] = newSim(key, starts[index].x, starts[index].y);
-    idle(sims[key], index ? 'left' : 'right');
+  [meKey(), partnerKeyOf()].forEach((key) => {
+    const slot = simPerson(key) === householdPeople[0] ? 0 : 1;
+    sims[key] = newSim(key, starts[slot].x, starts[slot].y);
+    idle(sims[key], slot ? 'left' : 'right');
   });
   Object.keys(sims).forEach((key) => { if (![meKey(), partnerKeyOf()].includes(key)) delete sims[key]; });
   simsState.npcs = [];
@@ -2437,6 +2487,7 @@ function simsTick() {
   lookAtEachOther();
   npcTick();
   ambientTick();
+  renderChatLog();
   // Ropa según dónde estéis, la hora y el tiempo (si no están haciendo nada).
   Object.values(sims).forEach((sim) => { if (!sim.busy) checkOutfit(sim); });
   // Mientras eliges en el menú, nadie hace nada por su cuenta.
@@ -2466,7 +2517,9 @@ async function openSims() {
     return showToast(error.message || 'No se pudo abrir la casa');
   }
   simsModal.classList.add('visible');
+  loadSimPicks();
   buildSims();
+  loadDecor();
   simsState.open = true;
   simsState.last = 0;
   simsState.tip = Math.floor(Math.random() * SIM_TIPS.length);
@@ -2513,6 +2566,503 @@ function updateZoom() {
   button.setAttribute('aria-pressed', String(simsState.zoom));
   button.setAttribute('aria-label', simsState.zoom ? 'Ver toda la casa' : 'Seguir de cerca a tu muñeco');
   if (world()) world().state.zoom = simsState.zoom;
+}
+
+// ---------- Lo vuestro que se guarda en la fila de cada uno (look) ----------
+// La ropa elegida, la decoración y el récord del minijuego van dentro de look (jsonb), así no
+// hace falta tocar la base de datos. La decoración la puede cambiar cualquiera de los dos: vale
+// la más reciente de las dos filas.
+const simLookOf = (person) => avatarRows[person]?.look || {};
+function saveSimLook(changes) {
+  const person = myAvatarPerson();
+  return saveAvatar({ look: { ...simLookOf(person), ...changes } }).catch((error) => console.warn('[Umbral] Guardar en el juego:', error));
+}
+
+// ---------- Armario: ropa, pijama y disfraces cuando queráis ----------
+const WARDROBE = [
+  ['auto', '✨', () => 'Según el momento'],
+  ['casual', '👕', () => 'La de siempre'],
+  ['pajamas', '🌙', () => 'Pijama'],
+  ['cold', '🧥', () => 'De abrigo'],
+  ['hot', '🩳', () => 'De verano'],
+  ['elegant', '🍷', () => 'Elegante'],
+  ['halloween', '🎃', (key) => (key === 'ines' ? 'Bruja' : 'Diablo')],
+  ['xmas', '🎅', (key) => (key === 'ines' ? 'Mamá Noel' : 'Papá Noel')]
+];
+const WARDROBE_IDS = WARDROBE.map(([id]) => id);
+simsState.outfitPick = {};
+function loadSimPicks() {
+  householdPeople.forEach((person) => {
+    const id = simLookOf(person).simOutfit;
+    const key = avatarKey(person);
+    // Lo que ha llegado en directo manda sobre la fila (que puede ir un poco por detrás).
+    if (simsState.outfitLive?.[key]) return;
+    simsState.outfitPick[key] = WARDROBE_IDS.includes(id) ? id : 'auto';
+  });
+}
+function pickOutfit(id, { key = meKey(), remote = false } = {}) {
+  if (!WARDROBE_IDS.includes(id)) return;
+  simsState.outfitPick[key] = id;
+  (simsState.outfitLive ||= {})[key] = true;
+  const sim = sims[key];
+  if (sim) {
+    sim.outfit = null;
+    checkOutfit(sim, true);
+    if (!sim.busy) {
+      setAnim(sim, 'emote', { dir: 'down', frames: [0, 2, 2, 1], fps: 5, loop: false });
+      setTimeout(() => { if (!sim.busy) idle(sim, 'down'); }, 1000);
+    }
+    const label = WARDROBE.find(([other]) => other === id);
+    if (label && id !== 'auto') simBubble(sim, `${label[1]} ¿Qué tal estoy?`, { secs: 2.2 });
+  }
+  if (!remote) {
+    liveSend('outfit', { id });
+    saveSimLook({ simOutfit: id });
+  }
+}
+function wardrobeCard() {
+  const key = meKey();
+  const current = simsState.outfitPick[key] || 'auto';
+  const card = showSimsCard('is-wardrobe', `<h3>👗 Tu armario</h3>
+    <p class="sims-card-hint">Elige qué te pones. «Según el momento» se cambia sola: pijama de noche, abrigo si hace frío y disfraz en Halloween y Navidad.</p>
+    <div class="sims-wardrobe">${WARDROBE.map(([id, emoji, label]) => `<button type="button" data-outfit="${id}" aria-pressed="${current === id}"><canvas width="32" height="56" data-portrait="${id === 'auto' || id === 'casual' ? key : `${key}-${id}`}"></canvas><span>${emoji} ${escapeHtml(label(key))}</span></button>`).join('')}</div>`);
+  card.querySelectorAll('[data-portrait]').forEach((canvas) => simsWorld.portrait(canvas.dataset.portrait, canvas));
+}
+
+// ---------- Decorar la casa (y temáticas de temporada) ----------
+const DECOR_LABELS = {
+  theme: ['Temática', { auto: '📅 Según la fecha', none: '🏠 Ninguna', halloween: '🎃 Halloween', xmas: '🎄 Navidad', valentine: '💘 San Valentín', spring: '🌷 Primavera' }],
+  walls: ['Paredes', { cream: 'Crema', sage: 'Salvia', terracotta: 'Terracota', blue: 'Azul', white: 'Blanco', pink: 'Rosa' }],
+  floor: ['Suelo', { oak: 'Roble', light: 'Claro', dark: 'Nogal', grey: 'Gris' }],
+  rug: ['Alfombra del salón', { red: 'Roja', blue: 'Azul', beige: 'Yute', green: 'Verde', pink: 'Rosa' }],
+  sofa: ['Sofá', { khaki: 'Caqui', mustard: 'Mostaza', grey: 'Gris', navy: 'Marino', rose: 'Rosa', terracotta: 'Teja' }],
+  bedding: ['Edredón', { cream: 'Crema', white: 'Blanco', blue: 'Azul', rose: 'Rosa', green: 'Verde', mustard: 'Mostaza' }]
+};
+const decorSwatch = (part, id) => {
+  const value = simsWorld.DECOR[part]?.[id];
+  if (part === 'walls') return value.base;
+  if (Array.isArray(value)) return value[0];
+  return typeof value === 'string' ? value : null;
+};
+function applyDecor(values, at) {
+  if (!values) return;
+  simsState.decorAt = at || new Date().toISOString();
+  const w = world();
+  if (w) w.setDecor(values);
+  else simsWorld.setDecorValues(values);
+}
+function loadDecor() {
+  const latest = householdPeople.map((person) => simLookOf(person).decor).filter((decor) => decor?.at).sort((a, b) => String(b.at).localeCompare(String(a.at)))[0];
+  if (latest && latest.at > (simsState.decorAt || '')) applyDecor(latest, latest.at);
+}
+function setDecorChoice(part, value, { remote = false, at } = {}) {
+  const next = { ...simsWorld.getDecor(), [part]: value };
+  const stamp = at || new Date().toISOString();
+  applyDecor(next, stamp);
+  if (remote) return;
+  simBlip(1240, 0.05);
+  world()?.emit('sparkle', 250, 280, { count: 10, spread: 160, vy: -10 });
+  liveSend('decor', { decor: next, at: stamp });
+  saveSimLook({ decor: { ...next, at: stamp } });
+}
+function decorCard() {
+  if (curScene() !== 'house') return showToast('La decoración se cambia en casa 🏠');
+  const decor = simsWorld.getDecor();
+  showSimsCard('is-decor', `<h3>🎨 Decorar la casa</h3>
+    ${Object.entries(DECOR_LABELS).map(([part, [title, options]]) => `<h4>${title}</h4><div class="sims-swatches${part === 'theme' ? ' is-theme' : ''}">${Object.entries(options).map(([id, label]) => {
+      const color = part === 'theme' ? null : decorSwatch(part, id);
+      return `<button type="button" data-decor="${part}:${id}" aria-pressed="${decor[part] === id}">${color ? `<i style="background:${color}"></i>` : ''}${escapeHtml(label)}</button>`;
+    }).join('')}</div>`).join('')}
+    <p class="sims-card-hint">Lo ve también ${escapeHtml(simPerson(partnerKeyOf()) || '')} en su móvil.</p>`);
+}
+
+// ---------- Mensajes en directo ----------
+// Lo que escribes sale en un bocadillo encima de tu muñeco en las dos pantallas. Si el otro no
+// está jugando, se queda como «tu mensaje» y lo verá al abrir la app.
+simsState.chat = [];
+function pushChat(person, text) {
+  simsState.chat.push({ person, text, at: Date.now() });
+  simsState.chat = simsState.chat.slice(-20);
+  renderChatLog();
+}
+function renderChatLog() {
+  const log = simsHouse.querySelector('.sims-chatlog');
+  if (!log) return;
+  const recent = simsState.chat.filter((entry) => Date.now() - entry.at < 20000).slice(-4);
+  log.innerHTML = recent.map((entry) => `<p class="${entry.person === myAvatarPerson() ? 'is-me' : ''}"><b>${escapeHtml(entry.person)}</b> ${escapeHtml(entry.text)}</p>`).join('');
+}
+function sendSimChat(raw) {
+  const text = String(raw || '').trim().slice(0, 120);
+  const me = sims[meKey()];
+  if (!text || !me) return;
+  simBubble(me, text, { secs: Math.min(7, 2.5 + text.length / 14) });
+  pushChat(myAvatarPerson(), text);
+  simBlip(880, 0.05);
+  liveSend('chat', { text });
+  if (!live.partnerOnline) saveAvatar({ message: text, message_at: new Date().toISOString() }).catch(() => {});
+}
+function toggleChatBar(open = !simsHouse.querySelector('.sims-chatbar')) {
+  simsHouse.querySelector('.sims-chatbar')?.remove();
+  if (!open) return;
+  const bar = document.createElement('form');
+  bar.className = 'sims-chatbar';
+  bar.innerHTML = `<div class="sims-chat-quick">${['❤️', '😘', '😂', '🦈', '👋', '🍕', '😴', '🥺'].map((emoji) => `<button type="button" data-chat-quick="${emoji}">${emoji}</button>`).join('')}</div>
+    <div class="sims-chat-row"><input name="text" maxlength="120" placeholder="Escribe a ${escapeHtml(simPerson(partnerKeyOf()) || '')}…" autocomplete="off" enterkeyhint="send" /><button type="submit" aria-label="Enviar">➤</button><button type="button" data-chat-close aria-label="Cerrar">✕</button></div>`;
+  simsHouse.appendChild(bar);
+  bar.querySelector('input').focus();
+}
+
+// ---------- Fotos del juego (se guardan en Nosotros) ----------
+const SCENE_NAMES = { house: 'en casa', turin: 'en Turín', chieti: 'en Chieti', spain: 'en la casa de campo' };
+async function takeSimPhoto({ remote = false } = {}) {
+  const w = world();
+  if (!w) return;
+  const flash = document.createElement('div');
+  flash.className = 'sims-flash';
+  simsHouse.appendChild(flash);
+  setTimeout(() => flash.remove(), 700);
+  simTune([1600, 900], 60, 'square');
+  if (remote) return;
+  liveSend('photo');
+  // La foto: lo que se ve ahora mismo, ampliado en píxeles enteros y en un marco de polaroid.
+  const src = w.canvas;
+  const { view, cam } = w.state;
+  const k = Math.max(1, Math.round(1100 / (view.w / cam.z)));
+  const pw = Math.round((view.w / cam.z) * k);
+  const ph = Math.round((view.h / cam.z) * k);
+  const pad = Math.round(pw * 0.04);
+  const out = document.createElement('canvas');
+  out.width = pw + pad * 2;
+  out.height = ph + pad * 2 + Math.round(pw * 0.12);
+  const ctx = out.getContext('2d');
+  ctx.fillStyle = '#fbf9f3';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(src, pad, pad, pw, ph);
+  const when = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  const caption = `🎮 ${householdPeople.join(' y ')} ${SCENE_NAMES[curScene()] || ''} · ${when}`;
+  ctx.fillStyle = '#2b1f1d';
+  ctx.font = `${Math.round(pw * 0.034)}px "Pixelify Sans", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(caption.replace('🎮 ', ''), out.width / 2, ph + pad * 2 + Math.round(pw * 0.07));
+  let blob;
+  try {
+    blob = await new Promise((resolve, reject) => out.toBlob((result) => (result ? resolve(result) : reject(new Error('No se pudo hacer la foto'))), 'image/png'));
+  } catch (error) {
+    return showToast('No se pudo hacer la foto');
+  }
+  const url = URL.createObjectURL(blob);
+  simsState.lastPhoto = { blob, url, caption };
+  showSimsCard('is-snapshot', `<h3>📸 ¡Foto!</h3><img class="sims-snapshot" alt="" src="${url}" />
+    <input class="sims-snapshot-caption" maxlength="200" value="${escapeHtml(caption)}" aria-label="Frase de la foto" />
+    <div class="sims-snapshot-actions"><button type="button" class="sims-card-link is-primary" data-snapshot-save>💖 Guardar en Nosotros</button><button type="button" class="sims-card-link" data-snapshot-download>⬇️ Descargar</button></div>`);
+}
+async function saveSnapshot(button) {
+  const photo = simsState.lastPhoto;
+  if (!photo || typeof saveGameMoment !== 'function') return showToast('El álbum aún no está listo');
+  const caption = simsHouse.querySelector('.sims-snapshot-caption')?.value.trim() || photo.caption;
+  button.disabled = true;
+  button.textContent = 'Subiendo…';
+  try {
+    await saveGameMoment(photo.blob, caption);
+    simsHouse.querySelector('.sims-card')?.remove();
+    showToast('Guardada en vuestro álbum 📸');
+    const me = sims[meKey()];
+    if (me) world()?.emit('heart', me.x, me.headY, { count: 4, spread: 12 });
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = '💖 Guardar en Nosotros';
+    showToast(error.message || 'No se pudo guardar la foto');
+  }
+}
+function downloadSnapshot() {
+  const photo = simsState.lastPhoto;
+  if (!photo) return;
+  const link = document.createElement('a');
+  link.href = photo.url;
+  link.download = `umbral-sims-${todayISO()}.png`;
+  link.click();
+}
+
+// ---------- Minijuego: Tiburón hambriento 🦈 ----------
+// Mueves el dedo y el tiburón lo sigue: cómete los peces (el dorado vale 10), evita los peces
+// globo y las medusas. 60 segundos y 3 vidas. Comer seguido hace combo. El récord de cada uno
+// se guarda y se ve el del otro.
+const SHARK_MAP = [
+  '.......DD.......',
+  '......DGGD......',
+  'D....DGGGGDDDD..',
+  'GD..DGGGGGGGGGD.',
+  'GGDDGGGGGGGGGoGD',
+  'GGGGGGWWWWWWWWWD',
+  'GD..DWWWWWWWWDD.',
+  'D....DDWDDWDD...'
+];
+const FISH_KINDS = {
+  small: { w: 7, h: 4, pts: 1, color: '#f2a33a', speed: [22, 34] },
+  mid: { w: 10, h: 6, pts: 3, color: '#4ab0d8', speed: [16, 26] },
+  gold: { w: 8, h: 5, pts: 10, color: '#ffd23f', speed: [46, 60] },
+  puffer: { w: 9, h: 9, danger: true, color: '#e8c050', speed: [12, 20] },
+  jelly: { w: 8, h: 9, danger: true, color: '#d89ae8', speed: [6, 10] }
+};
+function startSharkGame() {
+  if (simsHouse.querySelector('.sims-game')) return;
+  hidePie();
+  simsHouse.querySelector('.sims-card')?.remove();
+  toggleChatBar(false);
+  const host = document.createElement('div');
+  host.className = 'sims-game';
+  const best = (person) => Number(simLookOf(person).sharkBest) || 0;
+  const partner = simPerson(partnerKeyOf());
+  host.innerHTML = `<canvas></canvas>
+    <div class="sims-game-hud"><span data-g="score">0</span><span data-g="lives">❤️❤️❤️</span><span data-g="time">${'60'}</span><button type="button" data-game-quit aria-label="Salir del juego">✕</button></div>
+    <div class="sims-game-msg" data-g="msg"><b>🦈 Tiburón hambriento</b><span>Mueve el dedo y el tiburón lo sigue. Cómete los peces, esquiva los peces globo y las medusas. ¡El dorado vale 10!</span><small>Tu récord: ${best(myAvatarPerson())} · ${escapeHtml(partner || '')}: ${best(partner)}</small><button type="button" data-game-start>¡A jugar!</button></div>`;
+  simsHouse.appendChild(host);
+  const canvas = host.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const G = { w: 200, h: 150, k: 2, running: false, over: false, raf: 0 };
+  function fit() {
+    const rect = host.getBoundingClientRect();
+    G.w = 200;
+    G.h = Math.max(110, Math.round(200 * (rect.height / Math.max(1, rect.width))));
+    G.k = Math.max(1, Math.round((rect.width * (window.devicePixelRatio || 1)) / G.w));
+    canvas.width = G.w * G.k;
+    canvas.height = G.h * G.k;
+  }
+  fit();
+  const S = { shark: null, fish: [], bubbles: [], floats: [], score: 0, lives: 3, time: 60, combo: 0, lastEat: 0, hurtUntil: 0, spawn: 0, target: null, last: 0, chomp: 0 };
+  const reset = () => Object.assign(S, { shark: { x: G.w / 2, y: G.h / 2, dir: 1, size: 1 }, fish: [], bubbles: [], floats: [], score: 0, lives: 3, time: 60, combo: 0, lastEat: 0, hurtUntil: 0, spawn: 0, target: null, chomp: 0 });
+  reset();
+  const toGame = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    return { x: ((event.clientX - rect.left) / rect.width) * G.w, y: ((event.clientY - rect.top) / rect.height) * G.h };
+  };
+  canvas.addEventListener('pointerdown', (event) => { S.target = toGame(event); canvas.setPointerCapture?.(event.pointerId); });
+  canvas.addEventListener('pointermove', (event) => { if (event.pointerType === 'mouse' || event.buttons || event.pressure) S.target = toGame(event); });
+  const hud = (name, value) => { const el = host.querySelector(`[data-g="${name}"]`); if (el) el.textContent = value; };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  function spawnFish(elapsed) {
+    const roll = Math.random();
+    const danger = Math.min(0.32, 0.12 + elapsed / 300);
+    const kind = roll < 0.05 ? 'gold' : roll < 0.05 + danger * 0.6 ? 'puffer' : roll < 0.05 + danger ? 'jelly' : roll < 0.7 ? 'small' : 'mid';
+    const def = FISH_KINDS[kind];
+    const fromLeft = Math.random() < 0.5;
+    const speed = rnd(...def.speed) * (1 + elapsed / 120);
+    if (kind === 'jelly') return S.fish.push({ kind, x: rnd(20, G.w - 20), y: G.h + 10, vx: rnd(-4, 4), vy: -speed, t: Math.random() * 6 });
+    S.fish.push({ kind, x: fromLeft ? -12 : G.w + 12, y: rnd(12, G.h - 26), vx: fromLeft ? speed : -speed, vy: 0, t: Math.random() * 6 });
+  }
+  function px(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+  function drawShark(sh, t) {
+    const hurt = t < S.hurtUntil && Math.floor(t / 100) % 2;
+    if (hurt) return;
+    const scale = sh.size;
+    const colors = { G: '#7d8a96', W: '#eef2f4', D: '#2b1f1d', o: '#111111' };
+    const mw = SHARK_MAP[0].length;
+    const mh = SHARK_MAP.length;
+    ctx.save();
+    ctx.translate(Math.round(sh.x), Math.round(sh.y));
+    ctx.scale(sh.dir * scale, scale);
+    SHARK_MAP.forEach((row, ry) => [...row].forEach((cell, rx) => {
+      if (cell === '.') return;
+      let color = colors[cell];
+      if (S.chomp > t && ry === 5 && rx >= 12) color = '#2b1f1d';
+      ctx.fillStyle = color;
+      ctx.fillRect(rx - mw / 2, ry - mh / 2, 1, 1);
+    }));
+    ctx.restore();
+  }
+  function drawFish(f, t) {
+    const def = FISH_KINDS[f.kind];
+    const dir = f.vx >= 0 ? 1 : -1;
+    const x = Math.round(f.x);
+    const y = Math.round(f.y + Math.sin(t / 300 + f.t) * (f.kind === 'jelly' ? 0 : 1.5));
+    if (f.kind === 'puffer') {
+      const r = 4 + Math.round(Math.sin(t / 250 + f.t));
+      px(x - r, y - r, r * 2, r * 2, '#2b1f1d');
+      px(x - r + 1, y - r + 1, r * 2 - 2, r * 2 - 2, def.color);
+      [[-r - 1, 0], [r, 0], [0, -r - 1], [0, r], [-r, -r], [r - 1, -r], [-r, r - 1], [r - 1, r - 1]].forEach(([dx, dy]) => px(x + dx, y + dy, 1, 1, '#2b1f1d'));
+      px(x + dir * 1, y - 1, 1, 1, '#111111');
+      return;
+    }
+    if (f.kind === 'jelly') {
+      ctx.globalAlpha = 0.85;
+      px(x - 4, y - 4, 8, 4, def.color);
+      px(x - 3, y - 5, 6, 1, def.color);
+      for (let i = 0; i < 4; i += 1) px(x - 3 + i * 2, y, 1, 3 + Math.round(Math.sin(t / 200 + i + f.t) * 1.5 + 1.5), '#c07ad8');
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const { w, h, color } = def;
+    px(x - w / 2, y - h / 2, w, h, '#2b1f1d');
+    px(x - w / 2 + 1, y - h / 2 + 1, w - 2, h - 2, color);
+    px(x - w / 2 + 1, y - h / 2 + 1, w - 2, 1, simsWorld.mixHex(color, '#ffffff', 0.3));
+    const tail = dir > 0 ? x - w / 2 - 3 : x + w / 2;
+    px(tail, y - h / 2, 3, h, '#2b1f1d');
+    px(tail + (dir > 0 ? 1 : 0), y - h / 2 + 1, 2, h - 2, simsWorld.mixHex(color, '#000000', 0.15));
+    px(x + dir * (w / 2 - 3), y - 1, 1, 1, '#111111');
+    if (f.kind === 'gold' && Math.floor(t / 150) % 2) px(x - 1, y - h / 2 - 2, 1, 1, '#fff6c8');
+  }
+  function drawSea(t) {
+    const grad = ctx.createLinearGradient(0, 0, 0, G.h);
+    grad.addColorStop(0, '#5cc0e8');
+    grad.addColorStop(1, '#0d3a66');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, G.w, G.h);
+    // Rayos de luz que se mueven.
+    ctx.globalAlpha = 0.08;
+    for (let i = 0; i < 5; i += 1) {
+      const x0 = ((i * 53 + t / 80) % (G.w + 60)) - 30;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(x0, 0);
+      ctx.lineTo(x0 + 12, 0);
+      ctx.lineTo(x0 + 40, G.h);
+      ctx.lineTo(x0 + 22, G.h);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Arena, algas y conchas.
+    px(0, G.h - 10, G.w, 10, '#d8bf88');
+    for (let x = 0; x < G.w; x += 4) px(x, G.h - 10 + ((x * 7) % 3), 2, 1, '#c4a870');
+    for (let i = 0; i < 7; i += 1) {
+      const sx = 12 + i * 29;
+      for (let k = 0; k < 6; k += 1) px(sx + Math.round(Math.sin(t / 500 + k * 0.6 + i) * 1.5), G.h - 12 - k * 3, 2, 3, k % 2 ? '#3f8a4f' : '#4c9a5a');
+    }
+    [[40, '#f49ab0'], [120, '#f7f2e6'], [170, '#f2a33a']].forEach(([sx, col]) => { px(sx, G.h - 5, 4, 2, col); px(sx + 1, G.h - 6, 2, 1, col); });
+    S.bubbles.forEach((b) => { ctx.globalAlpha = 0.6; px(b.x, b.y, b.r, b.r, '#dff4ff'); ctx.globalAlpha = 1; });
+  }
+  function finish() {
+    G.running = false;
+    G.over = true;
+    const mine = myAvatarPerson();
+    const record = S.score > best(mine);
+    const msg = host.querySelector('[data-g="msg"]');
+    msg.hidden = false;
+    msg.innerHTML = `<b>${record ? '🏆 ¡Nuevo récord!' : S.lives <= 0 ? '😵 ¡Ay, el pez globo!' : '⏱️ ¡Se acabó el tiempo!'}</b><span class="sims-game-score">${S.score} puntos</span><small>Tu récord: ${Math.max(S.score, best(mine))} · ${escapeHtml(partner || '')}: ${best(partner)}</small><div><button type="button" data-game-start>Otra vez</button><button type="button" data-game-quit>Salir</button></div>`;
+    simTune(record ? [523, 659, 784, 1047] : [660, 520, 440], 140, 'triangle');
+    if (record) saveSimLook({ sharkBest: S.score });
+    liveSend('game', { score: S.score, record });
+    boostNeeds({ fun: 25, energy: -5 }).catch(() => {});
+    const me = sims[meKey()];
+    if (me) simFloat(me, '🎮 +25');
+  }
+  function step(t) {
+    G.raf = requestAnimationFrame(step);
+    if (!host.isConnected) return cancelAnimationFrame(G.raf);
+    const dt = Math.min(0.05, (t - (S.last || t)) / 1000);
+    S.last = t;
+    if (G.running) {
+      S.time -= dt;
+      const elapsed = 60 - S.time;
+      S.spawn -= dt;
+      if (S.spawn <= 0) { spawnFish(elapsed); S.spawn = Math.max(0.28, 0.8 - elapsed / 120); }
+      // El tiburón va hacia el dedo.
+      const sh = S.shark;
+      if (S.target) {
+        const dx = S.target.x - sh.x;
+        const dy = S.target.y - sh.y;
+        const dist = Math.hypot(dx, dy);
+        const speed = Math.min(dist * 6, 120);
+        if (dist > 1) { sh.x += (dx / dist) * speed * dt; sh.y += (dy / dist) * speed * dt; }
+        if (Math.abs(dx) > 2) sh.dir = dx > 0 ? 1 : -1;
+      }
+      sh.x = Math.max(8, Math.min(G.w - 8, sh.x));
+      sh.y = Math.max(8, Math.min(G.h - 14, sh.y));
+      if (Math.random() < dt * 3) S.bubbles.push({ x: sh.x - sh.dir * 8, y: sh.y - 2, r: 1, v: rnd(10, 18) });
+      // Peces que nadan y lo que se come.
+      const mouth = { x: sh.x + sh.dir * 6 * sh.size, y: sh.y + 1 };
+      S.fish = S.fish.filter((f) => {
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+        if (f.kind === 'jelly') f.x += Math.sin(t / 600 + f.t) * 4 * dt;
+        if (f.x < -20 || f.x > G.w + 20 || f.y < -20) return false;
+        const def = FISH_KINDS[f.kind];
+        const reach = 5 * sh.size + Math.max(def.w, def.h) / 2;
+        const body = Math.hypot(f.x - sh.x, f.y - sh.y) < 4 * sh.size + Math.max(def.w, def.h) / 2 - 1;
+        if (def.danger) {
+          if (body && t > S.hurtUntil) {
+            S.lives -= 1;
+            S.hurtUntil = t + 1500;
+            S.combo = 0;
+            simBlip(160, 0.25, 'sawtooth', 0.08);
+            if (navigator.vibrate) try { navigator.vibrate(120); } catch {}
+            S.floats.push({ x: sh.x, y: sh.y - 10, text: '💥', life: 1 });
+            return false;
+          }
+          return true;
+        }
+        if (Math.hypot(f.x - mouth.x, f.y - mouth.y) < reach) {
+          S.combo = t - S.lastEat < 1300 ? S.combo + 1 : 1;
+          S.lastEat = t;
+          const mult = Math.min(4, S.combo);
+          const pts = def.pts * mult;
+          S.score += pts;
+          S.chomp = t + 160;
+          sh.size = Math.min(1.7, 1 + S.score / 160);
+          simBlip(f.kind === 'gold' ? 1500 : 700 + mult * 120, 0.06, 'square', 0.05);
+          S.floats.push({ x: f.x, y: f.y - 6, text: `+${pts}${mult > 1 ? ` x${mult}` : ''}`, life: 1, gold: f.kind === 'gold' });
+          return false;
+        }
+        return true;
+      });
+      if (S.time <= 0 || S.lives <= 0) { S.time = Math.max(0, S.time); finish(); }
+      hud('score', `🐟 ${S.score}`);
+      hud('lives', '❤️'.repeat(Math.max(0, S.lives)) + '🖤'.repeat(Math.max(0, 3 - S.lives)));
+      hud('time', `⏱️ ${Math.ceil(S.time)}`);
+    }
+    S.bubbles = S.bubbles.filter((b) => { b.y -= b.v * dt; return b.y > -4; });
+    if (Math.random() < dt * 2) S.bubbles.push({ x: rnd(0, G.w), y: G.h - 10, r: Math.random() < 0.3 ? 2 : 1, v: rnd(8, 16) });
+    S.floats = S.floats.filter((f) => { f.y -= 14 * dt; f.life -= dt; return f.life > 0; });
+    ctx.setTransform(G.k, 0, 0, G.k, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    drawSea(t);
+    S.fish.forEach((f) => drawFish(f, t));
+    drawShark(S.shark, t);
+    ctx.font = '7px "Pixelify Sans", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    S.floats.forEach((f) => {
+      ctx.globalAlpha = Math.min(1, f.life * 2);
+      ctx.fillStyle = '#2b1f1d';
+      ctx.fillText(f.text, f.x + 0.5, f.y + 0.5);
+      ctx.fillStyle = f.gold ? '#ffd23f' : '#ffffff';
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.globalAlpha = 1;
+    });
+  }
+  host.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (event.target.closest('[data-game-quit]')) {
+      cancelAnimationFrame(G.raf);
+      host.remove();
+      return;
+    }
+    if (event.target.closest('[data-game-start]')) {
+      reset();
+      fit();
+      host.querySelector('[data-g="msg"]').hidden = true;
+      G.running = true;
+      G.over = false;
+      simTune([523, 784], 100, 'triangle');
+    }
+  });
+  G.raf = requestAnimationFrame(step);
+}
+
+// ---------- Barra de herramientas del juego ----------
+const SIM_TOOLS = [
+  ['chat', '💬', 'Escribir un mensaje'],
+  ['photo', '📸', 'Hacer una foto'],
+  ['wardrobe', '👗', 'Cambiarte de ropa'],
+  ['decor', '🎨', 'Decorar la casa'],
+  ['game', '🦈', 'Jugar a Tiburón hambriento']
+];
+function handleSimTool(tool) {
+  hidePie();
+  if (tool === 'chat') return toggleChatBar();
+  if (tool === 'photo') return takeSimPhoto();
+  if (tool === 'wardrobe') return wardrobeCard();
+  if (tool === 'decor') return decorCard();
+  if (tool === 'game') return startSharkGame();
 }
 
 // ---------- Pantalla completa en horizontal ----------
@@ -2565,12 +3115,37 @@ function updateSoundButton() {
 simsHouse.addEventListener('click', async (event) => {
   // Si acabas de arrastrar para mirar por la casa, soltar el dedo no cuenta como toque.
   if (simsState.dragged) { simsState.dragged = false; return; }
+  const tool = event.target.closest('[data-tool]');
+  if (tool) return handleSimTool(tool.dataset.tool);
+  const chatbar = event.target.closest('.sims-chatbar');
+  if (chatbar) {
+    const quick = event.target.closest('[data-chat-quick]');
+    if (quick) sendSimChat(quick.dataset.chatQuick);
+    if (event.target.closest('[data-chat-close]')) toggleChatBar(false);
+    return;
+  }
+  if (event.target.closest('.sims-game')) return;
   const option = event.target.closest('[data-pie]');
   if (option) return handlePieChoice(option.dataset.pie);
   if (event.target.closest('.sims-hud-home')) return goHome();
   const appCard = event.target.closest('.sims-card');
   if (appCard) {
     if (event.target.closest('[data-card-close]') || event.target === appCard) return appCard.remove();
+    const outfit = event.target.closest('[data-outfit]');
+    if (outfit) {
+      pickOutfit(outfit.dataset.outfit);
+      appCard.querySelectorAll('[data-outfit]').forEach((button) => button.setAttribute('aria-pressed', String(button === outfit)));
+      return;
+    }
+    const decorButton = event.target.closest('[data-decor]');
+    if (decorButton) {
+      const [part, value] = decorButton.dataset.decor.split(':');
+      setDecorChoice(part, value);
+      appCard.querySelectorAll(`[data-decor^="${part}:"]`).forEach((button) => button.setAttribute('aria-pressed', String(button === decorButton)));
+      return;
+    }
+    if (event.target.closest('[data-snapshot-save]')) return saveSnapshot(event.target.closest('[data-snapshot-save]'));
+    if (event.target.closest('[data-snapshot-download]')) return downloadSnapshot();
     const toggle = event.target.closest('[data-shop-toggle]');
     if (toggle && typeof toggleShoppingItem === 'function') {
       await toggleShoppingItem(toggle.dataset.shopToggle);
@@ -2666,6 +3241,13 @@ simsHouse.addEventListener('pointermove', (event) => {
 }));
 // Añadir a la lista de la compra desde la nota de la nevera (de verdad).
 simsHouse.addEventListener('submit', async (event) => {
+  const chatForm = event.target.closest('.sims-chatbar');
+  if (chatForm) {
+    event.preventDefault();
+    sendSimChat(chatForm.text.value);
+    chatForm.text.value = '';
+    return;
+  }
   const form = event.target.closest('[data-shop-add]');
   if (!form) return;
   event.preventDefault();
@@ -2715,6 +3297,8 @@ window.addEventListener('umbral:avatars', () => {
   if (!simsState.open) return;
   renderSimsNeeds();
   followPartnerPlace();
+  loadSimPicks();
+  loadDecor();
   if (!live.partnerOnline) replayPartnerActivity();
 });
 // Un toque del otro con la casa abierta: se ve aquí (y no en la escena).
