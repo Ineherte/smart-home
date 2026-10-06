@@ -700,3 +700,92 @@ torso/clothes/shortsleeve/tshirt_scoop
 ```
 
 Kika (la perra de Ines), la casa, Turín, Chieti y España están dibujados a mano en código para esta app (sims-world.js y sims-places.js).
+
+## Ropa elegante y disfraces
+
+Hojas de assets/sims/outfits hechas con el mismo generador: Ines (elegante, bruja y Mamá Noel) y Matteo (elegante, diablo y Papá Noel). Piezas nuevas respecto a las anteriores:
+
+```
+dress/slit
+	- Note: original "TightDress" by Nila122, by ElizaWy, extended to all animation frames and edited for v3 bases by bluecarrot16
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 2.0, GPL 3.0
+	- Authors: Nila122, ElizaWy, bluecarrot16
+	- Links: https://opengameart.org/content/lpc-clothes-and-hair http://opengameart.org/content/lpc-clothing-updates
+
+dress/sash
+	- Note: adapted to v3 bases and recolored by bluecarrot16
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: bluecarrot16, Thane Brimhall (pennomi), laetissima, Matthew Krohn (makrohn)
+	- Links: https://opengameart.org/content/lpc-2-characters
+
+legs/leggings/male
+	- Note: Original bases by Redshrike, thrust/shoot bases by Wulax, original overalls by ElizaWy, base animations adapted from v3 overalls by bluecarrot16, leggings by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: bluecarrot16, ElizaWy, JaidynReiman, Mandi Paugh, William.Thompsonj, Johannes Sjölund (wulax), Stephen Challener (Redshrike)
+	- Links: https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing https://opengameart.org/content/lpc-expanded-pants
+
+legs/leggings
+	- Note: Original bases by Redshrike, thrust/shoot bases by Wulax, adapted from sara's leggings to v3 bases by bluecarrot16, jump/run/sit by JaidynReiman based on ElizaWy's and modified to match
+	- Licenses: OGA-BY 3.0
+	- Authors: bluecarrot16, ElizaWy, JaidynReiman, Mandi Paugh, William.Thompsonj, Johannes Sjölund (wulax), Stephen Challener (Redshrike)
+	- Links: http://opengameart.org/content/sara-wizard https://opengameart.org/content/lpc-sara https://opengameart.org/content/lpc-expanded-pants
+
+cape/solid/fg
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: bluecarrot16, JaidynReiman
+	- Links: https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more https://opengameart.org/content/lpc-roman-armor http://opengameart.org/content/lpc-clothing-updates
+
+cape/solid/bg
+	- Licenses: OGA-BY 3.0, CC-BY-SA 3.0, GPL 3.0
+	- Authors: Nila122, JaidynReiman
+	- Links: https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more https://opengameart.org/content/lpc-roman-armor
+
+hat/magic/wizard
+	- Note: Original Wizard Hat and Recolors by bigbeargames and reemax; split into separate layers with new recolors by JaidynReiman
+	- Licenses: CC-BY-SA 3.0, GPL 2.0, GPL 3.0
+	- Authors: Michael Whitlock (bigbeargames), Tuomo Untinen (reemax), JaidynReiman
+	- Links: https://opengameart.org/content/lpc-items-and-game-effects https://opengameart.org/content/lpc-pointed-hats https://opengameart.org/content/lpc-expanded-hats-facial-helmets
+
+hat/holiday/christmas
+	- Note: Santa/Elf Hat by bluecarrot16, untrimmed Santa Hat by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: bluecarrot16, JaidynReiman
+	- Links: https://opengameart.org/content/lpc-santa https://opengameart.org/content/lpc-expanded-hats-facial-helmets
+
+hat/holiday/santa
+	- Note: Santa Hat by bluecarrot16, split into layers by JaidynReiman
+	- Licenses: OGA-BY 3.0, GPL 3.0
+	- Authors: bluecarrot16, JaidynReiman
+	- Links: https://opengameart.org/content/lpc-santa https://opengameart.org/content/lpc-expanded-hats-facial-helmets
+
+torso/clothes/vest
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: bluecarrot16, Thane Brimhall (pennomi), laetissima, Stephen Challener (Redshrike), Johannes Sjölund (wulax)
+	- Links: https://opengameart.org/content/lpc-2-characters https://opengameart.org/content/lpc-gentleman https://opengameart.org/content/lpc-pirates
+
+torso/clothes/vest/male/gray_striped.png
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: Michael Whitlock (bigbeargames), bluecarrot16, Thane Brimhall (pennomi), laetissima
+	- Links: https://opengameart.org/content/lpc-2-characters
+
+torso/clothes/vest/male/gray.png
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: Michael Whitlock (bigbeargames), bluecarrot16, Thane Brimhall (pennomi), laetissima
+	- Links: https://opengameart.org/content/lpc-2-characters
+
+neck/tie/bowtie
+	- Note: Originally by pennomi/laetissima/Makrohn, edited by bluecarrot16, recolors by JaidynReiman
+	- Licenses: CC-BY-SA 3.0, GPL 3.0
+	- Authors: JaidynReiman, bluecarrot16, Thane Brimhall (pennomi), laetissima, Makrohn
+	- Links: https://opengameart.org/content/lpc-2-characters https://opengameart.org/content/lpc-gentleman
+
+beards/beard/winter
+	- Licenses: CC0
+	- Authors: bluecarrot16
+	- Links: https://opengameart.org/content/lpc-santa
+
+head/horns/curled
+	- Licenses: OGA-BY 3.0, GPL 3.0, CC-BY-SA 3.0
+	- Authors: Nila122
+	- Links: https://opengameart.org/content/lpc-lizard-headgear
+```

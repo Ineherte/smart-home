@@ -568,7 +568,15 @@
       }
     });
   }
-  function drawThemeWall(c, t) {
+  function drawThemeWall(c, t, s) {
+    // Lucecitas en la guirnalda de polaroids del dormitorio: se encienden al anochecer.
+    if (s && s.phase && s.phase.dark > 0.3) {
+      for (let i = 0; i < 9; i += 1) {
+        const bx = 70 + i * 8;
+        const by = 14 + Math.round(Math.sin((i / 8) * Math.PI) * 4);
+        R(c, bx, by, 1, 1, Math.floor(t / 900 + i) % 4 ? '#ffe9a8' : '#fff8d8');
+      }
+    }
     const theme = themeNow();
     if (theme === 'none') return;
     const blink = (i, speed = 700) => Math.floor(t / speed + i * 0.7) % 3 !== 0;
@@ -631,7 +639,7 @@
   }
   function drawThemeSpot(c, s, t) {
     const theme = themeNow();
-    const x = 26;
+    const x = 324;
     const y = 368;
     if (theme === 'xmas') {
       shadow(c, x, y, 14, 3, 0.3);
@@ -779,6 +787,16 @@
     for (let i = 443; i < 474; i += 3) R(c, i, 363, 1, 8, '#7a5a30');
     // Alfombras: la roja del salón, la del dormitorio, la del baño, la de la cocina y la esterilla.
     rug(c, 30, 276);
+    // Alfombra redonda de yute en el dormitorio y otra bajo la mesa de la cocina.
+    const roundRug = (cx, cy, rx, ry, base, ring) => {
+      ovalBox(c, cx, cy, rx, ry, base);
+      for (let r = 0.75; r > 0.2; r -= 0.25) { oval(c, cx, cy, rx * r, ry * r, ring); oval(c, cx, cy, rx * r - 1, ry * r - 1, base); }
+      c.globalAlpha = 0.12;
+      oval(c, cx - 2, cy - 2, rx * 0.6, ry * 0.4, '#ffffff');
+      c.globalAlpha = 1;
+    };
+    roundRug(184, 128, 24, 11, '#e2d2b4', '#c4ad86');
+    roundRug(392, 130, 52, 17, '#c9a27a', '#b07e52');
     R(c, 76, 132, 54, 24, OL);
     R(c, 77, 133, 52, 22, '#ebe1cd');
     for (let i = 80; i < 127; i += 8) R(c, i, 133, 3, 22, '#c97a52');
@@ -1584,6 +1602,52 @@
     R(c, x - 7, y - 9, 14, 1, '#cfc4b1');
   }
 
+  // Sillón de lectura junto a la librería, con mesita, lámpara y una manta.
+  function drawArmchair(c) {
+    const x = 444;
+    const y = 252;
+    const fabric = decor.sofa === 'mustard' ? '#7d7f4f' : '#c39a3c';
+    shadow(c, x + 14, y + 30, 16, 3, 0.25);
+    box(c, x + 2, y, 24, 14, tone(fabric, -0.1));
+    R(c, x + 4, y + 2, 20, 2, tone(fabric, 0.15));
+    box(c, x + 2, y + 10, 24, 16, fabric);
+    box(c, x + 4, y + 11, 20, 11, tone(fabric, 0.06), { hi: 0.2, lo: -0.18 });
+    box(c, x - 2, y + 6, 7, 20, tone(fabric, -0.14));
+    box(c, x + 23, y + 6, 7, 20, tone(fabric, -0.14));
+    R(c, x + 1, y + 26, 2, 3, '#3a2a20');
+    R(c, x + 25, y + 26, 2, 3, '#3a2a20');
+    // Manta de cuadros sobre el brazo.
+    for (let i = 0; i < 4; i += 1) for (let j = 0; j < 5; j += 1) R(c, x + 23 + (i % 2) * 3, y + 7 + j * 3, 3, 3, (i + j) % 2 ? '#efe2c8' : '#c0503e');
+  }
+  function drawSideTable(c, s) {
+    const x = 478;
+    const y = 262;
+    shadow(c, x + 6, y + 18, 7, 2, 0.22);
+    ovalBox(c, x + 6, y + 4, 7, 4, '#8a5a3a');
+    R(c, x + 5, y + 7, 2, 10, '#6a4a34');
+    R(c, x + 2, y + 16, 8, 2, '#6a4a34');
+    // Lámpara de lectura y una taza.
+    R(c, x + 4, y - 8, 1, 10, '#3a3a40');
+    box(c, x, y - 14, 9, 7, '#efe2c4');
+    R(c, x + 1, y - 13, 7, 1, '#fbf3dc');
+    box(c, x + 8, y, 4, 3, '#f4f1ea');
+  }
+  // Olivo en maceta en el rincón de la cocina.
+  function drawOliveTree(c, s, t) {
+    const x = 488;
+    const y = 124;
+    shadow(c, x, y + 2, 9, 2, 0.25);
+    box(c, x - 7, y - 10, 14, 11, '#c9714a');
+    R(c, x - 8, y - 11, 16, 3, '#b8603e');
+    R(c, x - 1, y - 30, 2, 20, '#7a5a3a');
+    const sway = Math.round(Math.sin(t / 1600) * 1);
+    [[-7, -36, 8, 6], [4, -38, 8, 6], [-2, -44, 9, 6], [-9, -28, 6, 4], [6, -30, 6, 4]].forEach(([dx, dy, rx, ry], i) => {
+      ovalBox(c, x + dx + sway, y + dy, rx, ry, i % 2 ? '#7f9a6a' : '#6f8a5c');
+      R(c, x + dx + sway - 2, y + dy - 2, 3, 1, '#a8c08e');
+    });
+    pixels(c, [[x - 4 + sway, y - 36], [x + 6 + sway, y - 40], [x + sway, y - 46], [x - 8 + sway, y - 28]], '#3a3a2a');
+  }
+
   // layer 'static': muebles pegados a la pared, que nunca tapan a nadie (se pintan una vez).
   const OBJECTS = [
     // Dormitorio
@@ -1631,7 +1695,10 @@
     { id: 'yoga', sort: 1, hit: [338, 298, 56, 20] },
     { id: 'door', sort: 1, hit: [434, 354, 46, 30] },
     // Adornos de la temática (si no hay, no se dibuja nada).
-    { id: 'themeSpot', sort: 368, block: [14, 356, 26, 14], draw: drawThemeSpot },
+    { id: 'armchair', sort: 281, block: [442, 258, 32, 22], draw: drawArmchair },
+    { id: 'sidetable', sort: 280, block: [478, 264, 14, 14], draw: drawSideTable },
+    { id: 'olivetree', sort: 125, block: [480, 114, 18, 12], draw: drawOliveTree },
+    { id: 'themeSpot', sort: 368, block: [312, 356, 26, 14], draw: drawThemeSpot },
     { id: 'themeTable', sort: 142, draw: drawThemeTable },
     { id: 'themeCoffee', sort: 311, draw: drawThemeCoffee }
   ];
@@ -2309,9 +2376,11 @@
         glow(90, 300, 70, `rgba(150,190,255,${flicker})`);
       }
       if (state.props.laptop) glow(262, 330, 24, 'rgba(170,210,255,.7)');
+      // Lucecitas del dormitorio y la lámpara del sillón.
+      if (scene.id === 'house' && ph.dark > 0.3) { glow(104, 18, 40, 'rgba(255,220,150,.75)', ph.dark); glow(482, 252, 26, 'rgba(255,214,150,.85)', ph.dark); }
       // Luces de la temática: el árbol de Navidad o las calabazas encendidas.
-      if (theme === 'xmas') glow(26, 340, 40, `rgba(255,220,150,${0.6 + Math.sin(t / 300) * 0.1})`);
-      if (theme === 'halloween') { glow(26, 356, 30, 'rgba(255,150,60,.85)'); glow(392, 120, 16, 'rgba(255,170,60,.7)'); }
+      if (theme === 'xmas') glow(324, 340, 40, `rgba(255,220,150,${0.6 + Math.sin(t / 300) * 0.1})`);
+      if (theme === 'halloween') { glow(324, 356, 30, 'rgba(255,150,60,.85)'); glow(392, 120, 16, 'rgba(255,170,60,.7)'); }
       if (theme === 'xmas') glow(392, 112, 14, 'rgba(255,190,110,.7)');
       if (state.bedMode === 'woohoo') glow(102, 100, 60, 'rgba(255,140,180,.9)');
       if (state.props.fridge) glow(358, 70, 34, 'rgba(255,250,200,.9)');
@@ -2464,7 +2533,7 @@
       }
       scene.drawBack?.(c, state, t);
       c.drawImage(staticLayer, 0, 0);
-      if (scene.id === 'house') drawThemeWall(c, t);
+      if (scene.id === 'house') drawThemeWall(c, t, state);
       drawSunbeams();
       // Muebles y muñecos ordenados por profundidad.
       const drawables = scene.objects.filter((object) => object.draw && object.layer !== 'static').map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));

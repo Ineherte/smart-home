@@ -136,6 +136,36 @@
       box(b, 88, 128, 24, 15, v.mailbox);
       R(b, 90, 130, 20, 1, tone(v.mailbox, 0.2));
       R(b, 92, 136, 10, 1, tone(v.mailbox, -0.25));
+      // Flores al pie de la valla y de la casa (según la estación; en invierno, nada).
+      const flowerColors = { spring: ['#f7b2c4', '#ffd23f', '#ffffff', '#a05ad8'], summer: ['#e0405a', '#ffd23f', '#f28a3a', '#ffffff'], autumn: ['#e8742a', '#c0503e', '#e3b86a'] }[info.season];
+      if (flowerColors && !(info.snowGround > 0)) {
+        [[54, 116, 180], [290, 356, 180], [132, 172, 161], [276, 272, 161]].forEach(([x0, x1, fy]) => {
+          for (let fx = x0; fx <= x1; fx += 4) {
+            const k = (fx * 7) % 11;
+            R(b, fx, fy - 2 - (k % 3), 1, 3 + (k % 3), '#3f8a4f');
+            R(b, fx - 1, fy - 4 - (k % 3), 3, 2, flowerColors[(fx / 4) % flowerColors.length | 0]);
+            R(b, fx, fy - 4 - (k % 3), 1, 1, '#fff6c8');
+          }
+        });
+      }
+      // Hiedra con rosas que sube por la esquina de la casa.
+      for (let vy = GROUND - 2; vy > HOUSE.top + 4; vy -= 3) {
+        const vx = HOUSE.x + 2 + Math.round(Math.sin(vy / 6) * 2);
+        R(b, vx, vy, 1, 3, '#3a6a3a');
+        if (vy % 6 === 0) { R(b, vx + 1, vy, 3, 2, '#4c9a5a'); R(b, vx - 2, vy + 1, 2, 2, '#3f8a4f'); }
+        if (info.season !== 'winter' && vy % 15 === 0) R(b, vx + 2, vy - 1, 2, 2, info.season === 'autumn' ? '#c0503e' : '#e0405a');
+      }
+      // Banco de madera junto a la valla.
+      R(b, 20, 172, 28, 3, OL);
+      R(b, 21, 172, 26, 2, '#a87048');
+      R(b, 20, 164, 28, 2, OL);
+      R(b, 21, 164, 26, 1, '#a87048');
+      [[22, 166], [44, 166]].forEach(([lx, ly]) => R(b, lx, ly, 2, 14, OL));
+      // Farolillos a los lados del camino.
+      [[182, 174], [222, 174]].forEach(([lx, ly]) => {
+        R(b, lx, ly - 8, 2, 10, OL);
+        box(b, lx - 2, ly - 13, 6, 6, '#3a3a36', { hi: 0.2, lo: -0.2 });
+      });
       // Arbustos.
       [[124, 160], [280, 160], [112, 166]].forEach(([bx, by]) => { ovalBox(b, bx, by, 9, 6, v.bush); oval(b, bx - 2, by - 2, 5, 3, v.bushB); });
     }
@@ -206,7 +236,16 @@
         }
         R(c, wx + ww / 2 - 0.5, wy, 1, wh, v.trim);
         R(c, wx, wy + wh / 2, ww, 1, v.trim);
+        if (!small) {
+          // Contraventanas verdes y jardinera con flores.
+          [wx - 6, wx + ww + 2].forEach((sx) => { box(c, sx, wy - 1, 4, wh + 2, '#4f7a5a', { hi: 0.2, lo: -0.2 }); for (let k = 2; k < wh; k += 3) R(c, sx + 1, wy + k, 2, 1, '#3f6a4a'); });
+          box(c, wx - 2, wy + wh + 1, ww + 4, 4, '#8a5a3a', { hi: 0.2, lo: -0.2 });
+          if (info.season !== 'winter') for (let k = 0; k < 5; k += 1) R(c, wx + k * 4, wy + wh - 1 - (k % 2), 2, 2, ['#e0405a', '#ffd23f', '#f7b2c4'][(k + wx) % 3]);
+          else R(c, wx - 2, wy + wh, ww + 4, 1, '#ffffff');
+        }
       });
+      // Tejadillo sobre la puerta.
+      for (let i = 0; i < 5; i += 1) R(c, DOOR.x - 6 + i, DOOR.y - 5 + i, DOOR.w + 12 - i * 2, 1, i === 0 ? OL : i % 2 ? v.roof : v.eave);
       // Puerta con su farol y la nota.
       box(c, DOOR.x, DOOR.y, DOOR.w, DOOR.h, v.door, { hi: 0.15, lo: -0.2 });
       R(c, DOOR.x + DOOR.w - 5, DOOR.y + 22, 2, 2, '#e3b86a');
@@ -219,6 +258,7 @@
         box(c, DOOR.x - 6, DOOR.y + 8, 28, 9, '#f4efe2');
         pixelText(c, 'VIAJE', DOOR.x - 2, DOOR.y + 10, '#2b1f1d');
       }
+      [[180, 161], [220, 161]].forEach(([lx, ly]) => R(c, lx + 1, ly + 1, 4, 4, info.nightness > 0.4 ? '#ffe9a8' : '#c8c0a8'));
       // Bandera del buzón si hay facturas.
       R(c, 112, info.mail ? 118 : 130, 2, info.mail ? 12 : 6, '#2b1f1d');
       if (info.mail) R(c, 114, 118, 7, 5, '#e0533f');
@@ -247,6 +287,14 @@
       }
       const sway = Math.round(Math.sin(t / 1400) * info.wind * 0.8);
       [[0, -48, 18], [-14, -40, 12], [14, -40, 12], [0, -62, 12]].forEach(([dx, dy, r], i) => ovalBox(c, tx + dx + sway, ty + dy, r, r * 0.8, i % 2 ? v.canopyB : v.canopy));
+      // Casita para pájaros en el tronco y un columpio colgado de la rama.
+      box(c, tx - 4, ty - 30, 8, 7, '#c0503e', { hi: 0.2, lo: -0.2 });
+      R(c, tx - 5, ty - 32, 10, 2, OL);
+      R(c, tx - 1, ty - 28, 2, 2, OL);
+      const swing = Math.sin(t / 900) * 2;
+      line(c, tx - 20, ty - 42, tx - 22 + swing, ty - 12, '#c8b48a');
+      line(c, tx - 10, ty - 42, tx - 12 + swing, ty - 12, '#c8b48a');
+      box(c, tx - 24 + swing, ty - 12, 15, 3, '#8a5a3a');
       if (info.season === 'spring') for (let i = 0; i < 12; i += 1) R(c, tx - 16 + ((i * 11) % 32) + sway, ty - 66 + ((i * 7) % 30), 2, 2, v.accent);
       if (info.season === 'autumn') for (let i = 0; i < 5; i += 1) {
         const k = ((t / 3000 + i / 5) % 1);
@@ -270,7 +318,15 @@
     }
 
     function drawDecor(t) {
-      const d = info.decor;
+      // La misma temática que hayáis puesto en la casa del modo Sims (si no, la de la fecha).
+      const sims = window.simsWorld?.themeNow?.();
+      const d = sims ? ({ xmas: 'christmas', halloween: 'halloween', valentine: 'valentine' }[sims] || null) : info.decor;
+      if (d === 'christmas') {
+        // Corona en la puerta.
+        ovalBox(c, DOOR.x + DOOR.w / 2, DOOR.y + 12, 5, 5, '#2f6a3c');
+        oval(c, DOOR.x + DOOR.w / 2, DOOR.y + 12, 2, 2, info.vars.door);
+        R(c, DOOR.x + DOOR.w / 2 - 1, DOOR.y + 16, 3, 2, '#e0533f');
+      }
       if (d === 'christmas') {
         for (let i = 0; i < 18; i += 1) R(c, HOUSE.x - 6 + i * 6.6, HOUSE.top + 2 + (i % 2), 2, 2, ['#e0533f', '#f2c230', '#3fd46a', '#4a8fe0'][(i + Math.floor(t / 500)) % 4]);
         for (let i = 0; i < 7; i += 1) R(c, 140 - i * 1.5, 150 + i * 3, 3 + i * 3, 3, '#2f6a3c');
@@ -306,6 +362,15 @@
         const flap = Math.floor(t / 200 + i) % 2;
         pixels(c, [[bx - 3, by - flap, 3, 1], [bx + 1, by - flap, 3, 1], [bx, by + 1 - flap, 1, 1]], '#2b2f3a');
       }
+      // Mariposas entre las flores en primavera y verano, de día.
+      if ((info.season === 'spring' || info.season === 'summer') && info.nightness < 0.3 && !info.drops) for (let i = 0; i < 3; i += 1) {
+        const bx = 70 + ((i * 97 + t / (90 + i * 20)) % 260);
+        const by = 166 + Math.sin(t / 500 + i * 2) * 8;
+        const open = Math.floor(t / 120 + i) % 2;
+        const col = ['#ffd23f', '#f7b2c4', '#8ad0f0'][i];
+        pixels(c, open ? [[bx - 2, by - 1, 2, 2], [bx + 1, by - 1, 2, 2]] : [[bx - 1, by - 1, 1, 2], [bx + 1, by - 1, 1, 2]], col);
+        R(c, bx, by - 1, 1, 2, OL);
+      }
       if (info.fireflies) for (let i = 0; i < 8; i += 1) {
         if (Math.sin(t / 400 + i * 2) < 0.3) continue;
         R(c, 40 + ((i * 47 + t / 80) % 320), 150 + Math.sin(t / 700 + i) * 12 + (i % 3) * 8, 1, 1, '#f6f08a');
@@ -329,6 +394,13 @@
 
     // ---------- Ines y Matteo ----------
     const outfitSprite = (key) => {
+      // Si en el modo Sims os habéis puesto algo (elegante, disfraz…), aquí también.
+      const pick = typeof simsState !== 'undefined' ? simsState.outfitPick?.[key] : null;
+      if (pick && pick !== 'auto' && pick !== 'pajamas') {
+        if (pick === 'casual') return key;
+        window.simsWorld.loadSheet(`${key}-${pick}`);
+        return `${key}-${pick}`;
+      }
       const o = info.outfit;
       const kind = o === 'hot' ? 'hot' : o === 'cold' || o === 'rain' ? 'cold' : null;
       if (kind) window.simsWorld.loadSheet(`${key}-${kind}`);
@@ -485,6 +557,8 @@
       };
       (info.lit || []).forEach((room) => { const w = WINDOWS[room]; if (w) glow(w[0] + 7, w[1] + 6, 22, 0.35 * info.nightness); });
       if (info.porch) glow(DOOR.x + DOOR.w + 5, DOOR.y + 5, 26, 0.45);
+      // Farolillos del camino y lucecitas en el columpio.
+      if (info.nightness > 0.4) [[183, 158], [223, 158]].forEach(([lx, ly]) => glow(lx, ly, 18, 0.5 * info.nightness));
       c.restore();
     }
 

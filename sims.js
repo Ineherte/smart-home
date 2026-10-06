@@ -2823,8 +2823,8 @@ function startSharkGame() {
   const G = { w: 200, h: 150, k: 2, running: false, over: false, raf: 0 };
   function fit() {
     const rect = host.getBoundingClientRect();
-    G.w = 200;
-    G.h = Math.max(110, Math.round(200 * (rect.height / Math.max(1, rect.width))));
+    G.w = 160;
+    G.h = Math.max(90, Math.round(160 * (rect.height / Math.max(1, rect.width))));
     G.k = Math.max(1, Math.round((rect.width * (window.devicePixelRatio || 1)) / G.w));
     canvas.width = G.w * G.k;
     canvas.height = G.h * G.k;
@@ -2893,13 +2893,25 @@ function startSharkGame() {
       return;
     }
     const { w, h, color } = def;
-    px(x - w / 2, y - h / 2, w, h, '#2b1f1d');
-    px(x - w / 2 + 1, y - h / 2 + 1, w - 2, h - 2, color);
-    px(x - w / 2 + 1, y - h / 2 + 1, w - 2, 1, simsWorld.mixHex(color, '#ffffff', 0.3));
-    const tail = dir > 0 ? x - w / 2 - 3 : x + w / 2;
-    px(tail, y - h / 2, 3, h, '#2b1f1d');
-    px(tail + (dir > 0 ? 1 : 0), y - h / 2 + 1, 2, h - 2, simsWorld.mixHex(color, '#000000', 0.15));
-    px(x + dir * (w / 2 - 3), y - 1, 1, 1, '#111111');
+    const L = x - w / 2;
+    const T = y - h / 2;
+    const light = simsWorld.mixHex(color, '#ffffff', 0.35);
+    const dark = simsWorld.mixHex(color, '#000000', 0.25);
+    // Cuerpo redondeado con contorno, barriga clara, aleta y cola que se mueve.
+    px(L + 1, T, w - 2, h, '#2b1f1d');
+    px(L, T + 1, w, h - 2, '#2b1f1d');
+    px(L + 1, T + 1, w - 2, h - 2, color);
+    px(L + 2, T + h - 3, w - 4, 1, light);
+    px(L + 2, T + 1, w - 4, 1, light);
+    if (f.kind === 'mid') for (let i = 3; i < w - 3; i += 3) px(L + i, T + 1, 1, h - 2, dark);
+    px(x - dir * 1, T - 1, 3, 1, '#2b1f1d');
+    px(x - dir * 1, T, 2, 1, dark);
+    const flap = Math.round(Math.sin(t / 90 + f.t));
+    const tail = dir > 0 ? L - 3 : L + w;
+    px(tail, y - 2 + flap, 3, 4, '#2b1f1d');
+    px(tail + (dir > 0 ? 0 : 1), y - 1 + flap, 2, 2, dark);
+    px(x + dir * (w / 2 - 3), y - 1, 2, 2, '#ffffff');
+    px(x + dir * (w / 2 - 3) + (dir > 0 ? 1 : 0), y - 1, 1, 1, '#111111');
     if (f.kind === 'gold' && Math.floor(t / 150) % 2) px(x - 1, y - h / 2 - 2, 1, 1, '#fff6c8');
   }
   function drawSea(t) {
@@ -3294,11 +3306,12 @@ window.addEventListener('popstate', () => {
 });
 // Cambios de ánimo o actividad (tuyos o del otro, en directo).
 window.addEventListener('umbral:avatars', () => {
+  // La ropa elegida y la decoración también se ven en el jardín de inicio.
+  loadSimPicks();
+  loadDecor();
   if (!simsState.open) return;
   renderSimsNeeds();
   followPartnerPlace();
-  loadSimPicks();
-  loadDecor();
   if (!live.partnerOnline) replayPartnerActivity();
 });
 // Un toque del otro con la casa abierta: se ve aquí (y no en la escena).
