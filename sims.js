@@ -304,7 +304,7 @@ const SIM_TIPS = [
 
 const simsModal = document.querySelector('#simsModal');
 const simsHouse = document.querySelector('#simsHouse');
-const simsState = { open: false, timer: null, raf: 0, last: 0, needsOf: 'me', tip: 0, sound: true, zoom: false, world: null, bubbles: [], pieAt: null, photoIndex: 0, npcs: [], dog: null, nextTram: 0 };
+const simsState = { open: false, timer: null, raf: 0, last: 0, needsOf: 'me', tip: 0, sound: true, zoom: false, world: null, bubbles: [], pieAt: null, photoIndex: 0, npcs: [], dog: null, nextTram: 0, full: false, needsMini: false, drag: null, dragged: false, wakeLock: null };
 try {
   simsState.sound = localStorage.getItem('umbral-sims-sound') !== 'off';
   simsState.zoom = localStorage.getItem('umbral-sims-zoom') === 'on';
@@ -346,6 +346,65 @@ async function simTune(notes, gap = 120, type = 'sine') {
     await simWait(gap);
   }
 }
+// Sonido ambiente muy bajito: lluvia de fondo, pájaros de día fuera, grillos de noche.
+// Solo con el sonido puesto.
+let simsRain = null;
+function simChirp(from, to, duration, volume = 0.025) {
+  if (!simsState.sound || !simsAudio) return;
+  try {
+    const t = simsAudio.currentTime;
+    const oscillator = simsAudio.createOscillator();
+    const gain = simsAudio.createGain();
+    oscillator.frequency.setValueAtTime(from, t);
+    oscillator.frequency.exponentialRampToValueAtTime(to, t + duration);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(volume, t + duration * 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    oscillator.connect(gain).connect(simsAudio.destination);
+    oscillator.start(t);
+    oscillator.stop(t + duration + 0.02);
+  } catch {}
+}
+function setRainSound(on) {
+  if (!on || !simsState.sound || !simsAudio) {
+    if (simsRain) { try { simsRain.gain.gain.setTargetAtTime(0, simsAudio.currentTime, 0.4); const node = simsRain.source; setTimeout(() => { try { node.stop(); } catch {} }, 1500); } catch {} simsRain = null; }
+    return;
+  }
+  if (simsRain) return;
+  try {
+    const buffer = simsAudio.createBuffer(1, simsAudio.sampleRate * 2, simsAudio.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i += 1) data[i] = Math.random() * 2 - 1;
+    const source = simsAudio.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const filter = simsAudio.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    const gain = simsAudio.createGain();
+    gain.gain.value = 0;
+    source.connect(filter).connect(gain).connect(simsAudio.destination);
+    source.start();
+    gain.gain.setTargetAtTime(curScene() === 'house' ? 0.018 : 0.035, simsAudio.currentTime, 0.8);
+    simsRain = { source, gain };
+  } catch {}
+}
+function ambientTick() {
+  const w = world();
+  if (!w || !simsAudio || !simsState.sound) return setRainSound(false);
+  const code = w.state.weather.code;
+  const rain = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+  setRainSound(rain);
+  const outdoor = curScene() !== 'house';
+  if (w.state.time === 'night') {
+    if (Math.random() < (outdoor ? 0.7 : 0.25)) [0, 120, 240].forEach((ms) => setTimeout(() => simChirp(4200, 4000, 0.06, outdoor ? 0.012 : 0.006), ms));
+  } else if (!rain && Math.random() < (outdoor ? 0.45 : 0.15)) {
+    const base = 2200 + Math.random() * 1400;
+    simChirp(base, base * 1.4, 0.12, outdoor ? 0.02 : 0.008);
+    setTimeout(() => simChirp(base * 1.2, base * 0.9, 0.1, outdoor ? 0.018 : 0.007), 160);
+  }
+}
+
 const SMOOCH = () => simTune([1400, 1800], 70);
 const GRUMBLE = () => simTune([180, 150, 170, 130], 110, 'sawtooth');
 const ROMANTIC = () => simTune([523, 659, 784, 659, 698, 880, 784], 260, 'triangle');
@@ -2019,6 +2078,7 @@ async function walkHere(point) {
   const w = world();
   if (!sim || !w || !simsWorld.free(point.x, point.y)) return;
   w.state.marker = { x: point.x, y: point.y, t0: performance.now() };
+  w.endPan();
   liveSend('walk', { x: Math.round(point.x), y: Math.round(point.y) });
   simBlip(1180, 0.05);
   const token = ++sim.token;
@@ -2376,6 +2436,7 @@ function simsTick() {
   refreshAppData();
   lookAtEachOther();
   npcTick();
+  ambientTick();
   // Ropa según dónde estéis, la hora y el tiempo (si no están haciendo nada).
   Object.values(sims).forEach((sim) => { if (!sim.busy) checkOutfit(sim); });
   // Mientras eliges en el menú, nadie hace nada por su cuenta.
@@ -2436,9 +2497,11 @@ function closeSims() {
 }
 
 function hideSims() {
+  if (simsState.full) setSimsFull(false);
   simsModal.classList.remove('visible');
   simsState.open = false;
   liveDisconnect();
+  setRainSound(false);
   clearInterval(simsState.timer);
   cancelAnimationFrame(simsState.raf);
   Object.values(sims).forEach((sim) => { sim.token += 1; stopSim(sim); });
@@ -2452,6 +2515,46 @@ function updateZoom() {
   if (world()) world().state.zoom = simsState.zoom;
 }
 
+// ---------- Pantalla completa en horizontal ----------
+// El juego ocupa toda la pantalla, gira a horizontal si el móvil lo permite (Android) y la
+// cámara sigue a tu muñeco. En iPhone, que no deja poner una web en pantalla completa, ocupa
+// toda la ventana y basta con girar el móvil.
+async function setSimsFull(on) {
+  simsState.full = on;
+  simsModal.classList.toggle('is-full', on);
+  const button = document.querySelector('#simsFull');
+  button.setAttribute('aria-pressed', String(on));
+  button.setAttribute('aria-label', on ? 'Salir de pantalla completa' : 'Pantalla completa');
+  button.title = button.getAttribute('aria-label');
+  hidePie();
+  world()?.endPan();
+  if (on) {
+    const rotate = document.querySelector('#simsRotate');
+    rotate.classList.remove('is-shown');
+    void rotate.offsetWidth;
+    rotate.classList.add('is-shown');
+    try { if (!document.fullscreenElement) await simsModal.requestFullscreen?.({ navigationUI: 'hide' }); } catch {}
+    try { await screen.orientation?.lock?.('landscape'); } catch {}
+    try { simsState.wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
+  } else {
+    try { screen.orientation?.unlock?.(); } catch {}
+    try { if (document.fullscreenElement === simsModal) await document.exitFullscreen(); } catch {}
+    try { await simsState.wakeLock?.release(); } catch {}
+    simsState.wakeLock = null;
+  }
+  requestAnimationFrame(() => world()?.resize());
+}
+
+document.addEventListener('fullscreenchange', () => {
+  // Salir con el gesto del sistema (atrás, Esc) también quita el modo pantalla completa.
+  if (!document.fullscreenElement && simsState.full) setSimsFull(false);
+});
+document.addEventListener('visibilitychange', async () => {
+  // El bloqueo de pantalla encendida se pierde al cambiar de app: se pide otra vez al volver.
+  if (document.hidden || !simsState.full || !simsState.open || (simsState.wakeLock && !simsState.wakeLock.released)) return;
+  try { simsState.wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
+});
+
 function updateSoundButton() {
   const button = document.querySelector('#simsSound');
   button.setAttribute('aria-pressed', String(simsState.sound));
@@ -2460,6 +2563,8 @@ function updateSoundButton() {
 }
 
 simsHouse.addEventListener('click', async (event) => {
+  // Si acabas de arrastrar para mirar por la casa, soltar el dedo no cuenta como toque.
+  if (simsState.dragged) { simsState.dragged = false; return; }
   const option = event.target.closest('[data-pie]');
   if (option) return handlePieChoice(option.dataset.pie);
   if (event.target.closest('.sims-hud-home')) return goHome();
@@ -2533,6 +2638,32 @@ simsHouse.addEventListener('pointermove', (event) => {
   w.canvas.style.cursor = (id && SIM_OBJECTS[id]) || w.actorAt(point.x, point.y) ? 'pointer' : 'default';
 });
 simsHouse.addEventListener('pointerleave', () => { if (world()) world().state.hover = null; });
+// Arrastrar el dedo (o el ratón) por la casa para mirar alrededor cuando no cabe entera.
+simsHouse.addEventListener('pointerdown', (event) => {
+  const w = world();
+  if (!w || event.target !== w.canvas) return;
+  simsState.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+  simsState.dragged = false;
+});
+simsHouse.addEventListener('pointermove', (event) => {
+  const drag = simsState.drag;
+  const w = world();
+  if (!drag || !w || drag.id !== event.pointerId) return;
+  const dx = event.clientX - drag.x;
+  const dy = event.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 10) return;
+  const { view, cam } = w.state;
+  if (view.w / cam.z >= simsWorld.W - 1 && view.h / cam.z >= simsWorld.H - 1) return;
+  if (!drag.moved) { drag.moved = true; hidePie(); w.canvas.setPointerCapture?.(event.pointerId); }
+  w.panBy(dx, dy);
+  drag.x = event.clientX;
+  drag.y = event.clientY;
+});
+['pointerup', 'pointercancel'].forEach((type) => simsHouse.addEventListener(type, (event) => {
+  if (simsState.drag?.id !== event.pointerId) return;
+  simsState.dragged = simsState.drag.moved && type === 'pointerup';
+  simsState.drag = null;
+}));
 // Añadir a la lista de la compra desde la nota de la nevera (de verdad).
 simsHouse.addEventListener('submit', async (event) => {
   const form = event.target.closest('[data-shop-add]');
@@ -2547,6 +2678,11 @@ simsHouse.addEventListener('submit', async (event) => {
   simsHouse.querySelector('[data-shop-add] input')?.focus();
 });
 document.querySelector('#simsNeeds').addEventListener('click', (event) => {
+  // En pantalla completa, el diamante pliega y despliega las necesidades.
+  if (simsState.full && event.target.closest('.sims-plumbob')) {
+    simsState.needsMini = !simsState.needsMini;
+    return event.currentTarget.classList.toggle('is-mini', simsState.needsMini);
+  }
   const who = event.target.closest('[data-needs-who]');
   if (!who) return;
   simsState.needsOf = who.dataset.needsWho;
@@ -2556,9 +2692,10 @@ document.querySelector('#simsSound').addEventListener('click', () => {
   simsState.sound = !simsState.sound;
   try { localStorage.setItem('umbral-sims-sound', simsState.sound ? 'on' : 'off'); } catch {}
   updateSoundButton();
-  if (!simsState.sound) try { speechSynthesis.cancel(); } catch {}
+  if (!simsState.sound) { setRainSound(false); try { speechSynthesis.cancel(); } catch {} }
 });
 document.querySelector('#closeSims').addEventListener('click', closeSims);
+document.querySelector('#simsFull').addEventListener('click', () => setSimsFull(!simsState.full));
 document.querySelector('#simsZoom').addEventListener('click', () => {
   hidePie();
   simsState.zoom = !simsState.zoom;

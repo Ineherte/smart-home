@@ -1830,6 +1830,10 @@
       marker: null,
       flashUntil: 0,
       cam: { x: 0, y: 0, z: 1 },
+      // Lo que cabe en pantalla (en píxeles del mundo): toda la casa en 4:3, o una franja que
+      // sigue a tu muñeco en pantalla completa horizontal.
+      view: { w: W, h: H },
+      pan: null,
       follow: null,
       zoom: false,
       scene: 'house',
@@ -1870,9 +1874,13 @@
     function resize() {
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
-      scale = Math.max(1, Math.min(4, Math.round((rect.width * dpr) / W) || 2));
-      canvas.width = W * scale;
-      canvas.height = H * scale;
+      const aspect = rect.width && rect.height ? rect.width / rect.height : W / H;
+      // Más ancha que 4:3: se ve todo el ancho y la cámara sube y baja; más alta: al revés.
+      const view = aspect >= W / H ? { w: W, h: Math.round(W / aspect) } : { w: Math.round(H * aspect), h: H };
+      state.view = view;
+      scale = Math.max(1, Math.min(5, Math.round((rect.width * dpr) / view.w) || 2));
+      canvas.width = view.w * scale;
+      canvas.height = view.h * scale;
     }
     const observer = 'ResizeObserver' in window ? new ResizeObserver(resize) : null;
     observer?.observe(canvas);
@@ -1952,16 +1960,22 @@
       const z = state.zoom ? 2 : 1;
       cam.z += (z - cam.z) * 0.15;
       if (Math.abs(cam.z - z) < 0.01) cam.z = z;
-      const vw = W / cam.z;
-      const vh = H / cam.z;
+      const vw = state.view.w / cam.z;
+      const vh = state.view.h / cam.z;
       let tx = 0;
       let ty = 0;
-      if (state.follow && cam.z > 1.01) {
-        tx = Math.max(0, Math.min(W - vw, state.follow.x - vw / 2));
-        ty = Math.max(0, Math.min(H - vh, state.follow.y - 24 - vh / 2));
+      if (state.pan) {
+        // Arrastrando el dedo para mirar por la casa: manda el dedo hasta que vuelves a andar.
+        tx = state.pan.x;
+        ty = state.pan.y;
+      } else if (state.follow && (cam.z > 1.01 || vw < W - 1 || vh < H - 1)) {
+        tx = state.follow.x - vw / 2;
+        ty = state.follow.y - 24 - vh / 2;
       }
-      cam.x += (tx - cam.x) * 0.12;
-      cam.y += (ty - cam.y) * 0.12;
+      tx = Math.max(0, Math.min(W - vw, tx));
+      ty = Math.max(0, Math.min(H - vh, ty));
+      cam.x += (tx - cam.x) * (state.pan ? 0.5 : 0.12);
+      cam.y += (ty - cam.y) * (state.pan ? 0.5 : 0.12);
       cam.x = Math.max(0, Math.min(W - vw, cam.x));
       cam.y = Math.max(0, Math.min(H - vh, cam.y));
     }
@@ -2170,12 +2184,12 @@
     function toWorld(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
       const cam = state.cam;
-      return { x: cam.x + ((clientX - rect.left) / rect.width) * (W / cam.z), y: cam.y + ((clientY - rect.top) / rect.height) * (H / cam.z) };
+      return { x: cam.x + ((clientX - rect.left) / rect.width) * (state.view.w / cam.z), y: cam.y + ((clientY - rect.top) / rect.height) * (state.view.h / cam.z) };
     }
     function toScreen(x, y) {
       const rect = canvas.getBoundingClientRect();
       const cam = state.cam;
-      return { x: ((x - cam.x) * cam.z * rect.width) / W, y: ((y - cam.y) * cam.z * rect.height) / H, width: rect.width, height: rect.height };
+      return { x: ((x - cam.x) * cam.z * rect.width) / state.view.w, y: ((y - cam.y) * cam.z * rect.height) / state.view.h, width: rect.width, height: rect.height };
     }
     function objectAt(x, y) {
       return scene.objects.filter((object) => object.hit && inRect(x, y, object.hit)).sort((a, b) => b.sort - a.sort)[0]?.id || null;
@@ -2206,6 +2220,16 @@
       scene: () => scene,
       setPhotos,
       throwItem: (from, to, dur = 600, kind = 'pillow') => state.projectiles.push({ x0: from.x, y0: from.y, x1: to.x, y1: to.y, t0: performance.now(), dur, kind }),
+      resize,
+      // Mirar por la casa arrastrando: desplaza la cámara en píxeles de pantalla.
+      panBy(dx, dy) {
+        const rect = canvas.getBoundingClientRect();
+        const cam = state.cam;
+        const k = rect.width ? state.view.w / cam.z / rect.width : 1;
+        const from = state.pan || { x: cam.x, y: cam.y };
+        state.pan = { x: Math.max(0, Math.min(W - state.view.w / cam.z, from.x - dx * k)), y: Math.max(0, Math.min(H - state.view.h / cam.z, from.y - dy * k)) };
+      },
+      endPan: () => { state.pan = null; },
       destroy: () => observer?.disconnect()
     };
   }

@@ -2562,3 +2562,46 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
 }
+
+/* ---------- Modo Sims a pantalla completa (horizontal) ---------- */
+.sims-full { font-size: 17px; }
+.sims-full[aria-pressed="true"] { background: var(--green); color: var(--lime); }
+.sims-rotate { display: none; }
+.sims-modal.is-full { background: #0d0a0a; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.sims-modal.is-full .sims-panel { position: fixed; inset: 0; width: 100%; height: 100%; padding: 0; overflow: hidden; border-radius: 0; background: #0d0a0a; box-shadow: none; transform: none; }
+.sims-modal.is-full .modal-heading { position: absolute; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); left: auto; z-index: 8; margin: 0; padding: 0; border: 0; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.sims-modal.is-full .modal-heading > div:first-child { display: none; }
+.sims-modal.is-full .sims-heading-actions { flex-direction: column; gap: 6px; }
+.sims-modal.is-full .sims-heading-actions .icon-button { border: 2px solid #2b1f1d; border-radius: 8px; background: rgba(250, 244, 230, .94); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12), 0 2px 0 rgba(0, 0, 0, .3); color: #2b1f1d; }
+.sims-modal.is-full .sims-heading-actions .icon-button[aria-pressed="true"] { background: #3fbf6a; color: #fff; }
+.sims-modal.is-full .sims-house { position: absolute; inset: 0; margin: 0; background: #0d0a0a; }
+.sims-modal.is-full .sims-canvas { width: 100%; height: 100%; aspect-ratio: auto; touch-action: none; }
+.sims-modal.is-full .sims-overlay { z-index: 1; }
+/* Viñeta suave en los bordes, como en un juego. */
+.sims-modal.is-full .sims-house::after { content: ""; position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse at center, transparent 62%, rgba(10, 6, 6, .38) 100%); pointer-events: none; }
+.sims-modal.is-full .sims-hud { inset: max(8px, env(safe-area-inset-top)) calc(max(8px, env(safe-area-inset-right)) + 50px) auto max(8px, env(safe-area-inset-left)); }
+.sims-modal.is-full .sims-needs { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: max(8px, env(safe-area-inset-left)); z-index: 7; width: 152px; margin: 0; padding: 6px 7px; border: 2px solid #2b1f1d; border-radius: 8px; background: rgba(250, 244, 230, .92); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12), 0 3px 0 rgba(0, 0, 0, .3); color: #2b1f1d; font-family: "Pixelify Sans", var(--font-body); }
+.sims-modal.is-full .sims-needs-head { margin-bottom: 4px; gap: 4px; }
+.sims-modal.is-full .sims-needs-head .sims-plumbob { width: 13px; height: 13px; }
+.sims-modal.is-full .sims-needs-head .segmented { padding: 2px; }
+.sims-modal.is-full .sims-needs-head .segmented button { padding: 2px 5px; font-size: 10px; }
+.sims-modal.is-full .sims-plumbob { cursor: pointer; }
+.sims-modal.is-full .sims-needs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+.sims-modal.is-full .sims-need { gap: 4px; }
+.sims-modal.is-full .sims-need:last-child { grid-column: auto; }
+.sims-modal.is-full .sims-need small { display: none; }
+.sims-modal.is-full .sims-need-emoji { font-size: 11px; }
+.sims-modal.is-full .sims-need-track { height: 5px; background: rgba(43, 31, 29, .15); }
+.sims-modal.is-full .sims-needs.is-mini { width: auto; padding: 8px; }
+.sims-modal.is-full .sims-needs.is-mini .sims-needs-grid, .sims-modal.is-full .sims-needs.is-mini .segmented { display: none; }
+.sims-modal.is-full .sims-needs.is-mini .sims-needs-head { margin: 0; }
+.sims-modal.is-full .sims-tip { display: none; }
+.sims-modal.is-full .sims-rotate.is-shown { position: absolute; top: 50%; left: 50%; z-index: 9; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 2px solid #2b1f1d; border-radius: 8px; background: rgba(250, 244, 230, .96); color: #2b1f1d; font: 15px "Pixelify Sans", var(--font-body); white-space: nowrap; pointer-events: none; transform: translate(-50%, -50%); animation: sims-rotate-hint 3.2s ease forwards; }
+.sims-rotate span { display: inline-block; font-size: 22px; animation: sims-rotate-phone 1.2s ease-in-out 2; }
+@media (orientation: landscape) { .sims-modal.is-full .sims-rotate.is-shown { display: none; } }
+@keyframes sims-rotate-hint { 0%, 80% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes sims-rotate-phone { 0%, 20% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+/* En horizontal y poca altura, sin pantalla completa: la casa cabe sin tener que desplazarse. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sims-modal:not(.is-full) .sims-canvas { width: auto; height: calc(100dvh - 120px); margin: 0 auto; }
+}

@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=41" />
+    <link rel="stylesheet" href="styles.css?v=42" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -465,10 +465,11 @@
     </div>
     <div class="sims-modal" id="simsModal" role="dialog" aria-modal="true" aria-labelledby="simsTitle">
       <div class="sims-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa">🔍</button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido">🔊</button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
+        <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-full" type="button" id="simsFull" aria-pressed="false" aria-label="Pantalla completa" title="Pantalla completa">⛶</button><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa">🔍</button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido">🔊</button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
         <div class="sims-house" id="simsHouse"></div>
         <div class="sims-needs" id="simsNeeds"></div>
         <button type="button" class="sims-tip" id="simsTip"></button>
+        <div class="sims-rotate" id="simsRotate" aria-hidden="true"><span>📱</span>Gira el móvil para jugar en horizontal</div>
       </div>
     </div>
     <div class="toast" role="status" aria-live="polite"><i data-lucide="check"></i><span></span></div>
@@ -491,10 +492,10 @@
     <script src="kitchen.js?v=3"></script>
     <script src="nosotros.js?v=5"></script>
     <script src="avatars.js?v=6"></script>
-    <script src="sims-world.js?v=5"></script>
+    <script src="sims-world.js?v=6"></script>
     <script src="sims-places.js?v=2"></script>
     <script src="garden.js?v=1"></script>
-    <script src="sims.js?v=6"></script>
+    <script src="sims.js?v=7"></script>
     <script src="app.js?v=45"></script>
   </body>
 </html>
