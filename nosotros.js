@@ -78,6 +78,7 @@ async function loadUs() {
     return;
   }
   if (!specialDates.length) await seedDates();
+  await loadPlaces();
   renderUs();
   shareWithScene();
 }
@@ -220,12 +221,172 @@ function renderPlans() {
     ${done.length ? `<section class="todo-section"><p class="list-group-title"><i data-lucide="trophy"></i>Hechos, por nota<span>${done.length}</span></p>${done.map(planCard).join('')}</section>` : ''}`;
 }
 
+// ---------- Mapa: los sitios en los que habéis estado juntos ----------
+// Se guardan en la tabla places (places.sql). Si aún no existe, el mapa funciona en este
+// móvil con los sitios de siempre y avisa de que falta ejecutar el SQL para compartirlo.
+const placesStore = createHouseholdStore({ table: 'places', localKey: 'umbral-places' });
+const PLACE_KINDS = {
+  home: { label: 'Casa', emoji: '🏠' },
+  family: { label: 'Familia', emoji: '👪' },
+  trip: { label: 'Viaje', emoji: '❤️' }
+};
+const STARTER_PLACES = [
+  ['Turín', 'Italia', 45.0703, 7.6869, 'home', 'Donde vivimos'],
+  ['Chieti', 'Italia', 42.3510, 14.1675, 'family', 'La familia de Matteo'],
+  ['Pozo Lorente', 'España', 39.0667, -1.2833, 'family', ''],
+  ['Elda', 'España', 38.4775, -0.7917, 'family', ''],
+  ['Alicante', 'España', 38.3452, -0.4810, 'trip', ''],
+  ['Sevilla', 'España', 37.3891, -5.9845, 'trip', ''],
+  ['Granada', 'España', 37.1773, -3.5986, 'trip', ''],
+  ['Valencia', 'España', 39.4699, -0.3763, 'trip', ''],
+  ['Madrid', 'España', 40.4168, -3.7038, 'trip', ''],
+  ['Valladolid', 'España', 41.6523, -4.7245, 'trip', ''],
+  ['Burgos', 'España', 42.3439, -3.6969, 'trip', ''],
+  ['Niza', 'Francia', 43.7102, 7.2620, 'trip', ''],
+  ['Villefranche-sur-Mer', 'Francia', 43.7040, 7.3111, 'trip', ''],
+  ['Antibes', 'Francia', 43.5808, 7.1251, 'trip', ''],
+  ['Menorca', 'España', 39.9496, 4.1104, 'trip', ''],
+  ['Alba', 'Italia', 44.7004, 8.0352, 'trip', ''],
+  ['Noli', 'Italia', 44.2060, 8.4157, 'trip', ''],
+  ['Génova', 'Italia', 44.4056, 8.9463, 'trip', '']
+].map(([name, country, lat, lon, kind, note]) => ({ name, country, lat, lon, kind, note: note || null }));
+let places = [];
+let placesShared = true;
+let placesMap = null;
+let placesLayer = null;
+
+async function loadPlaces() {
+  try {
+    places = await placesStore.list({ build: (query) => query.order('created_at') });
+    placesShared = true;
+    if (!places.length) {
+      places = await placesStore.insert(STARTER_PLACES.map((place) => ({ ...place, added_by: currentUser })));
+    }
+  } catch (error) {
+    // Sin la tabla todavía: el mapa funciona en local con los sitios de siempre.
+    console.warn('[Umbral] Mapa:', error?.message || error);
+    placesShared = false;
+    try { places = JSON.parse(localStorage.getItem('umbral-places-fallback') || 'null') || STARTER_PLACES.map((place, i) => ({ ...place, id: `seed-${i}` })); } catch { places = STARTER_PLACES; }
+  }
+  // Por si los dos móviles sembraron a la vez: un sitio por nombre.
+  const seen = new Set();
+  places = places.filter((place) => { const key = normalizeText(place.name); if (seen.has(key)) return false; seen.add(key); return true; });
+  window.dispatchEvent(new CustomEvent('umbral:places', { detail: { places } }));
+}
+const saveFallbackPlaces = () => { try { localStorage.setItem('umbral-places-fallback', JSON.stringify(places)); } catch {} };
+
+function renderMap() {
+  const countries = [...new Set(places.map((place) => place.country).filter(Boolean))];
+  const byCountry = countries.map((country) => [country, places.filter((place) => place.country === country)]);
+  const others = places.filter((place) => !place.country);
+  if (others.length) byCountry.push(['Otros', others]);
+  setTimeout(mountMap, 0);
+  return `<section class="panel us-map-panel">
+    <div class="section-heading"><div><p class="eyebrow">Nuestro mapa</p><h2>${places.length} sitios juntos</h2></div><button type="button" class="pill-button" data-add-place><i data-lucide="map-pin-plus"></i> Añadir</button></div>
+    <p class="us-map-stats">${countries.length} ${countries.length === 1 ? 'país' : 'países'} · ${places.filter((place) => place.kind === 'trip').length} viajes · también lo veis en el corcho de vuestra casa del modo Sims 🗺️</p>
+    <div class="us-map" id="usMap" role="img" aria-label="Mapa de los sitios en los que habéis estado"></div>
+    ${placesShared ? '' : '<p class="notes-local-warning"><i data-lucide="info"></i> Para que el mapa se comparta entre los dos, ejecutad supabase/sql/places.sql en Supabase.</p>'}
+    <div class="us-places">${byCountry.map(([country, list]) => `<h3>${escapeHtml(country)} <small>${list.length}</small></h3><ul>${list.map((place) => `<li><button type="button" class="us-place" data-fly-place="${escapeHtml(place.id)}"><span>${PLACE_KINDS[place.kind]?.emoji || '📍'}</span><b>${escapeHtml(place.name)}</b>${place.note ? `<small>${escapeHtml(place.note)}</small>` : ''}</button><button type="button" class="us-place-remove" data-remove-place="${escapeHtml(place.id)}" aria-label="Quitar ${escapeHtml(place.name)}">✕</button></li>`).join('')}</ul>`).join('')}</div>
+  </section>`;
+}
+// Leaflet se carga solo al abrir el mapa (con el mapa base de OpenStreetMap).
+let leafletLoading = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  leafletLoading ||= new Promise((resolve, reject) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(css);
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    script.onload = () => resolve(window.L);
+    script.onerror = () => reject(new Error('No se pudo cargar el mapa'));
+    document.head.appendChild(script);
+  });
+  return leafletLoading;
+}
+async function mountMap() {
+  const el = document.querySelector('#usMap');
+  if (!el) return;
+  try {
+    const L = await loadLeaflet();
+    if (!document.body.contains(el)) return;
+    if (placesMap && placesMap.getContainer() !== el) { placesMap.remove(); placesMap = null; }
+    if (!placesMap) {
+      placesMap = L.map(el, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(placesMap);
+      placesLayer = L.layerGroup().addTo(placesMap);
+    }
+    placesLayer.clearLayers();
+    places.forEach((place) => {
+      const icon = L.divIcon({ className: `us-pin is-${place.kind}`, html: `<span>${PLACE_KINDS[place.kind]?.emoji || '📍'}</span>`, iconSize: [30, 30], iconAnchor: [15, 28] });
+      L.marker([place.lat, place.lon], { icon, title: place.name }).bindPopup(`<b>${escapeHtml(place.name)}</b>${place.note ? `<br>${escapeHtml(place.note)}` : ''}`).addTo(placesLayer);
+    });
+    if (places.length) placesMap.fitBounds(L.latLngBounds(places.map((place) => [place.lat, place.lon])).pad(0.12));
+    else placesMap.setView([42, 4], 4);
+    setTimeout(() => placesMap?.invalidateSize(), 50);
+  } catch (error) {
+    el.innerHTML = `<p class="empty-note">${escapeHtml(error.message || 'No se pudo cargar el mapa')}</p>`;
+  }
+}
+function openPlaceAdder() {
+  showUsSheet(`
+    <div class="plant-add-heading"><p class="eyebrow muted">Nuestro mapa</p><h2 id="usSheetTitle">¿Dónde habéis estado?</h2></div>
+    <form class="quick-add" data-place-search><div class="quick-add-row"><input name="q" type="search" maxlength="80" placeholder="Busca una ciudad o un pueblo" aria-label="Buscar sitio" autocomplete="off" /><button type="submit" aria-label="Buscar"><i data-lucide="search"></i></button></div></form>
+    <fieldset class="plant-field"><legend>Tipo</legend><div class="choice-row">${Object.entries(PLACE_KINDS).map(([id, kind]) => `<label class="option-toggle"><input type="radio" name="placeKind" value="${id}" ${id === 'trip' ? 'checked' : ''} /><span>${kind.emoji} ${kind.label}</span></label>`).join('')}</div></fieldset>
+    <div class="place-results" data-place-results><p class="empty-note">Escribe el nombre y toca buscar.</p></div>`, { kind: 'place-add' });
+}
+async function searchPlaces(query) {
+  const box = usSheet.querySelector('[data-place-results]');
+  box.innerHTML = '<p class="empty-note">Buscando…</p>';
+  try {
+    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=es&format=json`);
+    const data = await response.json();
+    const results = data.results || [];
+    usSheetState.results = results;
+    box.innerHTML = results.length ? results.map((result, i) => `<button type="button" class="recipe-option" data-place-result="${i}"><span class="pcat-icon tone-blue"><i data-lucide="map-pin"></i></span><span><strong>${escapeHtml(result.name)}</strong><small>${escapeHtml([result.admin1, result.country].filter(Boolean).join(', '))}</small></span></button>`).join('') : '<p class="empty-note">No lo encuentro. Prueba con otro nombre.</p>';
+    lucide.createIcons();
+  } catch {
+    box.innerHTML = '<p class="empty-note">Sin conexión para buscar ahora mismo.</p>';
+  }
+}
+async function addPlace(result) {
+  const kind = usSheet.querySelector('[name="placeKind"]:checked')?.value || 'trip';
+  if (places.some((place) => normalizeText(place.name) === normalizeText(result.name))) return showToast(`${result.name} ya está en el mapa`);
+  const row = { name: result.name.slice(0, 80), country: result.country || null, lat: result.latitude, lon: result.longitude, kind, added_by: currentUser };
+  try {
+    if (placesShared) { const [created] = await placesStore.insert(row); places.push(created); }
+    else { places.push({ ...row, id: createLocalId() }); saveFallbackPlaces(); }
+    closeUsSheet();
+    setUsView('map');
+    showToast(`📍 ${result.name} añadido a vuestro mapa`);
+    window.dispatchEvent(new CustomEvent('umbral:places', { detail: { places } }));
+    notifyHousehold(`${currentUser} añadió ${result.name} al mapa 📍`, 'Mirad vuestro mapa en Nosotros', { open: 'nosotros', tag: 'places' });
+  } catch (error) {
+    showSupabaseError('No se pudo añadir el sitio', error);
+  }
+}
+async function removePlace(id) {
+  const place = places.find((entry) => entry.id === id);
+  if (!place || !window.confirm(`¿Quitar ${place.name} del mapa?`)) return;
+  try {
+    if (placesShared) await placesStore.remove(id);
+    places = places.filter((entry) => entry.id !== id);
+    if (!placesShared) saveFallbackPlaces();
+    renderUs();
+    window.dispatchEvent(new CustomEvent('umbral:places', { detail: { places } }));
+  } catch (error) {
+    showSupabaseError('No se pudo quitar', error);
+  }
+}
+
 function renderUs() {
   if (!document.querySelector('#usContent')) return;
   renderUsHero();
   document.querySelectorAll('[data-us-view]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.usView === usView)));
   const content = document.querySelector('#usContent');
-  content.innerHTML = usLoaded ? { photos: renderPhotos, dates: renderDates, plans: renderPlans }[usView]() : '<p class="empty-note">Cargando…</p>';
+  content.innerHTML = usLoaded ? ({ photos: renderPhotos, dates: renderDates, plans: renderPlans, map: renderMap }[usView] || renderPhotos)() : '<p class="empty-note">Cargando…</p>';
   hydratePhotos(content);
   // Cuenta atrás en Inicio.
   const next = upcomingDates()[0];
@@ -424,6 +585,15 @@ document.querySelector('#usView').addEventListener('click', async (event) => {
   const moment = target.closest('[data-open-moment]');
   if (moment) return openMoment(moment.dataset.openMoment);
   if (target.closest('[data-new-date]')) return openDateEditor();
+  if (target.closest('[data-add-place]')) return openPlaceAdder();
+  const removeP = target.closest('[data-remove-place]');
+  if (removeP) return removePlace(removeP.dataset.removePlace);
+  const fly = target.closest('[data-fly-place]');
+  if (fly) {
+    const place = places.find((entry) => entry.id === fly.dataset.flyPlace);
+    if (place && placesMap) { placesMap.flyTo([place.lat, place.lon], 11, { duration: 0.8 }); document.querySelector('#usMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    return;
+  }
   const date = target.closest('[data-open-date]');
   if (date) return openDateEditor(date.dataset.openDate);
   const kind = target.closest('[data-plan-kind]');
@@ -477,6 +647,8 @@ usSheet.addEventListener('click', async (event) => {
   const state = usSheetState;
   if (target === usSheet || target.closest('[data-close-us]')) return closeUsSheet();
   if (!state) return;
+  const placeResult = target.closest('[data-place-result]');
+  if (placeResult && state.kind === 'place-add') return addPlace(state.results[Number(placeResult.dataset.placeResult)]);
   const removeMoment = target.closest('[data-delete-moment]');
   if (removeMoment && window.confirm('¿Eliminar esta foto del álbum?')) {
     const moment = moments.find((entry) => entry.id === state.id);
@@ -526,6 +698,7 @@ usSheet.addEventListener('click', async (event) => {
 usSheet.addEventListener('submit', (event) => {
   event.preventDefault();
   const form = event.target;
+  if (form.hasAttribute('data-place-search')) return form.q.value.trim() && searchPlaces(form.q.value.trim());
   if (form.hasAttribute('data-moment-form')) return saveMoment(form);
   if (form.hasAttribute('data-date-form')) return saveDate(form);
   if (form.hasAttribute('data-plan-form')) return updatePlan(usSheetState.id, { notes: form.notes.value.trim().slice(0, 600) || null, link: form.link.value.trim().slice(0, 300) || null });
@@ -548,6 +721,7 @@ document.addEventListener('umbral:ready', () => {
   momentsStore.subscribe(reload);
   datesStore.subscribe(reload);
   plansStore.subscribe(reload);
+  placesStore.subscribe(reload);
   // La cuenta atrás y el estado de la foto cambian con la hora.
   setInterval(() => { if (usView === 'photos') renderUs(); }, 60 * 1000);
 });

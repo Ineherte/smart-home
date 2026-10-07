@@ -493,15 +493,18 @@
     bedding: { cream: ['#e4dccb', '#8a8c5a'], white: ['#f2efe8', '#9db4c8'], blue: ['#9fb8d0', '#3f5f86'], rose: ['#e8c4c0', '#b86a6a'], green: ['#c8d4b4', '#5e7a52'], mustard: ['#ecd9a8', '#c39a3c'] },
     theme: ['auto', 'none', 'halloween', 'xmas', 'valentine', 'spring']
   };
-  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto' };
+  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto', items: [] };
   let decor = { ...DEFAULT_DECOR };
   const decorOf = (key) => DECOR[key][decor[key]] || DECOR[key][DEFAULT_DECOR[key]];
   function setDecorValues(next = {}) {
     const clean = { ...DEFAULT_DECOR };
     Object.keys(DEFAULT_DECOR).forEach((key) => {
       const value = next[key];
-      if (key === 'theme' ? DECOR.theme.includes(value) : DECOR[key][value]) clean[key] = value;
+      if (key === 'items') clean.items = Array.isArray(value) ? [...new Set(value.filter((id) => SHOP_ITEMS.includes(id)))] : [];
+      else if (key === 'theme' ? DECOR.theme.includes(value) : DECOR[key][value]) clean[key] = value;
     });
+    // Si cambian los muebles comprados, la casa se vuelve a calcular para andar.
+    if (String(clean.items) !== String(decor.items || [])) delete SCENES.house?.nav;
     decor = clean;
     return clean;
   }
@@ -614,10 +617,10 @@
       });
       // Calcetines colgados en la pared, sobre el tocadiscos.
       [[150, '#c0303a'], [164, '#2f6a3a']].forEach(([sx, color], i) => {
-        R(c, sx + 2, 192, 1, 4, '#8a7a6a');
-        box(c, sx, 196, 6, 10, color, { hi: 0.2, lo: -0.2 });
-        box(c, sx + (i ? -3 : 3), 203, 6, 4, color, { hi: 0.2, lo: -0.2 });
-        R(c, sx, 196, 6, 3, '#f7f3ea');
+        R(c, sx + 2, 206, 1, 2, '#8a7a6a');
+        box(c, sx, 208, 6, 9, color, { hi: 0.2, lo: -0.2 });
+        box(c, sx + (i ? -3 : 3), 214, 6, 4, color, { hi: 0.2, lo: -0.2 });
+        R(c, sx, 208, 6, 3, '#f7f3ea');
       });
       // Nieve en las ventanas.
       [[16, 13, 26, 25], [236, 14, 18, 14], [474, 14, 26, 26], [340, 191, 36, 30]].forEach(([wx, wy, ww, wh]) => {
@@ -1648,6 +1651,207 @@
     pixels(c, [[x - 4 + sway, y - 36], [x + 6 + sway, y - 40], [x + sway, y - 46], [x - 8 + sway, y - 28]], '#3a3a2a');
   }
 
+  // ---------- Mapa de vuestros viajes (pixel art), el mismo que en Nosotros ----------
+  // Costas muy simplificadas del suroeste de Europa (longitud, latitud).
+  const LANDS = [
+    [[-9.3, 43.2], [-8, 43.7], [-5.7, 43.6], [-3.8, 43.5], [-1.8, 43.4], [3.2, 42.4], [3.2, 41.9], [2.2, 41.4], [0.9, 40.9], [0, 39.9], [-0.3, 39.4], [0.2, 38.8], [-0.5, 38.3], [-0.8, 37.6], [-2.1, 36.7], [-4.4, 36.7], [-5.6, 36.0], [-6.3, 36.8], [-7.4, 37.2], [-8.9, 37.0], [-8.8, 38.7], [-9.5, 38.8], [-8.9, 40.2], [-8.7, 42.1]],
+    [[-1.8, 43.4], [3.2, 42.4], [3.1, 43.2], [4.8, 43.4], [6.0, 43.1], [7.5, 43.8], [7.6, 44.1], [6.9, 44.4], [7.0, 45.9], [6.8, 46.4], [6.1, 46.2], [6.0, 47.6], [-2.5, 47.6], [-2.2, 47.1], [-1.2, 46.2], [-1.2, 44.6]],
+    [[7.5, 43.8], [8.5, 44.3], [9.2, 44.3], [10.2, 43.9], [10.5, 43.3], [11.1, 42.4], [12.2, 41.7], [13.0, 41.2], [14.0, 40.8], [15.0, 40.2], [15.7, 39.9], [16.0, 39.0], [15.6, 38.0], [16.1, 37.9], [16.6, 38.7], [17.1, 39.0], [16.5, 39.7], [17.2, 40.4], [18.5, 40.1], [18.4, 40.5], [16.9, 41.1], [15.9, 41.6], [14.7, 42.1], [13.9, 42.9], [13.6, 43.5], [12.4, 44.2], [12.3, 45.2], [13.6, 45.7], [13.9, 46.5], [12.0, 47.0], [10.4, 46.9], [9.0, 46.4], [7.0, 45.9], [6.9, 44.4], [7.6, 44.1]],
+    [[6.0, 47.6], [6.1, 46.2], [6.8, 46.4], [7.0, 45.9], [9.0, 46.4], [10.4, 46.9], [12.0, 47.0], [13.9, 46.5], [13.6, 45.7], [14.5, 45.3], [15.5, 44.0], [17, 43], [18.5, 42.4], [19.6, 41.8], [19.6, 47.6]],
+    [[12.4, 38.0], [15.6, 38.3], [15.1, 36.7], [12.5, 37.6]],
+    [[8.2, 41.1], [9.8, 41.1], [9.6, 39.1], [8.4, 39.0]],
+    [[8.6, 43.0], [9.5, 42.8], [9.3, 41.4], [8.7, 41.7]],
+    [[2.3, 39.6], [3.5, 39.95], [3.3, 39.3], [2.7, 39.4]],
+    [[3.8, 40.05], [4.35, 39.92], [4.2, 39.8], [3.8, 39.9]],
+    [[1.2, 39.0], [1.6, 39.1], [1.4, 38.8]],
+    [[-10, 34.0], [-10, 35.2], [-5.9, 35.8], [-2, 35.1], [1, 36], [3, 36.8], [8, 36.9], [10, 37.3], [11.2, 37.0], [11.2, 34.0]]
+  ];
+  const MAP_BOX = { w: -10, e: 19.6, n: 47.6, s: 34.5 };
+  const inPoly = (x, y, poly) => {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
+      const [xi, yi] = poly[i];
+      const [xj, yj] = poly[j];
+      if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
+  const mapCache = new Map();
+  // Mapa en un canvas pequeño (una celda = un píxel) para dibujarlo escalado sin suavizar.
+  function travelMapBase(cols, rows) {
+    const key = `${cols}x${rows}`;
+    if (mapCache.has(key)) return mapCache.get(key);
+    const cv = document.createElement('canvas');
+    cv.width = cols;
+    cv.height = rows;
+    const cx = cv.getContext('2d');
+    for (let y = 0; y < rows; y += 1) {
+      for (let x = 0; x < cols; x += 1) {
+        const lon = MAP_BOX.w + ((x + 0.5) / cols) * (MAP_BOX.e - MAP_BOX.w);
+        const lat = MAP_BOX.n - ((y + 0.5) / rows) * (MAP_BOX.n - MAP_BOX.s);
+        const land = LANDS.some((poly) => inPoly(lon, lat, poly));
+        cx.fillStyle = land ? ((x + y) % 7 === 0 ? '#b9c98e' : '#c8d6a0') : ((x * 3 + y) % 11 === 0 ? '#9fcbe0' : '#8fc0d8');
+        cx.fillRect(x, y, 1, 1);
+      }
+    }
+    // Costa más oscura.
+    const data = cx.getImageData(0, 0, cols, rows);
+    const isLand = (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && data.data[(y * cols + x) * 4] > 170;
+    for (let y = 0; y < rows; y += 1) for (let x = 0; x < cols; x += 1) {
+      if (isLand(x, y) && (!isLand(x - 1, y) || !isLand(x + 1, y) || !isLand(x, y - 1) || !isLand(x, y + 1))) { cx.fillStyle = '#93a868'; cx.fillRect(x, y, 1, 1); }
+    }
+    mapCache.set(key, cv);
+    return cv;
+  }
+  const mapPoint = (lon, lat, x, y, w, h) => ({ x: x + ((lon - MAP_BOX.w) / (MAP_BOX.e - MAP_BOX.w)) * w, y: y + ((MAP_BOX.n - lat) / (MAP_BOX.n - MAP_BOX.s)) * h });
+  // Dibuja el mapa con las chinchetas (casa, familia y viajes) en (x, y, w, h).
+  function drawTravelMap(c, x, y, w, h, places = [], { cell = 1, t = 0, labels = false } = {}) {
+    c.imageSmoothingEnabled = false;
+    c.drawImage(travelMapBase(Math.round(w / cell), Math.round(h / cell)), x, y, w, h);
+    const colors = { home: '#275b49', family: '#e3a13a', trip: '#e0405a' };
+    places.forEach((place, i) => {
+      const p = mapPoint(place.lon, place.lat, x, y, w, h);
+      const size = cell >= 2 ? 2 : 1;
+      const bob = cell >= 2 ? Math.round(Math.sin(t / 500 + i) * 0.6) : 0;
+      R(c, p.x - size, p.y - size * 2 + bob, size * 2 + 1, size * 2, OL);
+      R(c, p.x - size + 1, p.y - size * 2 + 1 + bob, size * 2 - 1, size * 2 - 2 || 1, colors[place.kind] || colors.trip);
+      R(c, p.x, p.y + bob, 1, 1, OL);
+    });
+    if (labels) {
+      // Nombres de casa y familia primero; los demás solo si caben sin pisarse.
+      const size = Math.max(7, cell * 3.4);
+      c.font = `${size}px "Pixelify Sans", system-ui, sans-serif`;
+      c.textAlign = 'left';
+      const boxes = [];
+      const order = [...places].sort((a, b) => ({ home: 0, family: 1, trip: 2 }[a.kind] ?? 3) - ({ home: 0, family: 1, trip: 2 }[b.kind] ?? 3));
+      order.forEach((place) => {
+        const p = mapPoint(place.lon, place.lat, x, y, w, h);
+        const tw = c.measureText(place.name).width;
+        const bx = p.x + tw + cell * 3 > x + w ? p.x - tw - cell * 2 : p.x + cell * 2.5;
+        const rect = [bx - 1, p.y - size + 1, tw + 2, size + 1];
+        if (boxes.some(([ax, ay, aw, ah]) => rect[0] < ax + aw && rect[0] + rect[2] > ax && rect[1] < ay + ah && rect[1] + rect[3] > ay)) return;
+        boxes.push(rect);
+        c.fillStyle = 'rgba(255,255,255,.8)';
+        c.fillText(place.name, bx + 1, p.y + 1);
+        c.fillStyle = OL;
+        c.fillText(place.name, bx, p.y);
+      });
+    }
+  }
+  // El mapa enmarcado en la pared del salón, sobre el tocadiscos.
+  function drawWallMap(c, s, t) {
+    const x = 146;
+    const y = 187;
+    box(c, x - 2, y - 2, 30, 22, '#8a5a3a', { hi: 0.2, lo: -0.25 });
+    drawTravelMap(c, x, y, 26, 18, s.places || [], { t });
+    R(c, x + 12, y - 5, 2, 3, '#8a7a6a');
+  }
+
+  // ---------- Muebles que se compran en la tienda del juego ----------
+  // Cada uno tiene su sitio fijo en la casa; solo se dibuja (y estorba al andar) si es vuestro.
+  const SHOP_ITEMS = ['guitar', 'beanbag', 'easel', 'telescope', 'aquarium', 'arcade'];
+  const owns = (id) => Array.isArray(decor.items) && decor.items.includes(id);
+  function drawGuitarStand(c, s) {
+    const x = 46;
+    const y = 160;
+    shadow(c, x, y, 7, 2, 0.22);
+    R(c, x - 4, y - 2, 8, 2, OL);
+    line(c, x - 3, y - 2, x, y - 10, OL);
+    line(c, x + 3, y - 2, x, y - 10, OL);
+    if (s.props.guitar) return;
+    ovalBox(c, x, y - 8, 5, 6, '#c47a3a');
+    oval(c, x, y - 8, 2, 2, '#3a2416');
+    ovalBox(c, x, y - 15, 4, 4, '#c47a3a');
+    R(c, x - 1, y - 30, 2, 14, '#5a3a24');
+    R(c, x - 2, y - 33, 4, 4, '#3a2416');
+  }
+  function drawBeanbag(c, s) {
+    const x = 432;
+    const y = 318;
+    shadow(c, x, y + 2, 14, 3, 0.25);
+    ovalBox(c, x, y - 6, 13, 9, '#3f8a8a');
+    oval(c, x - 2, y - 9, 8, 4, '#5aa8a8');
+    R(c, x - 6, y - 12, 4, 1, '#7cc4c4');
+  }
+  function drawEasel(c, s, t) {
+    const x = 360;
+    const y = 170;
+    shadow(c, x, y, 9, 2, 0.22);
+    line(c, x - 7, y, x - 1, y - 30, '#8a5a3a');
+    line(c, x + 7, y, x + 1, y - 30, '#8a5a3a');
+    line(c, x, y - 2, x, y - 26, '#6a4a34');
+    box(c, x - 9, y - 30, 18, 14, '#fbf9f3', { hi: 0.1, lo: -0.1 });
+    // El cuadro va cogiendo color mientras pintáis (y se queda pintado).
+    const strokes = Math.min(10, (s.paintStrokes || 0));
+    const colors = ['#4a8fe0', '#3fd46a', '#f2c230', '#e0533f', '#a05ad8'];
+    for (let i = 0; i < strokes; i += 1) R(c, x - 7 + ((i * 5) % 14), y - 28 + ((i * 7) % 10), 4, 2, colors[i % colors.length]);
+    R(c, x - 10, y - 16, 20, 2, '#8a5a3a');
+  }
+  function drawTelescope(c, s, t) {
+    const x = 356;
+    const y = 270;
+    shadow(c, x, y, 9, 2, 0.22);
+    line(c, x - 6, y, x, y - 12, OL);
+    line(c, x + 6, y, x, y - 12, OL);
+    line(c, x, y, x, y - 12, OL);
+    // El tubo apunta a la ventana.
+    for (let i = 0; i < 14; i += 1) R(c, x - 6 + i, y - 14 - Math.round(i * 0.7), 3, 3, i < 2 ? OL : '#d8d4c8');
+    R(c, x + 7, y - 25, 3, 3, '#3d6a9a');
+  }
+  function drawAquarium(c, s, t) {
+    const x = 196;
+    const y = 360;
+    shadow(c, x, y + 1, 18, 3, 0.25);
+    box(c, x - 16, y - 8, 32, 9, '#6a4a34');
+    R(c, x - 14, y - 6, 28, 1, '#8a5a3a');
+    box(c, x - 16, y - 26, 32, 18, '#9fd3e6', { hi: 0.25, lo: -0.15 });
+    R(c, x - 14, y - 24, 28, 3, '#c8ecf6');
+    R(c, x - 14, y - 12, 28, 3, '#d8bf88');
+    for (let i = 0; i < 3; i += 1) R(c, x - 10 + i * 9, y - 18 - (i % 2) * 2, 1, 6, '#3f8a4f');
+    // Peces de colores y un tiburoncito (cómo no).
+    [[0, '#f2a33a', 900], [1, '#e0533f', 1300], [2, '#ffd23f', 1100]].forEach(([i, col, sp]) => {
+      const k = (t / sp + i * 0.37) % 2;
+      const fx = x - 12 + (k < 1 ? k : 2 - k) * 22;
+      const fy = y - 20 + i * 3 + Math.sin(t / 400 + i) * 1;
+      R(c, Math.round(fx), Math.round(fy), 3, 2, col);
+      R(c, Math.round(fx) + (k < 1 ? -1 : 3), Math.round(fy), 1, 2, tone(col, -0.2));
+    });
+    const sk = (t / 2600) % 2;
+    const sx = x - 12 + (sk < 1 ? sk : 2 - sk) * 20;
+    R(c, Math.round(sx), y - 15, 6, 2, '#7d8a96');
+    R(c, Math.round(sx) + 2, y - 17, 2, 2, '#7d8a96');
+    R(c, Math.round(sx) + (sk < 1 ? 5 : 0), y - 15, 1, 1, '#111111');
+    const bub = (t / 600) % 1;
+    c.globalAlpha = 1 - bub;
+    R(c, x + 8, y - 12 - bub * 12, 1, 1, '#ffffff');
+    c.globalAlpha = 1;
+  }
+  function drawArcade(c, s, t) {
+    const x = 157;
+    const y = 166;
+    shadow(c, x, y, 11, 2, 0.25);
+    box(c, x - 10, y - 34, 20, 34, '#3a2a5a');
+    R(c, x - 8, y - 32, 16, 3, '#e0533f');
+    R(c, x - 7, y - 31, 14, 1, '#ffd23f');
+    const glow = s.props.arcade ? ['#5cc0e8', '#3fd46a', '#ff8ad8'][Math.floor(t / 200) % 3] : '#1a2a3a';
+    R(c, x - 7, y - 27, 14, 10, OL);
+    R(c, x - 6, y - 26, 12, 8, glow);
+    if (!s.props.arcade) { R(c, x - 4, y - 23, 3, 1, '#7d8a96'); R(c, x + 1, y - 22, 2, 1, '#f2a33a'); }
+    box(c, x - 9, y - 16, 18, 5, '#4a3a6a');
+    R(c, x - 5, y - 18, 1, 3, OL);
+    R(c, x - 6, y - 19, 3, 2, '#e0533f');
+    R(c, x + 2, y - 15, 2, 2, '#3fd46a');
+    R(c, x + 5, y - 15, 2, 2, '#ffd23f');
+  }
+  const SHOP_OBJECTS = [
+    { id: 'guitar', shop: true, sort: 160, hit: [38, 124, 18, 38], block: [38, 152, 16, 10], draw: drawGuitarStand, spot: { x: 62, y: 166, dir: 'left' } },
+    { id: 'beanbag', shop: true, sort: 318, hit: [418, 302, 28, 20], block: [420, 306, 24, 14], draw: drawBeanbag, seats: [{ x: 432, y: 314, dir: 'down', sortY: 320, exit: { x: 432, y: 332 } }] },
+    { id: 'easel', shop: true, sort: 170, hit: [349, 138, 22, 34], block: [350, 160, 20, 10], draw: drawEasel, spot: { x: 360, y: 182, dir: 'up' } },
+    { id: 'telescope', shop: true, sort: 270, hit: [346, 244, 22, 28], block: [348, 260, 18, 10], draw: drawTelescope, spot: { x: 344, y: 280, dir: 'up' } },
+    { id: 'aquarium', shop: true, sort: 361, hit: [178, 330, 36, 32], block: [180, 346, 32, 16], draw: drawAquarium, spot: { x: 196, y: 338, dir: 'down' } },
+    { id: 'arcade', shop: true, sort: 166, hit: [146, 130, 22, 38], block: [146, 152, 22, 14], draw: drawArcade, spot: { x: 157, y: 178, dir: 'up' } }
+  ];
+
   // layer 'static': muebles pegados a la pared, que nunca tapan a nadie (se pintan una vez).
   const OBJECTS = [
     // Dormitorio
@@ -1698,9 +1902,11 @@
     { id: 'armchair', sort: 281, block: [442, 258, 32, 22], draw: drawArmchair },
     { id: 'sidetable', sort: 280, block: [478, 264, 14, 14], draw: drawSideTable },
     { id: 'olivetree', sort: 125, block: [480, 114, 18, 12], draw: drawOliveTree },
+    { id: 'travelmap', sort: 2, hit: [142, 183, 34, 25], draw: drawWallMap, spot: { x: 160, y: 272, dir: 'up' } },
     { id: 'themeSpot', sort: 368, block: [312, 356, 26, 14], draw: drawThemeSpot },
     { id: 'themeTable', sort: 142, draw: drawThemeTable },
-    { id: 'themeCoffee', sort: 311, draw: drawThemeCoffee }
+    { id: 'themeCoffee', sort: 311, draw: drawThemeCoffee },
+    ...SHOP_OBJECTS
   ];
   const OBJECT_BY_ID = Object.fromEntries(OBJECTS.map((object) => [object.id, object]));
 
@@ -1713,7 +1919,7 @@
   const inRect = (x, y, [rx, ry, rw, rh]) => x >= rx && x < rx + rw && y >= ry && y < ry + rh;
 
   function makeNav(walkAreas, objects) {
-    const blockers = objects.filter((object) => object.block).map(({ block: [x, y, w, h] }) => [x - PAD_X, y - PAD_Y, w + PAD_X * 2, h + PAD_Y * 2]);
+    const blockers = objects.filter((object) => object.block && (!object.shop || owns(object.id))).map(({ block: [x, y, w, h] }) => [x - PAD_X, y - PAD_Y, w + PAD_X * 2, h + PAD_Y * 2]);
     const free = (x, y) => walkAreas.some((area) => inRect(x, y, area)) && !blockers.some((block) => inRect(x, y, block));
     const grid = new Uint8Array(GW * GH);
     for (let gy = 0; gy < GH; gy += 1) for (let gx = 0; gx < GW; gx += 1) grid[gy * GW + gx] = free(gx * CELL + CELL / 2, gy * CELL + CELL / 2) ? 1 : 0;
@@ -2065,6 +2271,19 @@
       R(c, x, y - 1, 1, 6, '#3a9a5a');
       R(c, x - 2, y - 4, 5, 4, OL);
       R(c, x - 1, y - 3, 3, 2, '#d6333f');
+    }
+    if (a.prop === 'guitar') {
+      if (a.dir === 'up') return;
+      const gx = Math.round(a.x + (a.dir === 'left' ? -2 : a.dir === 'right' ? 2 : 0));
+      const gy = Math.round(a.y - 20 + (sitting ? 6 : 0));
+      ovalBox(c, gx - 3, gy + 2, 4, 3, '#c47a3a');
+      oval(c, gx - 3, gy + 2, 1, 1, '#3a2416');
+      for (let i = 0; i < 9; i += 1) R(c, gx + i, gy - Math.round(i * 0.5), 1, 1, '#5a3a24');
+      return;
+    }
+    if (a.prop === 'brush') {
+      R(c, x, y - 4, 1, 6, '#8a5a3a');
+      R(c, x, y - 5, 1, 2, '#e0533f');
     }
     if (a.prop === 'can') {
       R(c, x - 3, y - 2, 7, 6, OL);
@@ -2536,7 +2755,7 @@
       if (scene.id === 'house') drawThemeWall(c, t, state);
       drawSunbeams();
       // Muebles y muñecos ordenados por profundidad.
-      const drawables = scene.objects.filter((object) => object.draw && object.layer !== 'static').map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));
+      const drawables = scene.objects.filter((object) => object.draw && object.layer !== 'static' && (!object.shop || owns(object.id))).map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));
       state.actors.forEach((a) => drawables.push({ y: a.sortY ?? a.y, draw: () => drawActor(c, a, t) }));
       drawables.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
       scene.drawFront?.(c, state, t);
@@ -2568,7 +2787,7 @@
       return { x: ((x - cam.x) * cam.z * rect.width) / state.view.w, y: ((y - cam.y) * cam.z * rect.height) / state.view.h, width: rect.width, height: rect.height };
     }
     function objectAt(x, y) {
-      return scene.objects.filter((object) => object.hit && inRect(x, y, object.hit)).sort((a, b) => b.sort - a.sort)[0]?.id || null;
+      return scene.objects.filter((object) => object.hit && (!object.shop || owns(object.id)) && inRect(x, y, object.hit)).sort((a, b) => b.sort - a.sort)[0]?.id || null;
     }
     function actorAt(x, y) {
       return state.actors
@@ -2618,7 +2837,7 @@
 
   window.simsWorld = {
     W, H, ANIMS, OL, loadSprites, loadSheet, createWorld, findPath, nearestFree, free, lineFree, registerScene, PLANT_SLOTS,
-    portrait, DECOR, DEFAULT_DECOR, getDecor: () => ({ ...decor }), setDecorValues, seasonalTheme, themeNow, dayPhase, mixHex,
+    portrait, DECOR, DEFAULT_DECOR, SHOP_ITEMS, owns, drawTravelMap, getDecor: () => ({ ...decor }), setDecorValues, seasonalTheme, themeNow, dayPhase, mixHex,
     // Para el jardín de la pantalla de inicio (garden.js): mismos muñecos, perros y diamante.
     drawActor, drawPlumbob, drawMoodFx,
     // Pinceles para dibujar los sitios de fuera (sims-places.js).

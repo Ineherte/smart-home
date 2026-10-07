@@ -215,25 +215,11 @@ function avatarPane(person) {
       <button type="button" class="mood-option is-none" data-avatar-mood="" aria-pressed="${!row.mood}"><span>·</span>Sin estado</button></div>`;
   }
   if (avatarTab === 'clothes') {
-    return `<div class="outfit-grid">${Object.entries(catalog.OUTFITS).map(([id, outfit]) => `<button type="button" class="outfit-option" data-avatar-set="outfit" data-value="${id}" aria-pressed="${look.outfit === id}"><span class="outfit-thumb">${window.umbralScene.preview(key, { look: { ...look, outfit: id } })}</span>${escapeHtml(outfit.label)}</button>`).join('')}</div>
-      ${look.outfit === 'casual' ? `<p class="avatar-label">Arriba</p>${swatches('top', catalog.CLOTH_COLORS, look.top)}
-      <p class="avatar-label">Pantalón</p>${swatches('bottom', catalog.CLOTH_COLORS, look.bottom)}
-      <p class="avatar-label">Zapatillas</p>${swatches('shoes', catalog.CLOTH_COLORS, look.shoes)}
-      <p class="avatar-label">Encima</p>${choiceChips('layer', catalog.LAYERS || [], look.layer || 'none')}
-      ${look.layer === 'overshirt' ? swatches('layerColor', catalog.CLOTH_COLORS, look.layerColor) : ''}
-      ${key === 'ines' ? `<p class="avatar-label">Top</p>${choiceChips('crop', [['true', 'Corto', ''], ['false', 'Largo', '']], String(look.crop !== false))}` : ''}
-      <label class="option-toggle"><input type="checkbox" data-avatar-weather ${look.weather !== false ? 'checked' : ''} /><span><i data-lucide="cloud-snow"></i>Abrigarme cuando haga frío o llueva</span></label>` : '<p class="avatar-hint">Los disfraces se quedan puestos llueva o nieve 😄</p>'}`;
-  }
-  if (avatarTab === 'extras') {
-    const ownHead = ['pajamas', 'dino', 'bear', 'chef'].includes(look.outfit);
-    return `<p class="avatar-label">Cabeza</p>${choiceChips('head', catalog.HEAD_ACC, look.head)}
-      ${ownHead ? `<p class="avatar-hint">Con el conjunto «${escapeHtml(catalog.OUTFITS[look.outfit].label)}» se ve su propio gorro.</p>` : ''}
-      <p class="avatar-label">Cara</p>${choiceChips('face', catalog.FACE_ACC, look.face)}
-      <p class="avatar-label">Cuello</p>${choiceChips('neck', catalog.NECK_ACC, look.neck)}`;
-  }
-  if (avatarTab === 'hair') {
-    return `<p class="avatar-label">Peinado</p>${choiceChips('hair', catalog.HAIRSTYLES[key].map(([id, label]) => [id, label, '']), look.hair)}
-      <p class="avatar-label">Color</p>${swatches('hairColor', catalog.HAIR_COLORS, look.hairColor)}`;
+    // La ropa es la del juego en pixel art: la misma en la casa, el jardín y aquí.
+    const wardrobe = typeof WARDROBE !== 'undefined' ? WARDROBE : [['auto', '✨', () => 'Según el momento']];
+    const current = look.simOutfit || 'auto';
+    return `<p class="avatar-hint">Lo que elijas lo llevas en la casa del modo Sims y en el jardín de inicio. «Según el momento» se cambia sola (pijama de noche, abrigo si hace frío…).</p>
+      <div class="outfit-grid">${wardrobe.map(([id, emoji, label]) => `<button type="button" class="outfit-option" data-avatar-set="simOutfit" data-value="${id}" aria-pressed="${current === id}"><span class="outfit-thumb">${window.umbralScene.preview(key, { outfit: id })}</span>${emoji} ${escapeHtml(label(key))}</button>`).join('')}</div>`;
   }
   // Para el otro: mensaje y toques.
   const partnerRow = avatarRows[partner] || {};
@@ -253,7 +239,8 @@ function renderAvatarEditor() {
   const body = document.querySelector('#avatarSheetBody');
   const panel = body.closest('.plant-sheet-panel');
   const scroll = panel.scrollTop;
-  const tabs = [['mood', 'Ánimo'], ['clothes', 'Ropa'], ['extras', 'Complementos'], ['hair', 'Pelo'], ['partner', `Para ${otherPerson(person)}`]];
+  const tabs = [['mood', 'Ánimo'], ['clothes', 'Ropa'], ['partner', `Para ${otherPerson(person)}`]];
+  if (!tabs.some(([id]) => id === avatarTab)) avatarTab = 'mood';
   body.innerHTML = `
     <div class="avatar-editor-head">
       <div class="avatar-preview">${window.umbralScene.preview(avatarKey(person), { look: avatarDraft.look, mood: row.mood })}</div>
@@ -299,10 +286,16 @@ avatarSheet.addEventListener('click', (event) => {
     return renderAvatarEditor();
   }
   if (target.closest('[data-avatar-save]')) {
-    const outfit = avatarCatalog().OUTFITS[avatarDraft.look.outfit];
+    const pick = avatarDraft.look.simOutfit || 'auto';
+    const entry = typeof WARDROBE !== 'undefined' ? WARDROBE.find(([id]) => id === pick) : null;
     return runAvatarAction(async () => {
       await saveAvatar({ look: avatarDraft.look });
-      notifyHousehold(`${person} se ha cambiado de look ${outfit?.emoji || '👗'}`, avatarDraft.look.outfit === 'casual' ? 'Mira cómo va hoy su muñeco' : `Va de ${outfit.label.toLowerCase()}`, { open: 'home', tag: 'avatar' });
+      // Que el juego y el jardín lo lleven ya.
+      if (typeof simsState !== 'undefined' && simsState.outfitPick) {
+        simsState.outfitPick[avatarKey(person)] = pick;
+        if (typeof pickOutfit === 'function' && simsState.open) pickOutfit(pick);
+      }
+      notifyHousehold(`${person} se ha cambiado de ropa ${entry?.[1] || '👗'}`, entry && pick !== 'auto' ? `Va de ${entry[2](avatarKey(person)).toLowerCase()}` : 'Mira cómo va hoy su muñeco', { open: 'home', tag: 'avatar' });
     }, '¡Look guardado!');
   }
   const mood = target.closest('[data-avatar-mood]');

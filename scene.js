@@ -1014,7 +1014,17 @@
 
   // Muñeco suelto para el editor: mismo dibujo y CSS que en la escena.
   const PREVIEW_VIEW = { ines: '180 138 32 54', matteo: '206 136 32 56' };
+  // Muñeco en pixel art (el mismo de la casa y el jardín) con la ropa que lleve en el juego.
   function preview(key, avatar = {}) {
+    if (window.simsWorld?.portrait) {
+      const outfit = avatar.outfit || avatar.look?.simOutfit;
+      const sprite = outfit && !['auto', 'casual'].includes(outfit) ? `${key}-${outfit}` : key;
+      const mood = MOODS[avatar.mood]?.emoji || '';
+      return `<span class="lpc-doll"><canvas data-lpc="${escapeText(sprite)}" width="32" height="56" aria-hidden="true"></canvas>${mood ? `<em>${mood}</em>` : ''}</span>`;
+    }
+    return svgPreview(key, avatar);
+  }
+  function svgPreview(key, avatar = {}) {
     const look = lookFor(key, avatar);
     const traits = traitsFor(key, look.outfit === 'casual' ? 'mild' : 'fun', { ...avatar, unread: false });
     const colors = colorsFor(key, traits, look);
@@ -1249,5 +1259,11 @@
     }
   }
 
+  // Pinta los retratos pixel art en cuanto aparecen en la página (editor, Nosotros…).
+  const paintPortraits = (root = document) => root.querySelectorAll?.('canvas[data-lpc]:not([data-painted])').forEach((canvas) => {
+    canvas.dataset.painted = '1';
+    window.simsWorld?.portrait(canvas.dataset.lpc, canvas);
+  });
+  if ('MutationObserver' in window) new MutationObserver(() => paintPortraits()).observe(document.documentElement, { childList: true, subtree: true });
   window.umbralScene = { mount, update, preview, play, personSvg, armColors, catalog: { DEFAULT_LOOK, HAIRSTYLES, HAIR_COLORS, CLOTH_COLORS, OUTFITS, LAYERS, HEAD_ACC, FACE_ACC, NECK_ACC, MOODS, POKES } };
 })();

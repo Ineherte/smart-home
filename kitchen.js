@@ -51,7 +51,24 @@ const STARTER_RECIPES = [
   ['Risotto de champiñones', 'arroz', 'lunch', 35, ['300 g arroz arborio', '300 g champiñones', '1 cebolla', '1 l caldo de verduras', 'Parmesano', 'Vino blanco'], 'Sofríe cebolla y champiñones, nacara el arroz, moja con vino y añade el caldo poco a poco 18 min. Termina con parmesano.'],
   ['Pasta al pesto con judías verdes', 'pasta', 'lunch', 20, ['320 g trofie o espaguetis', '150 g judías verdes', '2 patatas pequeñas', '1 bote de pesto', 'Parmesano'], 'Cuece la patata en dados, añade las judías y luego la pasta en la misma agua. Escurre y mezcla con el pesto.'],
   ['Albóndigas en salsa de tomate', 'carne', 'lunch', 45, ['500 g carne picada', '1 huevo', 'Pan rallado', '400 g tomate triturado', '1 cebolla', 'Perejil'], 'Forma albóndigas con la carne, el huevo, el pan y el perejil, dóralas y cuécelas 20 min en la salsa de tomate con cebolla.'],
-  ['Pizza casera de verduras', 'otros', 'dinner', 40, ['1 masa de pizza', '200 g tomate triturado', '1 mozzarella', '1 calabacín', '1 pimiento', 'Orégano'], 'Extiende la masa, tomate, mozzarella y verduras en láminas. Horno a 230 °C unos 12 min.']
+  ['Pizza casera de verduras', 'otros', 'dinner', 40, ['1 masa de pizza', '200 g tomate triturado', '1 mozzarella', '1 calabacín', '1 pimiento', 'Orégano'], 'Extiende la masa, tomate, mozzarella y verduras en láminas. Horno a 230 °C unos 12 min.'],
+  ['Pasta e ceci', 'legumbres', 'lunch', 30, ['200 g pasta corta', '1 bote de garbanzos cocidos', '2 dientes de ajo', '1 rama de romero', '100 g tomate triturado', 'Parmesano', 'Aceite de oliva'], 'Dora el ajo con romero, añade tomate y garbanzos (aplasta la mitad). Cubre de agua, hierve y cuece la pasta dentro. Parmesano y aceite al servir.'],
+  ['Paella de verduras', 'arroz', 'lunch', 50, ['300 g arroz bomba', '1 pimiento rojo', '150 g judías verdes', '1 alcachofa', '200 g tomate triturado', '1 l caldo de verduras', 'Azafrán', 'Pimentón'], 'Sofríe las verduras, añade tomate y pimentón, luego el arroz. Vierte el caldo caliente con azafrán y cuece 18 min sin remover. Reposa 5 min.'],
+  ['Gazpacho con huevo duro', 'sopa', 'any', 15, ['1 kg tomates maduros', '1 pimiento verde', '1 pepino', '1 diente de ajo', '2 huevos', 'Vinagre', 'Aceite de oliva'], 'Tritura tomate, pimiento, pepino y ajo con aceite, vinagre y sal. Enfría. Sirve con huevo duro picado.'],
+  ['Salmorejo', 'sopa', 'dinner', 15, ['1 kg tomates maduros', '150 g pan del día anterior', '1 diente de ajo', '2 huevos', 'Aceite de oliva'], 'Tritura tomate, pan y ajo, añade aceite poco a poco hasta que espese. Sirve frío con huevo duro.'],
+  ['Pisto con huevo', 'verdura', 'dinner', 35, ['1 calabacín', '1 berenjena', '1 pimiento rojo', '1 pimiento verde', '1 cebolla', '300 g tomate triturado', '2 huevos'], 'Pocha la cebolla y los pimientos, añade calabacín y berenjena en dados y luego el tomate. 20 min. Sirve con un huevo a la plancha encima.'],
+  ['Parmigiana di melanzane', 'verdura', 'lunch', 60, ['2 berenjenas', '400 g tomate triturado', '1 mozzarella', 'Parmesano', 'Albahaca', '1 cebolla'], 'Asa las berenjenas en láminas. Haz una salsa de tomate con cebolla y albahaca. Monta capas de berenjena, salsa, mozzarella y parmesano. Horno 25 min a 200 °C.'],
+  ['Espaguetis a la carbonara', 'pasta', 'lunch', 20, ['320 g espaguetis', '150 g guanciale', '3 yemas de huevo', '1 huevo', 'Pecorino', 'Pimienta'], 'Dora el guanciale. Mezcla yemas, huevo y pecorino. Escurre la pasta, júntala con el guanciale fuera del fuego y añade la crema con un poco de agua de cocción. Pimienta al servir.'],
+  ['Dorada al horno con verduras', 'pescado', 'dinner', 30, ['2 doradas limpias', '2 patatas', '1 cebolla', '1 limón', 'Perejil', 'Vino blanco'], 'Hornea patatas y cebolla en láminas 15 min a 200 °C. Pon las doradas encima con limón, perejil y un chorrito de vino. 15 min más.'],
+  ['Ensalada de atún, judías y huevo', 'pescado', 'dinner', 15, ['2 latas de atún', '200 g judías verdes', '2 huevos', '200 g tomates cherry', '1 cebolla morada', 'Aceitunas'], 'Cuece las judías y los huevos. Mezcla con atún, tomates, cebolla y aceitunas. Aliña con aceite y vinagre.'],
+  ['Alubias blancas con verduras', 'legumbres', 'lunch', 40, ['1 bote de alubias blancas', '1 puerro', '1 zanahoria', '1 pimiento rojo', '2 dientes de ajo', 'Pimentón'], 'Sofríe puerro, zanahoria, pimiento y ajo. Añade pimentón, las alubias y agua o caldo. Cuece 20 min a fuego suave.'],
+  ['Crema de lentejas rojas con curry', 'legumbres', 'dinner', 25, ['200 g lentejas rojas', '1 cebolla', '1 zanahoria', '200 ml leche de coco', '1 cucharada de curry', 'Jengibre'], 'Sofríe cebolla, zanahoria y jengibre con el curry. Añade las lentejas y agua y cuece 15 min. Tritura con la leche de coco.'],
+  ['Pollo al limón con patatas', 'aves', 'lunch', 50, ['4 muslos de pollo', '3 patatas', '2 limones', '4 dientes de ajo', 'Romero', 'Aceite de oliva'], 'Coloca patatas en gajos y pollo en una bandeja con limón, ajo y romero. Horno 45 min a 200 °C, dándole la vuelta a mitad.'],
+  ['Revuelto de setas y espárragos', 'huevos', 'dinner', 15, ['4 huevos', '200 g setas', '1 manojo de espárragos trigueros', '1 diente de ajo', 'Pan'], 'Saltea el ajo, los espárragos y las setas. Añade los huevos batidos y remueve a fuego suave hasta que cuajen.'],
+  ['Ensalada caprese con pan', 'verdura', 'dinner', 10, ['3 tomates', '1 burrata o mozzarella', 'Albahaca', 'Aceite de oliva', 'Pan'], 'Tomate en rodajas, burrata en el centro, albahaca, aceite y sal. Con pan tostado.'],
+  ['Gambas al ajillo con ensalada', 'pescado', 'dinner', 15, ['300 g gambas peladas', '4 dientes de ajo', '1 guindilla', 'Perejil', 'Lechuga', 'Pan'], 'Dora el ajo laminado y la guindilla, añade las gambas 2 min y perejil. Con ensalada y pan.'],
+  ['Berenjenas rellenas de lentejas', 'legumbres', 'dinner', 45, ['2 berenjenas', '1 bote de lentejas cocidas', '1 cebolla', '200 g tomate triturado', 'Queso rallado'], 'Asa las berenjenas en mitades y vacíalas. Sofríe cebolla, la pulpa, tomate y lentejas. Rellena, pon queso y gratina 10 min.'],
+  ['Tortilla de espinacas', 'huevos', 'dinner', 15, ['4 huevos', '200 g espinacas', '1 cebolleta', 'Queso de cabra'], 'Saltea la cebolleta y las espinacas, añade los huevos batidos y el queso y cuaja la tortilla por los dos lados.']
 ];
 
 let recipes = [];
@@ -189,20 +206,144 @@ async function addRecipePhoto(recipe) {
   }
 }
 
+// ---------- Preferencias del menú ----------
+// Lo que elegís (dieta, qué comidas planear, cenas rápidas, lo que no os gusta y sobras) decide
+// qué recetas se sugieren y qué objetivos de equilibrio se usan.
+const KITCHEN_PREFS_KEY = 'umbral-kitchen-prefs';
+const DIETS = {
+  mediterranean: { label: 'Mediterránea', hint: 'De todo, con legumbres y pescado a menudo' },
+  flexitarian: { label: 'Flexitariana', hint: 'Sobre todo vegetal, algo de pescado y pollo' },
+  pescatarian: { label: 'Pescetariana', hint: 'Sin carne, con pescado' },
+  vegetarian: { label: 'Vegetariana', hint: 'Sin carne ni pescado' }
+};
+const DEFAULT_PREFS = { diet: 'mediterranean', weekdayLunch: true, weekdayDinner: true, weekendLunch: true, weekendDinner: true, quickDinner: 30, avoid: '', leftovers: false };
+let kitchenPrefs = { ...DEFAULT_PREFS };
+try { kitchenPrefs = { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(KITCHEN_PREFS_KEY) || '{}') }; } catch {}
+const MEAT_RE = /pollo|pavo|ternera|cerdo|carne|jam[oó]n|chorizo|bacon|beicon|panceta|salchicha|guanciale|cordero|conejo|pechuga|alb[oó]ndiga|lomo de cerdo/i;
+const FISH_RE = /merluza|salm[oó]n|bacalao|at[uú]n|gambas?|langostinos?|calamar|sepia|mejillones|anchoas?|boquerones|sardinas?|pescado|dorada|lubina|pulpo|almejas|emperador/i;
+const hasMeat = (recipe) => ['carne', 'aves'].includes(recipe.category) || recipe.ingredients.some((text) => MEAT_RE.test(text));
+const hasFish = (recipe) => recipe.category === 'pescado' || recipe.ingredients.some((text) => FISH_RE.test(text));
+const avoidList = () => String(kitchenPrefs.avoid || '').split(',').map((word) => normalizeText(word.trim())).filter((word) => word.length > 2);
+// ¿Encaja la receta con vuestras preferencias?
+function fitsPrefs(recipe, day, slot) {
+  if (kitchenPrefs.diet === 'vegetarian' && (hasMeat(recipe) || hasFish(recipe))) return false;
+  if (kitchenPrefs.diet === 'pescatarian' && hasMeat(recipe)) return false;
+  const avoid = avoidList();
+  if (avoid.length && recipe.ingredients.some((text) => avoid.some((word) => normalizeText(text).includes(word)))) return false;
+  const weekday = day && isoToDate(day).getDay() % 6 !== 0;
+  if (slot === 'dinner' && weekday && kitchenPrefs.quickDinner && recipe.minutes && recipe.minutes > kitchenPrefs.quickDinner) return false;
+  return true;
+}
+// Qué huecos de la semana queréis planear.
+function slotWanted(day, slot) {
+  const weekend = isoToDate(day).getDay() % 6 === 0;
+  return Boolean(kitchenPrefs[`${weekend ? 'weekend' : 'weekday'}${slot === 'lunch' ? 'Lunch' : 'Dinner'}`]);
+}
+// Objetivos de la semana según la dieta (y según cuántas comidas planeáis).
+function balanceTargets() {
+  const meals = weekDays().reduce((sum, day) => sum + Object.keys(SLOTS).filter((slot) => slotWanted(day, slot)).length, 0) || 14;
+  const k = meals / 14;
+  const scale = (n) => Math.max(0, Math.round(n * k));
+  const base = {
+    mediterranean: { legumbres: [3, 5], pescado: [3, 5], verdura: [4, 14], aves: [1, 3], huevos: [1, 4], hidratos: [0, 4], carne: [0, 1] },
+    flexitarian: { legumbres: [4, 6], pescado: [2, 4], verdura: [5, 14], aves: [0, 2], huevos: [2, 4], hidratos: [0, 4], carne: [0, 0] },
+    pescatarian: { legumbres: [4, 6], pescado: [3, 6], verdura: [5, 14], aves: [0, 0], huevos: [2, 4], hidratos: [0, 4], carne: [0, 0] },
+    vegetarian: { legumbres: [5, 8], pescado: [0, 0], verdura: [5, 14], aves: [0, 0], huevos: [2, 5], hidratos: [0, 5], carne: [0, 0] }
+  }[kitchenPrefs.diet] || {};
+  return WEEK_BALANCE.map((entry) => {
+    const [min, max] = base[entry.key] || [entry.min, entry.max];
+    return { ...entry, min: scale(min), max: max >= 14 ? 14 : Math.max(scale(max), max ? 1 : 0) };
+  }).filter((entry) => entry.max > 0 || entry.min > 0);
+}
+// Puntuación de equilibrio de 0 a 100 y consejos de lo que falta o sobra.
+function balanceReport(balance) {
+  let score = 100;
+  const tips = [];
+  balance.forEach((item) => {
+    if (item.count < item.min) { score -= (item.min - item.count) * 9; tips.push(`Falta ${item.label.toLowerCase()} (${item.count} de ${item.min})`); }
+    if (item.count > item.max) { score -= (item.count - item.max) * 8; tips.push(`Sobra ${item.label.toLowerCase()} (${item.count}, máx. ${item.max})`); }
+  });
+  return { score: Math.max(0, Math.min(100, Math.round(score))), tips };
+}
+function savePrefs(values) {
+  kitchenPrefs = {
+    ...DEFAULT_PREFS,
+    diet: DIETS[values.diet] ? values.diet : 'mediterranean',
+    weekdayLunch: Boolean(values.weekdayLunch), weekdayDinner: Boolean(values.weekdayDinner),
+    weekendLunch: Boolean(values.weekendLunch), weekendDinner: Boolean(values.weekendDinner),
+    quickDinner: Number(values.quickDinner) || 0,
+    avoid: String(values.avoid || '').slice(0, 300),
+    leftovers: Boolean(values.leftovers)
+  };
+  try { localStorage.setItem(KITCHEN_PREFS_KEY, JSON.stringify(kitchenPrefs)); } catch {}
+}
+function openPrefs() {
+  const p = kitchenPrefs;
+  const check = (name, label) => `<label class="option-toggle"><input type="checkbox" name="${name}" ${p[name] ? 'checked' : ''} /><span>${label}</span></label>`;
+  showKitchenSheet(`
+    <div class="plant-add-heading"><p class="eyebrow muted">Menú</p><h2 id="kitchenSheetTitle">Vuestras preferencias</h2></div>
+    <form class="item-editor" data-prefs-form>
+      <fieldset class="plant-field"><legend>Cómo coméis</legend><div class="diet-picker">${Object.entries(DIETS).map(([id, diet]) => `<label class="diet-option"><input type="radio" name="diet" value="${id}" ${p.diet === id ? 'checked' : ''} /><span><b>${diet.label}</b><small>${diet.hint}</small></span></label>`).join('')}</div></fieldset>
+      <fieldset class="plant-field"><legend>Qué planear</legend><div class="choice-row">${check('weekdayLunch', 'Comidas entre semana')}${check('weekdayDinner', 'Cenas entre semana')}${check('weekendLunch', 'Comidas del finde')}${check('weekendDinner', 'Cenas del finde')}</div></fieldset>
+      <fieldset class="plant-field"><legend>Cenas entre semana</legend><div class="choice-row">${[[20, 'Muy rápidas (20 min)'], [30, 'Rápidas (30 min)'], [45, 'Hasta 45 min'], [0, 'Sin límite']].map(([value, label]) => `<label class="option-toggle"><input type="radio" name="quickDinner" value="${value}" ${Number(p.quickDinner) === value ? 'checked' : ''} /><span>${label}</span></label>`).join('')}</div></fieldset>
+      <label class="plant-field"><span>Lo que no os gusta o no podéis comer (separado por comas)</span><input name="avoid" type="text" maxlength="300" value="${escapeHtml(p.avoid)}" placeholder="champiñones, cilantro, nueces" /></label>
+      <div class="choice-row">${check('leftovers', '🥡 Cocinar doble: la cena de hoy es la comida de mañana')}</div>
+      <div class="plant-form-actions"><button type="submit" class="primary-button"><i data-lucide="check"></i> Guardar</button></div>
+    </form>`, { kind: 'prefs' });
+}
+
+// Al elegir una receta para un hueco: ¿qué falta? (lo marcado va a la compra).
+function missingIngredients(recipe) {
+  const inList = shoppingItems.filter((item) => item.status !== 'done').map((item) => normalizeText(item.name));
+  return recipe.ingredients.map((text, index) => {
+    const key = ingredientName(text);
+    const listed = inList.some((name) => name && (name.includes(key) || key.includes(name)));
+    return { index, text, pantry: PANTRY.test(key), listed };
+  });
+}
+function openMissing(recipe, { day, slot } = {}) {
+  const items = missingIngredients(recipe);
+  const label = day ? `${SLOTS[slot]} del ${new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric' }).format(isoToDate(day))}` : '';
+  showKitchenSheet(`
+    <div class="plant-add-heading"><p class="eyebrow muted">✓ ${escapeHtml(capitalizeFirst(label))}</p><h2 id="kitchenSheetTitle">${escapeHtml(recipe.title)}</h2></div>
+    <p class="recurring-intro">¿Qué os falta? Marca lo que no tengáis y va directo a la lista de la compra.</p>
+    <div class="ingredient-list">${items.map((item) => `<label class="ingredient${item.listed ? ' is-listed' : ''}"><input type="checkbox" data-missing="${item.index}" ${item.pantry || item.listed ? '' : 'checked'} ${item.listed ? 'disabled' : ''} /><span>${escapeHtml(item.text)}${item.listed ? '<small>ya está en la lista</small>' : item.pantry ? '<small>de despensa</small>' : ''}</span></label>`).join('')}</div>
+    <div class="plant-form-actions split-actions"><button type="button" class="pill-button" data-close-kitchen>No me falta nada</button><button type="button" class="primary-button" data-send-missing><i data-lucide="shopping-basket"></i> Añadir a la compra</button></div>`, { kind: 'missing', id: recipe.id });
+}
+
+// Lista de la semana: suma cantidades del mismo ingrediente y lo agrupa por pasillos.
+const AISLES = [
+  ['🥬 Fruta y verdura', /cebolla|ajo|zanahoria|pimiento|tomate|patata|calabac|calabaza|berenjena|lechuga|espinaca|br[oó]coli|apio|pepino|aguacate|lim[oó]n|naranja|manzana|perejil|albahaca|cilantro|jengibre|champi|seta|judías verdes|cebolleta|puerro|eneldo|r[uú]cula|ma[ií]z|guisantes|alcachofa|fresas|pl[aá]tano/i],
+  ['🐟 Pescado y carne', new RegExp(`${MEAT_RE.source}|${FISH_RE.source}`, 'i')],
+  ['🧀 Lácteos y huevos', /huevo|leche|queso|parmesano|mozzarella|feta|yogur|nata|mantequilla|ricotta|burrata|pecorino/i],
+  ['🥫 Despensa', /lentejas|garbanzos|alubias|arroz|pasta|espaguetis|trofie|quinoa|harina|tomate triturado|bote|lata|caldo|pan|tahini|leche de coco|curry|soja|pesto|aceite|vinagre|especias|comino|piment[oó]n|or[eé]gano|az[uú]car|sal\b|pimienta|cuscús|tofu|masa/i]
+];
+const aisleOf = (key) => (AISLES.find(([, re]) => re.test(key)) || ['🛒 Otros'])[0];
+function mergeQuantity(texts) {
+  // «1 cebolla» + «1 cebolla» → «2 cebolla»; «300 g lentejas» + «200 g lentejas» → «500 g lentejas».
+  const parsed = texts.map((text) => text.match(/^\s*(\d+(?:[.,]\d+)?)\s*(kg|g|gr|l|ml)?\s+(.*)$/i));
+  if (parsed.every(Boolean) && new Set(parsed.map((m) => (m[2] || '').toLowerCase())).size === 1) {
+    const total = parsed.reduce((sum, m) => sum + Number(m[1].replace(',', '.')), 0);
+    return `${Math.round(total * 100) / 100}${parsed[0][2] ? ` ${parsed[0][2]}` : ''} ${parsed[0][3]}`;
+  }
+  return texts.length > 1 ? `${texts[0]} (×${texts.length})` : texts[0];
+}
+
 // ---------- Equilibrio y sugerencias ----------
 
 function weekBalance(start = shownWeek()) {
   const days = weekDays(start);
   const groups = mealPlan.filter((meal) => days.includes(meal.day)).map(groupOf).filter(Boolean);
-  return WEEK_BALANCE.map((target) => ({ ...target, count: groups.filter((group) => target.groups.includes(group)).length }));
+  return balanceTargets().map((target) => ({ ...target, count: groups.filter((group) => target.groups.includes(group)).length }));
 }
 
 // Elige recetas para los huecos vacíos de la semana: primero lo que falta para el mínimo,
 // sin pasarse de los máximos, sin repetir y con cenas más ligeras.
 function suggestFor(day, slot, plannedGroups, used) {
   const counts = (groups) => plannedGroups.filter((group) => groups.includes(group)).length;
-  const scored = recipes.filter((recipe) => !used.has(recipe.id) && (recipe.meal === 'any' || recipe.meal === slot)).map((recipe) => {
-    const target = WEEK_BALANCE.find((entry) => entry.groups.includes(recipe.category));
+  const targets = balanceTargets();
+  const scored = recipes.filter((recipe) => !used.has(recipe.id) && (recipe.meal === 'any' || recipe.meal === slot) && fitsPrefs(recipe, day, slot)).map((recipe) => {
+    const target = targets.find((entry) => entry.groups.includes(recipe.category));
     let score = Math.random() * 0.8;
     if (target) {
       const count = counts(target.groups);
@@ -212,9 +353,12 @@ function suggestFor(day, slot, plannedGroups, used) {
     if (slot === 'dinner' && ['verdura', 'sopa', 'pescado', 'huevos'].includes(recipe.category)) score += 1.2;
     if (slot === 'lunch' && ['legumbres', 'pasta', 'arroz', 'aves', 'carne'].includes(recipe.category)) score += 1;
     if (recipe.favorite) score += 0.6;
-    return { recipe, score };
+    // Variedad: que no se repita el mismo tipo dos comidas seguidas.
+    if (plannedGroups.at(-1) === recipe.category) score -= 1.5;
+    if (!target && recipe.category !== 'otros') score -= 0.5;
+    return { recipe, score, why: target && counts(target.groups) < target.min ? `+ ${target.label.toLowerCase()} (${counts(target.groups)}/${target.min})` : '' };
   }).sort((first, second) => second.score - first.score);
-  return scored.map((entry) => entry.recipe);
+  return scored.map((entry) => Object.assign(entry.recipe, { why: entry.why }));
 }
 
 async function fillWeek() {
@@ -228,13 +372,20 @@ async function fillWeek() {
   const plannedGroups = planned.map(groupOf).filter(Boolean);
   const used = new Set(planned.map((meal) => meal.recipe_id).filter(Boolean));
   const rows = [];
+  const taken = (day, slot) => mealAt(day, slot) || rows.some((row) => row.day === day && row.slot === slot);
   days.forEach((day) => Object.keys(SLOTS).forEach((slot) => {
-    if (mealAt(day, slot)) return;
+    if (!slotWanted(day, slot) || taken(day, slot)) return;
     const recipe = suggestFor(day, slot, plannedGroups, used)[0];
     if (!recipe) return;
     used.add(recipe.id);
     plannedGroups.push(recipe.category);
     rows.push({ day, slot, recipe_id: recipe.id, title: recipe.title });
+    // Cocinar doble: la cena de hoy se come mañana a mediodía (sin volver a comprar).
+    const next = addDaysToISO(day, 1);
+    if (kitchenPrefs.leftovers && slot === 'dinner' && weekDays().includes(next) && slotWanted(next, 'lunch') && !taken(next, 'lunch')) {
+      rows.push({ day: next, slot: 'lunch', recipe_id: null, title: `🥡 Sobras: ${recipe.title}`.slice(0, 80) });
+      plannedGroups.push(recipe.category);
+    }
   }));
   if (!rows.length) return showToast('La semana ya está completa');
   try {
@@ -267,7 +418,12 @@ function renderMenu() {
       const state = item.count < item.min ? 'is-low' : item.count > item.max ? 'is-high' : 'is-ok';
       return `<span class="balance-chip ${state}" title="${escapeHtml(`${item.label}: ${item.count} (recomendado ${item.min}${item.max < 14 ? `–${item.max}` : '+'} a la semana)`)}"><b>${item.count}</b>${escapeHtml(item.label)}<i data-lucide="${state === 'is-ok' ? 'check' : state === 'is-low' ? 'arrow-up' : 'arrow-down'}"></i></span>`;
     }).join('')}</div>
-    <div class="menu-actions"><button type="button" class="primary-button" data-fill-week><i data-lucide="wand-sparkles"></i> Rellenar con equilibrio</button><button type="button" class="pill-button" data-week-shopping><i data-lucide="shopping-basket"></i> Ingredientes a la compra</button></div>
+    ${(() => {
+      const report = balanceReport(balance);
+      if (planned < 4) return `<p class="menu-score is-empty"><i data-lucide="scale"></i>Planifica unas cuantas comidas y verás aquí lo equilibrada que queda la semana (${escapeHtml(DIETS[kitchenPrefs.diet].label.toLowerCase())}).</p>`;
+      return `<div class="menu-score ${report.score >= 80 ? 'is-good' : report.score >= 55 ? 'is-mid' : 'is-low'}"><b>${report.score}</b><div><strong>${report.score >= 80 ? '¡Semana muy equilibrada!' : report.score >= 55 ? 'Casi equilibrada' : 'Poco equilibrada'}</strong><small>${escapeHtml(report.tips.slice(0, 2).join(' · ') || `Dieta ${DIETS[kitchenPrefs.diet].label.toLowerCase()}`)}</small></div></div>`;
+    })()}
+    <div class="menu-actions"><button type="button" class="primary-button" data-fill-week><i data-lucide="wand-sparkles"></i> Rellenar con equilibrio</button><button type="button" class="pill-button" data-week-shopping><i data-lucide="shopping-basket"></i> Lista de la semana</button><button type="button" class="pill-button" data-kitchen-prefs><i data-lucide="sliders-horizontal"></i> Preferencias</button></div>
     <div class="menu-days">${days.map((day) => `
       <div class="menu-day${day === today ? ' is-today' : ''}${day < today ? ' is-past' : ''}">
         <header><strong>${day === today ? 'Hoy' : capitalizeFirst(format(day, { weekday: 'long' }))}</strong><span>${format(day, { day: 'numeric', month: 'short' })}</span></header>
@@ -275,13 +431,13 @@ function renderMenu() {
           const meal = mealAt(day, slot);
           const recipe = recipeById(meal?.recipe_id);
           const cover = recipe && recipeCover(recipe);
-          return `<button type="button" class="menu-slot${meal ? ' is-set' : ''}" data-menu-slot="${day}|${slot}">
+          return `<button type="button" class="menu-slot${meal ? ' is-set' : ''}${!meal && !slotWanted(day, slot) ? ' is-off' : ''}" data-menu-slot="${day}|${slot}">
             <small>${label}</small>
             ${meal ? `<span class="menu-slot-main">${cover ? `<img alt="" data-photo="${escapeHtml(cover)}" />` : `<i data-lucide="${RECIPE_GROUPS[recipe?.category]?.icon || 'utensils'}"></i>`}<strong>${escapeHtml(meal.title)}</strong></span>` : '<span class="menu-slot-empty"><i data-lucide="plus"></i>Añadir</span>'}
           </button>`;
         }).join('')}</div>
       </div>`).join('')}</div>
-    <p class="menu-guide"><i data-lucide="info"></i>Guía orientativa de dieta mediterránea: legumbres y pescado 3–4 veces por semana, verdura a diario, pollo o huevos algunas veces y carne roja como mucho una.</p>`;
+    <p class="menu-guide"><i data-lucide="info"></i>Objetivos orientativos para una dieta ${escapeHtml(DIETS[kitchenPrefs.diet].label.toLowerCase())}: ${escapeHtml(balance.map((item) => `${item.label.toLowerCase()} ${item.min}${item.max < 14 && item.max !== item.min ? `–${item.max}` : item.max >= 14 ? '+' : ''}`).join(', '))} a la semana.</p>`;
   hydratePhotos(panel);
 }
 
@@ -304,7 +460,8 @@ function renderRecipes() {
         <small>${escapeHtml(RECIPE_GROUPS[recipe.category].label)}${recipe.minutes ? ` · ${minutesLabel(recipe.minutes)}` : ''}${cooked ? ` · ${cooked}× hecha` : ''}</small>
       </button>`;
     }).join('')}</div>
-    ${!recipes.length ? `<div class="empty-state"><span class="empty-state-icon"><i data-lucide="chef-hat"></i></span><strong>Vuestro recetario</strong><span>Guardad aquí lo que cocináis, con fotos de cada vez que lo hacéis. Podéis empezar con 20 recetas sencillas y equilibradas.</span><button type="button" class="primary-button" data-starter-recipes><i data-lucide="sparkles"></i> Añadir recetas de ejemplo</button></div>` : !list.length ? '<p class="empty-note">Ninguna receta con estos filtros.</p>' : ''}`;
+    ${recipes.length && STARTER_RECIPES.some(([title]) => !recipes.some((recipe) => normalizeText(recipe.title) === normalizeText(title))) ? '<button type="button" class="link-button starter-more" data-starter-recipes><i data-lucide="sparkles"></i> Añadir las recetas de ejemplo que aún no tenéis</button>' : ''}
+    ${!recipes.length ? `<div class="empty-state"><span class="empty-state-icon"><i data-lucide="chef-hat"></i></span><strong>Vuestro recetario</strong><span>Guardad aquí lo que cocináis, con fotos de cada vez que lo hacéis. Podéis empezar con ${STARTER_RECIPES.length} recetas sencillas y equilibradas.</span><button type="button" class="primary-button" data-starter-recipes><i data-lucide="sparkles"></i> Añadir recetas de ejemplo</button></div>` : !list.length ? '<p class="empty-note">Ninguna receta con estos filtros.</p>' : ''}`;
   hydratePhotos(panel);
 }
 
@@ -361,13 +518,13 @@ function openSlot(day, slot) {
   const used = new Set(mealPlan.filter((entry) => days.includes(entry.day)).map((entry) => entry.recipe_id).filter(Boolean));
   const suggestions = suggestFor(day, slot, plannedGroups, used).slice(0, 3);
   const label = `${SLOTS[slot]} del ${new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric' }).format(isoToDate(day))}`;
-  const option = (recipe) => `<button type="button" class="recipe-option" data-pick-recipe="${escapeHtml(recipe.id)}"><span class="pcat-icon tone-${RECIPE_GROUPS[recipe.category].tone}"><i data-lucide="${RECIPE_GROUPS[recipe.category].icon}"></i></span><span><strong>${escapeHtml(recipe.title)}</strong><small>${escapeHtml(RECIPE_GROUPS[recipe.category].label)}${recipe.minutes ? ` · ${minutesLabel(recipe.minutes)}` : ''}</small></span></button>`;
+  const option = (recipe, why = '') => `<button type="button" class="recipe-option${fitsPrefs(recipe, day, slot) ? '' : ' is-unfit'}" data-pick-recipe="${escapeHtml(recipe.id)}"><span class="pcat-icon tone-${RECIPE_GROUPS[recipe.category].tone}"><i data-lucide="${RECIPE_GROUPS[recipe.category].icon}"></i></span><span><strong>${escapeHtml(recipe.title)}</strong><small>${escapeHtml(RECIPE_GROUPS[recipe.category].label)}${recipe.minutes ? ` · ${minutesLabel(recipe.minutes)}` : ''}${fitsPrefs(recipe, day, slot) ? '' : ' · no encaja con vuestras preferencias'}</small></span>${why ? `<em class="recipe-why">${escapeHtml(why)}</em>` : ''}</button>`;
   showKitchenSheet(`
     <div class="plant-add-heading"><p class="eyebrow muted">Menú</p><h2 id="kitchenSheetTitle">${escapeHtml(capitalizeFirst(label))}</h2></div>
     ${meal ? `<div class="current-meal"><strong>${escapeHtml(meal.title)}</strong><button type="button" class="link-button is-danger" data-clear-slot>Quitar</button></div>` : ''}
     <form class="quick-add slot-free" data-free-meal><div class="quick-add-row"><input name="title" type="text" maxlength="80" placeholder="Escribe algo: «sobras», «cena fuera»…" aria-label="Comida libre" /><button type="submit" aria-label="Guardar"><i data-lucide="check"></i></button></div></form>
-    ${suggestions.length ? `<p class="insight-label">Para equilibrar la semana</p><div class="recipe-options">${suggestions.map(option).join('')}</div>` : ''}
-    ${recipes.length ? `<p class="insight-label">Todas las recetas</p><input type="search" class="guide-search" data-slot-search placeholder="Buscar receta" aria-label="Buscar receta" /><div class="recipe-options" data-slot-list>${recipes.slice().sort((first, second) => first.title.localeCompare(second.title)).map(option).join('')}</div>` : '<p class="empty-note">Aún no tenéis recetas: añadid las vuestras o las de ejemplo en «Recetas».</p>'}`, { kind: 'slot', day, slot });
+    ${suggestions.length ? `<p class="insight-label">Para equilibrar la semana</p><div class="recipe-options">${suggestions.map((recipe) => option(recipe, recipe.why)).join('')}</div>` : ''}
+    ${recipes.length ? `<p class="insight-label">Todas las recetas</p><input type="search" class="guide-search" data-slot-search placeholder="Buscar receta" aria-label="Buscar receta" /><div class="recipe-options" data-slot-list>${recipes.slice().sort((first, second) => fitsPrefs(second, day, slot) - fitsPrefs(first, day, slot) || first.title.localeCompare(second.title)).map((recipe) => option(recipe)).join('')}</div>` : '<p class="empty-note">Aún no tenéis recetas: añadid las vuestras o las de ejemplo en «Recetas».</p>'}`, { kind: 'slot', day, slot });
 }
 
 function openRecipe(id, { keep = false } = {}) {
@@ -424,15 +581,17 @@ function openWeekShopping() {
   meals.forEach((meal) => recipeById(meal.recipe_id).ingredients.forEach((ingredient) => {
     const key = ingredientName(ingredient);
     if (!key) return;
-    const entry = seen.get(key) || { text: ingredient, recipes: new Set() };
+    const entry = seen.get(key) || { texts: [], recipes: new Set() };
+    entry.texts.push(ingredient);
     entry.recipes.add(meal.title);
     seen.set(key, entry);
   }));
-  const items = [...seen].map(([key, entry]) => ({ key, ...entry, pantry: PANTRY.test(key), listed: [...inCart].some((name) => name.includes(key) || key.includes(name)) }));
+  const items = [...seen].map(([key, entry]) => ({ key, text: mergeQuantity(entry.texts), recipes: entry.recipes, aisle: aisleOf(key), pantry: PANTRY.test(key), listed: [...inCart].some((name) => name.includes(key) || key.includes(name)) }))
+    .sort((a, b) => AISLES.findIndex(([label]) => label === a.aisle) - AISLES.findIndex(([label]) => label === b.aisle) || a.key.localeCompare(b.key));
   showKitchenSheet(`
     <div class="plant-add-heading"><p class="eyebrow muted">Menú → compra</p><h2 id="kitchenSheetTitle">Ingredientes de la semana</h2></div>
     ${items.length ? `<p class="recurring-intro">De ${meals.length} ${meals.length === 1 ? 'comida' : 'comidas'} que quedan esta semana. Desmarca lo que ya tengáis en casa.</p>
-    <div class="ingredient-list">${items.map((item, index) => `<label class="ingredient"><input type="checkbox" data-week-ingredient="${index}" ${item.pantry || item.listed ? '' : 'checked'} /><span>${escapeHtml(item.text)}<small>${escapeHtml([...item.recipes].join(', '))}${item.listed ? ' · ya en la lista' : item.pantry ? ' · de despensa' : ''}</small></span></label>`).join('')}</div>
+    <div class="ingredient-list">${items.map((item, index) => `${index === 0 || items[index - 1].aisle !== item.aisle ? `<p class="aisle-label">${escapeHtml(item.aisle)}</p>` : ''}<label class="ingredient"><input type="checkbox" data-week-ingredient="${index}" ${item.pantry || item.listed ? '' : 'checked'} /><span>${escapeHtml(item.text)}<small>${escapeHtml([...item.recipes].join(', '))}${item.listed ? ' · ya en la lista' : item.pantry ? ' · de despensa' : ''}</small></span></label>`).join('')}</div>
     <div class="plant-form-actions"><button type="button" class="primary-button" data-send-week-ingredients><i data-lucide="shopping-basket"></i> Añadir a la compra</button></div>` : '<p class="empty-note">No hay recetas planificadas para lo que queda de semana.</p>'}`, { kind: 'week-shopping', items });
 }
 
@@ -457,6 +616,7 @@ document.querySelector('#kitchenView').addEventListener('click', (event) => {
   if (slot) return openSlot(...slot.dataset.menuSlot.split('|'));
   if (target.closest('[data-fill-week]')) return fillWeek();
   if (target.closest('[data-week-shopping]')) return openWeekShopping();
+  if (target.closest('[data-kitchen-prefs]')) return openPrefs();
   if (target.closest('[data-new-recipe]')) return openRecipeEditor();
   if (target.closest('[data-starter-recipes]')) return addStarterRecipes();
   const recipe = target.closest('[data-open-recipe]');
@@ -490,7 +650,11 @@ kitchenSheet.addEventListener('click', async (event) => {
   const pick = target.closest('[data-pick-recipe]');
   if (pick && state.kind === 'slot') {
     const recipe = recipeById(pick.dataset.pickRecipe);
-    if (await setMeal(state.day, state.slot, { recipeId: recipe.id, title: recipe.title })) closeKitchenSheet();
+    if (await setMeal(state.day, state.slot, { recipeId: recipe.id, title: recipe.title })) {
+      // Y ahora, qué falta para hacerla.
+      if (recipe.ingredients.length) openMissing(recipe, { day: state.day, slot: state.slot });
+      else closeKitchenSheet();
+    }
     return;
   }
   if (target.closest('[data-clear-slot]')) {
@@ -522,6 +686,10 @@ kitchenSheet.addEventListener('click', async (event) => {
   }
   if (target.closest('[data-ingredients-to-cart]')) {
     const chosen = [...kitchenSheet.querySelectorAll('[data-ingredient]:checked')].map((box) => recipe.ingredients[Number(box.dataset.ingredient)]);
+    return sendIngredients(chosen);
+  }
+  if (target.closest('[data-send-missing]') && state.kind === 'missing') {
+    const chosen = [...kitchenSheet.querySelectorAll('[data-missing]:checked')].map((box) => recipe.ingredients[Number(box.dataset.missing)]);
     return sendIngredients(chosen);
   }
   if (target.closest('[data-send-week-ingredients]')) {
@@ -557,6 +725,12 @@ kitchenSheet.addEventListener('submit', async (event) => {
     const title = form.title.value.trim();
     if (title && await setMeal(state.day, state.slot, { title })) closeKitchenSheet();
     return;
+  }
+  if (form.hasAttribute('data-prefs-form')) {
+    savePrefs(Object.fromEntries(new FormData(form)));
+    closeKitchenSheet();
+    renderKitchen();
+    return showToast('Preferencias guardadas');
   }
   if (form.hasAttribute('data-recipe-form')) {
     const button = form.querySelector('button[type="submit"]');

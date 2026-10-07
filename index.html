@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=44" />
+    <link rel="stylesheet" href="styles.css?v=46" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -44,6 +44,7 @@
             <button type="button" class="quick-action is-expense" data-action="quick-expense"><span><i data-lucide="receipt-euro"></i></span>Gasto</button>
           </div>
 
+          <div class="shark-tank" id="sharkTank" role="img" aria-label="El tiburón de la casa"></div>
           <section class="attention-section" aria-labelledby="home-title">
             <div class="section-heading">
               <span class="attention-mark" aria-hidden="true"><i data-lucide="house-heart"></i></span>
@@ -237,6 +238,7 @@
               <button type="button" data-us-view="photos" aria-pressed="true"><i data-lucide="aperture"></i>Fotos</button>
               <button type="button" data-us-view="dates" aria-pressed="false"><i data-lucide="calendar-heart"></i>Fechas</button>
               <button type="button" data-us-view="plans" aria-pressed="false"><i data-lucide="popcorn"></i>Planes</button>
+              <button type="button" data-us-view="map" aria-pressed="false"><i data-lucide="map"></i>Mapa</button>
             </div>
             <div class="us-content" id="usContent"><p class="empty-note">Cargando…</p></div>
           </div>
@@ -478,7 +480,7 @@
     <script src="supabase-config.js"></script>
     <script src="smart-lights-config.js"></script>
     <script src="mobile-bridge.js"></script>
-    <script src="scene.js?v=11"></script>
+    <script src="scene.js?v=12"></script>
     <script src="store.js?v=1"></script>
     <script src="push.js?v=1"></script>
     <script src="shopping.js?v=4"></script>
@@ -489,13 +491,14 @@
     <script src="bank-import.js?v=1"></script>
     <script src="personal.js?v=2"></script>
     <script src="media.js?v=1"></script>
-    <script src="kitchen.js?v=3"></script>
-    <script src="nosotros.js?v=6"></script>
-    <script src="avatars.js?v=6"></script>
-    <script src="sims-world.js?v=8"></script>
+    <script src="kitchen.js?v=4"></script>
+    <script src="nosotros.js?v=7"></script>
+    <script src="avatars.js?v=7"></script>
+    <script src="sims-world.js?v=10"></script>
     <script src="sims-places.js?v=2"></script>
     <script src="garden.js?v=2"></script>
-    <script src="sims.js?v=9"></script>
+    <script src="sims.js?v=11"></script>
+    <script src="shark.js?v=1"></script>
     <script src="app.js?v=45"></script>
   </body>
 </html>

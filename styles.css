@@ -2469,8 +2469,10 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-pie-title { padding: 5px 10px; border: 2px solid #2b1f1d; border-radius: 6px; background: #2f4a5a; color: #fff; font-family: var(--pixel-font); font-size: 13px; pointer-events: none; }
 .sims-pie-option { display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px 7px 8px; border: 2px solid #2b1f1d; border-radius: 8px; background: #faf4e6; color: #2b1f1d; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .12), 0 3px 0 rgba(0, 0, 0, .3); font-family: var(--pixel-font); font-size: 14px; animation: sims-pop .22s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: calc(var(--i) * 30ms); }
 .sims-pie-option span { font-size: 16px; line-height: 1; }
-.sims-pie-list { position: absolute; display: grid; grid-template-columns: repeat(2, max-content); gap: 6px; transform: translateX(-50%); pointer-events: auto; }
-.sims-pie.is-list .sims-pie-option { position: static; transform: none; font-size: 13px; }
+.sims-pie-list { position: absolute; display: grid; grid-template-columns: max-content; gap: 5px; max-width: calc(100% - 12px); pointer-events: auto; animation: sims-pop .18s ease both; }
+.sims-pie-list.is-two { grid-template-columns: repeat(2, minmax(0, max-content)); }
+.sims-pie.is-list .sims-pie-title { position: static; grid-column: 1 / -1; justify-self: start; transform: none; }
+.sims-pie.is-list .sims-pie-option { position: static; max-width: 220px; transform: none; font-size: 13px; white-space: normal; text-align: left; }
 .sims-pie.is-list .sims-pie-option:active { transform: translateY(2px); }
 .sims-pie-option.is-cat { background: #2f4a5a; color: #fff; }
 .sim-float.is-down { color: #ef6f6f; }
@@ -2580,7 +2582,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 /* Viñeta suave en los bordes, como en un juego. */
 .sims-modal.is-full .sims-house::after { content: ""; position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse at center, transparent 62%, rgba(10, 6, 6, .38) 100%); pointer-events: none; }
 .sims-modal.is-full .sims-hud { inset: max(8px, env(safe-area-inset-top)) calc(max(8px, env(safe-area-inset-right)) + 50px) auto max(8px, env(safe-area-inset-left)); }
-.sims-modal.is-full .sims-needs { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: max(8px, env(safe-area-inset-left)); z-index: 7; width: 152px; margin: 0; padding: 6px 7px; border: 2px solid #2b1f1d; border-radius: 8px; background: rgba(250, 244, 230, .92); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12), 0 3px 0 rgba(0, 0, 0, .3); color: #2b1f1d; font-family: "Pixelify Sans", var(--font-body); }
+.sims-modal.is-full .sims-needs { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); left: max(8px, env(safe-area-inset-left)); z-index: 6; width: 152px; margin: 0; padding: 6px 7px; border: 2px solid #2b1f1d; border-radius: 8px; background: rgba(250, 244, 230, .92); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12), 0 3px 0 rgba(0, 0, 0, .3); color: #2b1f1d; font-family: "Pixelify Sans", var(--font-body); }
 .sims-modal.is-full .sims-needs-head { margin-bottom: 4px; gap: 4px; }
 .sims-modal.is-full .sims-needs-head .sims-plumbob { width: 13px; height: 13px; }
 .sims-modal.is-full .sims-needs-head .segmented { padding: 2px; }
@@ -2654,3 +2656,146 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-modal.is-full .sims-toolbar { right: calc(max(8px, env(safe-area-inset-right)) + 50px); bottom: max(8px, env(safe-area-inset-bottom)); }
 .sims-modal.is-full .sims-chatlog { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 96px); left: max(8px, env(safe-area-inset-left)); }
 .sims-modal.is-full .sims-chatbar { right: calc(max(8px, env(safe-area-inset-right)) + 50px); left: calc(max(8px, env(safe-area-inset-left)) + 164px); bottom: calc(max(8px, env(safe-area-inset-bottom)) + 46px); }
+
+/* ---------- Modo Sims: cola, monedas, ánimo, relación, habilidades, tienda y juegos de mesa ---------- */
+.sims-hud-main { display: grid; gap: 4px; justify-items: start; max-width: 70%; }
+.sims-hud-main .sims-hud-action { max-width: 100%; }
+.sims-hud-queue { display: flex; gap: 3px; pointer-events: auto; }
+.sims-hud-queue button { width: 26px; height: 26px; border: 2px solid #2b1f1d; border-radius: 6px; background: rgba(250, 244, 230, .9); font-size: 13px; opacity: .85; }
+.sims-hud-coins { color: #2f7a3e; font-weight: 600; }
+.sims-moodlets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.sims-moodlets span { padding: 3px 8px; border-radius: 999px; background: var(--track); font-size: 12px; }
+.sims-moodlets em { font-style: normal; color: var(--muted); }
+.sims-rel { margin-top: 10px; }
+.sims-rel small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.sims-rel div { display: grid; grid-template-columns: auto 1fr auto 1fr; align-items: center; gap: 6px; }
+.sims-rel i, .sims-skills i { display: block; height: 8px; overflow: hidden; border-radius: 5px; background: var(--track); }
+.sims-rel i b, .sims-skills i b { display: block; height: 100%; border-radius: 5px; background: #3fbf6a; transition: width .6s ease; }
+.sims-rel i.is-romance b { background: #e0607a; }
+.sims-skills { margin-top: 10px; }
+.sims-skills summary { cursor: pointer; color: var(--ink); font-size: 13px; font-weight: 700; }
+.sims-skills div { display: grid; gap: 6px; margin-top: 8px; }
+.sims-skills p { display: grid; grid-template-columns: 1fr auto 90px; align-items: center; gap: 8px; margin: 0; font-size: 13px; }
+.sims-skills p b { min-width: 18px; text-align: right; }
+.sims-modal.is-full .sims-moodlets em, .sims-modal.is-full .sims-rel, .sims-modal.is-full .sims-skills { display: none; }
+.sims-modal.is-full .sims-moodlets { gap: 2px; margin-top: 4px; }
+.sims-modal.is-full .sims-moodlets span { padding: 0 3px; background: none; font-size: 12px; }
+.sims-card.is-shop .sims-card-paper, .sims-card.is-games .sims-card-paper { width: min(360px, 100%); transform: none; }
+.sims-shop { display: grid; gap: 6px; }
+.sims-shop-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; }
+.sims-shop-item.is-owned { background: #eef7e4; }
+.sims-shop-emoji { font-size: 22px; }
+.sims-shop-item b { display: block; font-size: 14px; }
+.sims-shop-item small { display: block; color: #8a7a6a; font-size: 11px; line-height: 1.25; }
+.sims-shop-item button { padding: 6px 9px; border: 2px solid #2b1f1d; border-radius: 6px; background: #3fbf6a; color: #fff; font: 13px var(--pixel-font); white-space: nowrap; }
+.sims-shop-item button:disabled { background: #cfc7ba; color: #6a5a4a; }
+.sims-shop-item em { color: #2f7a3e; font-size: 12px; font-style: normal; white-space: nowrap; }
+.sims-games { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sims-games button { display: grid; justify-items: center; gap: 2px; padding: 10px 6px; border: 2px solid #2b1f1d; border-radius: 8px; background: #fff; color: #2b1f1d; font-family: var(--pixel-font); text-align: center; box-shadow: 0 3px 0 rgba(0, 0, 0, .2); }
+.sims-games span { font-size: 26px; }
+.sims-games b { font-size: 14px; }
+.sims-games small { color: #8a7a6a; font-size: 11px; }
+.sims-puzzle { position: absolute; inset: 0; z-index: 7; display: grid; grid-template-rows: auto 1fr; background: #f4efe2; font-family: var(--pixel-font); animation: sims-fade-in .2s ease both; }
+.sims-puzzle-head { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 2px solid #2b1f1d; background: #fbf6dc; color: #2b1f1d; }
+.sims-puzzle-head b { flex: 1; font-size: 16px; }
+.sims-puzzle-head button { width: 28px; height: 28px; border: 2px solid #2b1f1d; border-radius: 6px; background: #c0503e; color: #fff; font-weight: 900; }
+.sims-puzzle-body { position: relative; display: grid; align-content: start; justify-items: center; gap: 10px; padding: 10px; overflow-y: auto; color: #2b1f1d; }
+.sims-puzzle-pick { display: grid; gap: 8px; max-width: 280px; margin-top: 10px; text-align: center; }
+.sims-puzzle-pick p { margin: 0; font-size: 14px; line-height: 1.35; }
+.sims-puzzle-pick button, .sims-cross-actions button { padding: 9px 12px; border: 2px solid #2b1f1d; border-radius: 8px; background: #fff; color: #2b1f1d; font: 15px var(--pixel-font); box-shadow: 0 3px 0 rgba(0, 0, 0, .2); }
+.sims-puzzle-hint { margin: 0; color: #8a7a6a; font-size: 13px; }
+.sims-sudoku { display: grid; grid-template-columns: repeat(9, 1fr); width: min(100%, 340px, calc(100dvh - 210px)); aspect-ratio: 1; border: 3px solid #2b1f1d; background: #2b1f1d; gap: 1px; }
+.sims-sudoku button { display: grid; place-items: center; min-width: 0; padding: 0; border: 0; background: #fff; color: #3d6a9a; font: 700 clamp(14px, 4.2vw, 20px) var(--font-body); }
+.sims-sudoku button.is-given { color: #2b1f1d; background: #f6f1e6; }
+.sims-sudoku button.is-r { box-shadow: 2px 0 0 #2b1f1d; }
+.sims-sudoku button.is-b { box-shadow: 0 2px 0 #2b1f1d; }
+.sims-sudoku button.is-r.is-b { box-shadow: 2px 0 0 #2b1f1d, 0 2px 0 #2b1f1d, 2px 2px 0 #2b1f1d; }
+.sims-sudoku button.is-same { background: #e4f0fa; }
+.sims-sudoku button.is-sel { background: #c8e6a0; }
+.sims-sudoku button.is-bad { color: #c0303e; background: #fbe0e0; }
+.sims-pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: min(100%, 340px); }
+.sims-pad button { padding: 8px 0; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; color: #2b1f1d; font: 700 18px var(--font-body); box-shadow: 0 2px 0 rgba(0, 0, 0, .2); }
+.sims-binairo { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 3px; width: min(100%, 320px, calc(100dvh - 180px)); aspect-ratio: 1; }
+.sims-binairo button { display: grid; place-items: center; padding: 0; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; }
+.sims-binairo button.is-given { background: #ece4d4; }
+.sims-binairo button.is-bad { background: #fbe0e0; border-color: #c0303e; }
+.sims-binairo i { width: 62%; height: 62%; border: 2px solid #2b1f1d; border-radius: 50%; }
+.sims-binairo i.is-0 { background: #e0533f; }
+.sims-binairo i.is-1 { background: #4a8fe0; }
+.sims-cross { display: grid; grid-template-columns: repeat(var(--w), 1fr); gap: 2px; width: min(100%, calc(var(--w) * 30px)); }
+.sims-cross > span.is-void { aspect-ratio: 1; }
+.sims-cross label { position: relative; display: block; aspect-ratio: 1; border: 2px solid #2b1f1d; border-radius: 3px; background: #fff; }
+.sims-cross label small { position: absolute; top: 0; left: 2px; color: #8a7a6a; font-size: 8px; line-height: 1; pointer-events: none; }
+.sims-cross input { width: 100%; height: 100%; padding: 0; border: 0; background: transparent; color: #2b1f1d; font: 700 15px var(--font-body); text-align: center; text-transform: uppercase; }
+.sims-cross input:focus { outline: none; background: #e4f0fa; }
+.sims-cross label.is-bad { background: #fbe0e0; border-color: #c0303e; }
+.sims-cross label.is-good { background: #e4f4dc; }
+.sims-cross label.is-hint input { color: #a05ad8; }
+.sims-cross-clues { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 560px; }
+.sims-cross-clues h4 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; color: #8a7a6a; }
+.sims-cross-clues ol { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 12px; line-height: 1.3; }
+.sims-cross-clues li { cursor: pointer; }
+.sims-cross-clues li i { color: #8a7a6a; font-style: normal; }
+.sims-cross-actions { display: flex; gap: 8px; }
+.sims-puzzle .sims-game-msg { position: absolute; z-index: 2; }
+@media (max-width: 420px) { .sims-cross-clues { grid-template-columns: 1fr; } }
+/* En pantalla completa, los botones de la derecha no tapan la ✕ de los juegos. */
+.sims-modal.is-full .sims-puzzle-head { padding-top: max(8px, env(safe-area-inset-top)); padding-right: calc(max(8px, env(safe-area-inset-right)) + 52px); }
+.sims-modal.is-full .sims-game-hud { right: calc(max(8px, env(safe-area-inset-right)) + 52px); }
+
+/* ---------- Cocina: preferencias, equilibrio y lo que falta ---------- */
+.menu-score { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--neutral-soft); }
+.menu-score > b { display: grid; width: 46px; height: 46px; flex-shrink: 0; place-items: center; border-radius: 50%; background: var(--surface); font-family: var(--font-display); font-size: 18px; box-shadow: inset 0 0 0 4px currentColor; }
+.menu-score strong { display: block; font-size: 14px; }
+.menu-score small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.menu-score.is-good { background: var(--green-soft); color: var(--accent); }
+.menu-score.is-mid { background: var(--amber-soft); color: var(--amber-ink); }
+.menu-score.is-low { background: var(--coral-soft); color: var(--coral-ink); }
+.menu-score.is-empty { color: var(--muted); font-size: 13px; }
+.menu-score.is-empty svg.lucide { width: 18px; height: 18px; flex-shrink: 0; }
+.menu-slot.is-off { opacity: .45; }
+.recipe-option { position: relative; }
+.recipe-option.is-unfit { opacity: .55; }
+.recipe-why { margin-left: auto; padding: 3px 8px; border-radius: var(--radius-pill); background: var(--green-soft); color: var(--accent); font-size: 11.5px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.diet-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.diet-option input { position: absolute; opacity: 0; pointer-events: none; }
+.diet-option span { display: grid; gap: 2px; height: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; }
+.diet-option small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+.diet-option input:checked + span { border-color: var(--accent); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.ingredient.is-listed { opacity: .6; }
+.aisle-label { margin: 12px 0 4px; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.split-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.starter-more { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; }
+
+/* Muñecos pixel art fuera del juego (editor, Nosotros, tarjeta del otro). */
+.lpc-doll { position: relative; display: grid; width: 100%; height: 100%; place-items: center; }
+.lpc-doll canvas { width: auto; height: 100%; max-height: 100%; aspect-ratio: 32 / 56; image-rendering: pixelated; }
+.lpc-doll em { position: absolute; top: 0; right: 4%; font-size: clamp(12px, 30%, 22px); font-style: normal; }
+
+/* ---------- Nosotros: mapa de sitios ---------- */
+.us-map-stats { margin: -4px 0 10px; color: var(--muted); font-size: 13px; }
+.us-map { height: 340px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #dfe9ee; z-index: 0; }
+.us-pin { display: grid; place-items: center; }
+.us-pin span { display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 4px; background: #e0607a; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); font-size: 14px; transform: rotate(-45deg); }
+.us-pin span::first-letter { display: inline-block; }
+.us-pin.is-home span { background: #275b49; }
+.us-pin.is-family span { background: #e3a13a; }
+.us-places h3 { display: flex; align-items: baseline; gap: 6px; margin: 16px 0 6px; font-size: 15px; }
+.us-places h3 small { color: var(--muted); font-size: 12px; font-weight: 600; }
+.us-places ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.us-places li { display: flex; align-items: center; gap: 6px; }
+.us-place { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; border-radius: var(--radius-md); background: var(--surface); color: var(--ink); text-align: left; }
+.us-place b { font-weight: 600; }
+.us-place small { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.us-place-remove { width: 30px; height: 30px; border-radius: 50%; color: var(--muted); font-size: 12px; }
+.place-results { display: grid; gap: 6px; }
+.sims-card.is-map .sims-card-paper { width: min(360px, 100%); transform: rotate(-.5deg); }
+.sims-travelmap { display: block; width: 100%; height: auto; border: 2px solid #2b1f1d; border-radius: 4px; image-rendering: pixelated; }
+
+/* ---------- El tiburón de Inicio ---------- */
+.shark-tank { position: relative; margin: 0 0 14px; overflow: hidden; border-radius: var(--radius-lg); box-shadow: inset 0 0 0 1px rgba(20, 60, 90, .12); }
+.shark-canvas { display: block; width: 100%; height: 132px; cursor: pointer; }
+.shark-caption { position: absolute; right: 10px; bottom: 8px; left: 10px; margin: 0; padding: 6px 10px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, .78); color: #1d3a4a; font-size: 12.5px; font-weight: 600; line-height: 1.25; text-align: center; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: none; }
+.shark-tank[data-mood="sleep"] .shark-caption { background: rgba(20, 30, 60, .6); color: #e6ecf8; }
+.shark-tank[data-mood="worried"] .shark-caption { background: rgba(255, 236, 228, .9); color: #8a3a2a; }
+@media (min-width: 720px) { .shark-canvas { height: 160px; } }

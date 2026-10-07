@@ -41,6 +41,14 @@ const SIM_OBJECTS = {
   desk: { label: 'Escritorio', actions: ['work', 'agenda'] },
   door: { label: 'Puerta de casa', actions: ['tripturin', 'tripchieti', 'tripspain', 'goout'] },
   coatrack: { label: 'Perchero', actions: ['tripturin', 'goout'] },
+  travelmap: { label: 'Vuestro mapa de viajes', actions: ['mapview'] },
+  // Muebles de la tienda (solo se pueden tocar si los habéis comprado).
+  guitar: { label: 'Guitarra', actions: ['guitar'] },
+  beanbag: { label: 'Puf', actions: ['beanread', 'beannap'] },
+  easel: { label: 'Caballete', actions: ['paint'] },
+  telescope: { label: 'Telescopio', actions: ['stargaze'] },
+  aquarium: { label: 'Acuario', actions: ['fishwatch', 'fishfeed'] },
+  arcade: { label: 'Recreativa', actions: ['arcade'] },
   // Turín
   mole: { label: 'Mole Antonelliana', actions: ['moleview', 'moleselfie'] },
   cafe: { label: 'Caffè al Bicerin', actions: ['bicerin'] },
@@ -146,6 +154,15 @@ const SIM_ACTIONS = {
   readbed: { object: 'bed', label: 'Leer en la cama', emoji: '📖', secs: 10, pose: 'bedsit', hold: 'book', expr: [null, 'happy', 'closed'], needs: { fun: 15, energy: 10 } },
   jump: { object: 'bed', label: 'Saltar en la cama', emoji: '🤸', secs: 7, pose: 'bedjump', expr: 'happy', needs: { fun: 25, energy: -10 } },
   dress: { object: 'wardrobe', label: 'Cambiar el muñeco del jardín', emoji: '👗', secs: 1.5, prop: 'wardrobe', after: 'dress', own: true },
+  guitar: { object: 'guitar', label: 'Tocar la guitarra', emoji: '🎸', secs: 9, hold: 'guitar', prop: 'guitar', anim: ['thrust', [0, 1, 0, 1], 4], fx: 'notes', expr: ['happy', 'closed'], needs: { fun: 25 }, say: { ines: ['🎶 Bésame, bésame mucho…', '¡Me sé tres acordes!'], matteo: ['🎶 Volare, oh oh…', 'Questa è per te, Ines'] } },
+  beanread: { object: 'beanbag', label: 'Leer en el puf', emoji: '📖', secs: 9, pose: 'seat', hold: 'book', expr: [null, 'happy'], needs: { fun: 15, energy: 5 } },
+  beannap: { object: 'beanbag', label: 'Hundirse en el puf', emoji: '😌', secs: 8, pose: 'seat', zzz: true, expr: 'closed', needs: { energy: 20 } },
+  paint: { object: 'easel', label: 'Pintar un cuadro', emoji: '🎨', secs: 10, hold: 'brush', anim: ['thrust', [1, 2, 3, 2], 3], fx: 'paint', expr: ['happy', null], needs: { fun: 25 }, say: { ines: ['Un poco más de azul…', '¡Esto va al salón!'], matteo: ['Sembra un Van Gogh', 'Che capolavoro'] } },
+  stargaze: { object: 'telescope', label: 'Mirar por el telescopio', emoji: '🔭', secs: 8, anim: ['thrust', [0], 1], fx: 'stars', expr: ['shock', 'happy'], needs: { fun: 20 } },
+  fishwatch: { object: 'aquarium', label: 'Mirar los peces', emoji: '🐠', secs: 6, expr: ['happy', 'closed'], needs: { fun: 10, energy: 5 } },
+  fishfeed: { object: 'aquarium', label: 'Dar de comer a los peces', emoji: '🍤', secs: 4, anim: ['thrust', [2, 3, 2], 3], fx: 'feed', expr: 'happy', needs: { fun: 8 } },
+  mapview: { object: 'travelmap', label: 'Mirar el mapa de viajes', emoji: '🗺️', secs: 2.5, expr: 'happy', after: 'travelmap', own: true, needs: { social: 5 }, say: { ines: ['¿Te acuerdas de Menorca? 🏝️', 'Nos falta Japón…'], matteo: ['Che bello Noli…', 'Prossima tappa?'] } },
+  arcade: { object: 'arcade', label: 'Jugar a la recreativa', emoji: '🕹️', secs: 1.5, prop: 'arcade', after: 'minigames', own: true },
   outfit: { object: 'wardrobe', label: 'Cambiarse de ropa', emoji: '👚', secs: 1.2, prop: 'wardrobe', after: 'outfit', own: true },
   sharkgame: { object: 'tv', label: 'Jugar a Tiburón hambriento', emoji: '🦈', secs: 1, pose: 'sofa', hold: 'controller', after: 'sharkgame', own: true, needs: { fun: 5 } },
   teeth: { object: 'sink', label: 'Lavarse los dientes', emoji: '🪥', secs: 5, anim: ['thrust', [1, 2, 1, 2], 8], needs: { hygiene: 20 } },
@@ -193,24 +210,24 @@ const ACTION_VERB = { shoplist: 'Mirando la compra', tasklist: 'Mirando las tare
 const SOCIAL_CATS = [['friendly', 'Amistoso', '😊'], ['fun', 'Divertido', '🎉'], ['romance', 'Romántico', '💕'], ['intimate', 'Íntimo', '🔥'], ['angry', 'Enfado', '😤'], ['plans', 'Planes', '✈️']];
 const SOCIALS = {
   chat: { cat: 'friendly', dist: 20 },
-  compliment: { cat: 'friendly', dist: 18 },
-  highfive: { cat: 'friendly', dist: 14 },
+  compliment: { cat: 'friendly', dist: 22 },
+  highfive: { cat: 'friendly', dist: 19 },
   selfie: { cat: 'friendly' },
-  tickle: { cat: 'fun', dist: 12, needs: { social: 15, fun: 20 } },
+  tickle: { cat: 'fun', dist: 17, needs: { social: 15, fun: 20 } },
   dance: { cat: 'fun', dist: 20, needs: { social: 20, fun: 20 } },
-  shark: { cat: 'fun', dist: 14, needs: { social: 15, fun: 20 } },
+  shark: { cat: 'fun', dist: 19, needs: { social: 15, fun: 20 } },
   pillow: { cat: 'fun', dist: 44, home: true, needs: { social: 15, fun: 30 } },
-  hug: { cat: 'romance', dist: 13, needs: { social: 25 } },
-  kiss: { cat: 'romance', dist: 12, needs: { social: 25, fun: 5 } },
+  hug: { cat: 'romance', dist: 15, needs: { social: 25 } },
+  kiss: { cat: 'romance', dist: 16, needs: { social: 25, fun: 5 } },
   slowdance: { cat: 'romance', needs: { social: 25, fun: 15 } },
   cuddle: { cat: 'romance', home: true, needs: { social: 30, energy: 5 } },
   massage: { cat: 'romance', home: true, needs: { social: 20, energy: 15 } },
-  makeout: { cat: 'intimate', dist: 11, needs: { social: 30, fun: 15 } },
+  makeout: { cat: 'intimate', dist: 15, needs: { social: 30, fun: 15 } },
   spoon: { cat: 'intimate', home: true, needs: { social: 25, energy: 40 } },
   woohoo: { cat: 'intimate', home: true, needs: { social: 40, fun: 35, energy: -15, hygiene: -15 } },
   argue: { cat: 'angry', dist: 24, needs: { social: -15, fun: -10 } },
   sulk: { cat: 'angry', dist: 26, needs: { social: -10 } },
-  apologize: { cat: 'angry', dist: 14, needs: { social: 20 } },
+  apologize: { cat: 'angry', dist: 19, needs: { social: 20 } },
   turin: { cat: 'plans', trip: true, needs: { fun: 30, social: 15, energy: -10 } },
   chieti: { cat: 'plans', trip: true, needs: { social: 40, fun: 25, energy: -15 } },
   spain: { cat: 'plans', trip: true, needs: { social: 40, fun: 25, energy: -15 } }
@@ -817,8 +834,13 @@ function claimSeat(sim, kind, preferred = 0) {
 function claimObjectSeat(sim, objectId) {
   const seats = sceneObj(objectId)?.seats || [];
   const taken = everyone().filter((other) => other !== sim && (other.seat || other.seatClaim)?.kind === objectId).map((other) => (other.seat || other.seatClaim).index);
-  const index = seats.findIndex((_, i) => !taken.includes(i));
-  return index < 0 ? null : { ...seats[index], kind: objectId, index };
+  // La más cercana de las libres (y se reserva ya, para que nadie más vaya a la misma).
+  const free = seats.map((seat, i) => ({ seat, i })).filter(({ i }) => !taken.includes(i));
+  if (!free.length) return null;
+  const best = free.sort((a, b) => Math.hypot(a.seat.x - sim.x, a.seat.y - sim.y) - Math.hypot(b.seat.x - sim.x, b.seat.y - sim.y))[0];
+  const seat = { ...best.seat, kind: objectId, index: best.i };
+  sim.seatClaim = seat;
+  return seat;
 }
 const everyone = () => [...Object.values(sims), ...simsState.npcs];
 
@@ -908,6 +930,10 @@ function actionEffects(sim, action, elapsed) {
   if (action.routine === 'dance' && elapsed % 1200 < 300) w.emit('note', sim.x, sim.headY, { vy: -14, spread: 14 });
   if (action.routine === 'yoga' && elapsed % 1500 < 300) w.emit('sparkle', sim.x, sim.headY + 10, { vy: -8, spread: 16 });
   if (action.object === 'window' && elapsed % 1400 < 300) w.emit('sparkle', 358, 210, { vy: -6, spread: 20 });
+  if (action.fx === 'notes' && elapsed % 700 < 300) w.emit('note', sim.x + 6, sim.headY + 6, { vy: -16, spread: 10 });
+  if (action.fx === 'paint' && elapsed % 900 < 300) { w.state.paintStrokes = Math.min(10, (w.state.paintStrokes || 0) + 1); w.emit('spark', 360, 146, { vy: -6, spread: 10 }); }
+  if (action.fx === 'stars' && elapsed % 1000 < 300) w.emit('sparkle', 372, 230, { vy: -8, spread: 16 });
+  if (action.fx === 'feed' && elapsed % 800 < 300) w.emit('drop', 196, 336, { vy: 14, spread: 8 });
 }
 
 async function doAction(key, id, { autonomous = false } = {}) {
@@ -971,6 +997,7 @@ async function doAction(key, id, { autonomous = false } = {}) {
       simBlip(880, 0.1);
     }
     if (own && action.after) runAfter(action.after, sim);
+    if (own) lifeAfterAction(id);
   } catch (error) {
     // Si otra orden ha tomado el relevo, esa decide dónde y cómo queda el muñeco.
     if (entered && sim.current === action && error !== SIM_CANCELLED) standUp(sim);
@@ -981,6 +1008,7 @@ async function doAction(key, id, { autonomous = false } = {}) {
       sim.doing = null;
       sim.progress = null;
       sim.idleSince = Date.now();
+      if (own) setTimeout(runQueued, 400);
     }
   }
 }
@@ -997,6 +1025,8 @@ function runAfter(after, sim) {
   if (after === 'dress') openAvatarEditor('clothes');
   if (after === 'outfit') wardrobeCard();
   if (after === 'sharkgame') startSharkGame();
+  if (after === 'minigames') gamesCard();
+  if (after === 'travelmap') travelMapCard();
   if (after === 'photos') showPhotoCard();
   // Se queda un ratito con la taza de café en la mano.
   if (after === 'cup' && sim) {
@@ -1198,8 +1228,12 @@ function spawnNpcs(sceneId) {
   if (simsState.dog) idle(simsState.dog, 'down');
   syncActors();
 }
-function npcSay(npc, text) {
+function npcSay(npc, text, { force = false } = {}) {
   if (!text) return;
+  // Hablan por turnos (como en una comida de verdad): si alguien acaba de hablar, espera.
+  const now = Date.now();
+  if (!force && now < (simsState.npcTalkUntil || 0)) return;
+  simsState.npcTalkUntil = now + 2200;
   simBubble(npc, text, { secs: 2.6 });
   speak(npc.key, text, npc.def?.voice);
 }
@@ -1694,7 +1728,7 @@ function onLive(msg) {
       break;
     case 'social':
       markPokeSeen(msg.at);
-      doSocial(msg.kind, { incoming: true });
+      doSocial(msg.kind, { incoming: true, rejected: msg.rejected || null });
       break;
     case 'home':
       goHome({ incoming: true });
@@ -1777,12 +1811,14 @@ function followPartnerPlace() {
 
 // ---------- Interacciones entre los dos ----------
 // incoming: la ha empezado el otro (llega por 'umbral:poke').
-async function doSocial(kind, { incoming = false } = {}) {
+async function doSocial(kind, { incoming = false, rejected = null } = {}) {
   const me = sims[meKey()];
   const partner = sims[partnerKeyOf()];
   if (!me || !partner || !SOCIALS[kind]) return;
   const at = new Date().toISOString();
-  if (!incoming) liveSend('social', { kind, at });
+  // Como en los Sims, el otro puede decir que no (si está enfadado, agotado…).
+  const refusal = incoming ? rejected : socialVerdict(kind);
+  if (!incoming) liveSend('social', { kind, at, rejected: refusal });
   if (SOCIALS[kind].trip) return doTrip(kind, { incoming, at });
   // Lo de casa (sofá, cama, cojines…) solo se puede hacer en casa.
   if (SOCIALS[kind].home && curScene() !== 'house') return showToast('Eso mejor en casa 🏠');
@@ -1849,6 +1885,23 @@ async function doSocial(kind, { incoming = false } = {}) {
       }
     }
     simBlip(740, 0.12);
+
+    if (refusal) {
+      // Rechazo: el otro niega con la cabeza y al que lo intenta se le queda cara de pena.
+      target.expr = 'eyeroll';
+      setAnim(target, 'emote', { dir: faceTo(target, actor), frames: [0, 1, 0, 1], fps: 4, loop: false });
+      simBubble(target, refusal, { secs: 2.8 });
+      await simWait(1400);
+      alive();
+      actor.expr = 'sad';
+      simBubble(actor, '😔', { kind: 'emote', secs: 1.8 });
+      simBlip(220, 0.18, 'triangle');
+      const life = getLife();
+      life.rel.friend = Math.max(0, life.rel.friend - 2);
+      saveLife();
+      await simWait(1800);
+      return;
+    }
 
     // Lo que pasa en cada interacción.
     if (kind === 'chat') {
@@ -1954,7 +2007,7 @@ async function doSocial(kind, { incoming = false } = {}) {
       await simWait(600);
     } else if (kind === 'kiss' || kind === 'makeout') {
       const long = kind === 'makeout';
-      both.forEach((sim) => { sim.lean = (sim.x < other(sim).x ? 1 : -1) * (long ? 2 : 1.5); sim.extraRoutine = 'sway'; sim.expr = 'closed'; });
+      both.forEach((sim) => { sim.lean = (sim.x < other(sim).x ? 1 : -1) * (long ? 1.5 : 1); sim.extraRoutine = 'sway'; sim.expr = 'closed'; });
       SMOOCH();
       if (w) w.state.romance = long ? 0.7 : 0.35;
       w?.emit('heart', mid().x, mid().y, { count: long ? 4 : 2, spread: 8, vy: -18 });
@@ -2085,6 +2138,10 @@ async function doSocial(kind, { incoming = false } = {}) {
       both.forEach((sim) => { sim.expr = 'happy'; });
     }
 
+    // Relación y carisma.
+    relChange(kind);
+    if (!incoming && ['friendly', 'fun', 'romance'].includes(config.cat)) gainSkill('charisma', 8);
+    if (!incoming) addCoins(3);
     // Necesidades: a los dos les afecta (al otro, en su móvil, cuando le llega el toque).
     const delta = config.needs || { social: 25, fun: 5 };
     if (!incoming) {
@@ -2106,6 +2163,7 @@ async function doSocial(kind, { incoming = false } = {}) {
       sim.doing = null;
       sim.idleSince = Date.now();
     });
+    setTimeout(runQueued, 500);
   }
 }
 
@@ -2162,35 +2220,23 @@ function showPie(event, title, options, rect = null) {
   pie.className = 'sims-pie';
   pie.innerHTML = `<div class="sims-pie-title">${escapeHtml(title)}</div>${options.map(([id, label, emoji], index) => `<button type="button" class="sims-pie-option${id.startsWith('cat:') ? ' is-cat' : ''}" data-pie="${escapeHtml(id)}" style="--i:${index}"><span>${emoji}</span>${escapeHtml(label)}</button>`).join('')}`;
   simsHouse.appendChild(pie);
-  // Con muchas opciones, una lista en dos columnas junto al dedo (en círculo se solaparían).
-  if (options.length > 5) {
-    pie.classList.add('is-list');
-    const list = document.createElement('div');
-    list.className = 'sims-pie-list';
-    list.append(...pie.querySelectorAll('.sims-pie-option'));
-    pie.appendChild(list);
-    const titleEl = pie.querySelector('.sims-pie-title');
-    const left = Math.min(Math.max(x, list.offsetWidth / 2 + 4), box.width - list.offsetWidth / 2 - 4);
-    const top = Math.min(Math.max(y - list.offsetHeight / 2, titleEl.offsetHeight + 10), box.height - list.offsetHeight - 4);
-    list.style.left = `${left}px`;
-    list.style.top = `${top}px`;
-    titleEl.style.left = `${left}px`;
-    titleEl.style.top = `${top - titleEl.offsetHeight / 2 - 4}px`;
-    return;
-  }
-  // Las opciones se reparten en círculo alrededor del dedo y no se salen de la casa.
-  const radius = Math.max(56, options.length * 13);
-  const buttons = [...pie.querySelectorAll('.sims-pie-option')];
-  buttons.forEach((button, index) => {
-    const angle = (-90 + (360 / buttons.length) * index) * (Math.PI / 180);
-    const bx = Math.min(Math.max(x + Math.cos(angle) * radius, button.offsetWidth / 2 + 4), box.width - button.offsetWidth / 2 - 4);
-    const by = Math.min(Math.max(y + Math.sin(angle) * radius * 0.8, button.offsetHeight / 2 + 4), box.height - button.offsetHeight / 2 - 4);
-    button.style.left = `${bx}px`;
-    button.style.top = `${by}px`;
-  });
+  // Lista ordenada junto al dedo (una columna, o dos si hay muchas opciones): nunca se solapan
+  // y siempre caben dentro de la casa.
+  pie.classList.add('is-list');
+  const list = document.createElement('div');
+  list.className = `sims-pie-list${options.length > 5 ? ' is-two' : ''}`;
+  list.append(...pie.querySelectorAll('.sims-pie-option'));
+  pie.appendChild(list);
   const titleEl = pie.querySelector('.sims-pie-title');
-  titleEl.style.left = `${Math.min(Math.max(x, titleEl.offsetWidth / 2 + 4), box.width - titleEl.offsetWidth / 2 - 4)}px`;
-  titleEl.style.top = `${Math.min(Math.max(y, 14), box.height - 14)}px`;
+  list.prepend(titleEl);
+  const lw = list.offsetWidth;
+  const lh = list.offsetHeight;
+  const gap = 18;
+  let left = x + gap + lw <= box.width - 6 ? x + gap : x - gap - lw;
+  left = Math.min(Math.max(left, 6), Math.max(6, box.width - lw - 6));
+  const top = Math.min(Math.max(y - lh / 2, 6), Math.max(6, box.height - lh - 6));
+  list.style.left = `${left}px`;
+  list.style.top = `${top}px`;
 }
 
 const pokeOption = (kind, withName = false) => {
@@ -2258,8 +2304,10 @@ function handlePieChoice(id) {
     return plantAction(Number(index), act);
   }
   if (type === 'npc') return simsState.pieNpc && npcInteract(simsState.pieNpc, value);
-  if (type === 'act') return doAction(meKey(), value);
-  if (type === 'social') return doSocial(value);
+  if (type === 'act' || type === 'social') {
+    const label = type === 'act' ? SIM_ACTIONS[value] : avatarCatalog().POKES[value];
+    return queueOrRun({ type, value, emoji: label?.emoji || '•' });
+  }
   if (type === 'home') return goHome();
   if (value === 'look') return openAvatarEditor('clothes');
   if (value === 'mood') return openAvatarEditor('mood');
@@ -2294,10 +2342,12 @@ function renderHud() {
   const trip = TRIPS[curScene()];
   const temp = world()?.state.weather.temp;
   const weather = Number.isFinite(Number(temp)) ? ` · ${Math.round(curScene() === 'house' ? temp : outsideTemp())}°` : '';
-  const key = `${label}|${clock}|${curScene()}|${weather}|${live.partnerOnline}`;
+  const coins = Math.round(getLife().coins);
+  const queue = simsState.queue.map((entry) => entry.emoji).join('');
+  const key = `${label}|${clock}|${curScene()}|${weather}|${live.partnerOnline}|${coins}|${queue}`;
   if (hud.dataset.key !== key) {
     hud.dataset.key = key;
-    hud.innerHTML = `<div class="sims-hud-action"${label ? '' : ' hidden'}><span>${escapeHtml(label)}</span>${doing || social ? '<button type="button" class="sims-hud-cancel" aria-label="Dejar de hacerlo">✕</button>' : ''}<i class="sims-hud-bar"><b></b></i></div><div class="sims-hud-side"><div class="sims-hud-clock">${clock}${weather}</div>${live.partnerOnline ? `<div class="sims-hud-live">🟢 ${escapeHtml(simPerson(partnerKeyOf()) || '')} está jugando</div>` : ''}${trip ? `<button type="button" class="sims-hud-home">🏠 Volver a casa</button>` : ''}</div>`;
+    hud.innerHTML = `<div class="sims-hud-main"><div class="sims-hud-action"${label ? '' : ' hidden'}><span>${escapeHtml(label)}</span>${doing || social ? '<button type="button" class="sims-hud-cancel" aria-label="Dejar de hacerlo">✕</button>' : ''}<i class="sims-hud-bar"><b></b></i></div>${simsState.queue.length ? `<div class="sims-hud-queue">${simsState.queue.map((entry, i) => `<button type="button" data-queue="${i}" aria-label="Quitar de la cola">${entry.emoji}</button>`).join('')}</div>` : ''}</div><div class="sims-hud-side"><div class="sims-hud-clock">${clock}${weather} · <b class="sims-hud-coins">§${coins}</b></div>${live.partnerOnline ? `<div class="sims-hud-live">🟢 ${escapeHtml(simPerson(partnerKeyOf()) || '')} está jugando</div>` : ''}${trip ? `<button type="button" class="sims-hud-home">🏠 Volver a casa</button>` : ''}</div>`;
   }
   const bar = hud.querySelector('.sims-hud-bar b');
   if (bar) bar.style.width = `${Math.round(progress * 100)}%`;
@@ -2307,6 +2357,7 @@ function renderHud() {
 function renderSimsNeeds() {
   const panel = document.querySelector('#simsNeeds');
   if (!panel) return;
+  const skillsOpen = panel.querySelector('.sims-skills')?.open;
   const me = myAvatarPerson();
   const partner = otherPerson(me);
   const person = simsState.needsOf === 'me' ? me : partner;
@@ -2318,8 +2369,23 @@ function renderSimsNeeds() {
       <div class="segmented">${[[me, 'me'], [partner, 'partner']].map(([name, who]) => `<button type="button" data-needs-who="${who}" aria-pressed="${simsState.needsOf === who}">${escapeHtml(name)}${who === 'me' ? ' (tú)' : ''}</button>`).join('')}</div>
       <span class="sims-plumbob is-${level}" title="Cómo está"></span>
     </div>
-    <div class="sims-needs-grid">${Object.entries(NEEDS).map(([key, need]) => `<div class="sims-need"><span class="sims-need-emoji">${need.emoji}</span><div><small>${need.label}</small><span class="sims-need-track"><span class="${color(needs[key])}" style="width:${needs[key]}%"></span></span></div></div>`).join('')}</div>`;
+    <div class="sims-needs-grid">${Object.entries(NEEDS).map(([key, need]) => `<div class="sims-need"><span class="sims-need-emoji">${need.emoji}</span><div><small>${need.label}</small><span class="sims-need-track"><span class="${color(needs[key])}" style="width:${needs[key]}%"></span></span></div></div>`).join('')}</div>
+    <div class="sims-moodlets">${moodlets(person).map(([emoji, text]) => `<span title="${escapeHtml(text)}">${emoji} <em>${escapeHtml(text)}</em></span>`).join('')}</div>
+    ${simsState.needsOf === 'me' ? (() => {
+      const life = getLife();
+      return `<div class="sims-rel"><small>Con ${escapeHtml(partner)}</small><div><span>🤝</span><i><b style="width:${life.rel.friend}%"></b></i><span>💗</span><i class="is-romance"><b style="width:${life.rel.romance}%"></b></i></div></div>
+      <details class="sims-skills"><summary>🌟 Habilidades · §${Math.round(life.coins)}</summary><div>${Object.entries(SKILLS).map(([id, [emoji, name]]) => { const xp = life.skills[id] || 0; const lv = skillLevel(xp); const next = 14 * (lv + 1) ** 2; const prev = 14 * lv ** 2; return `<p><span>${emoji} ${name}</span><b>${lv}</b><i><b style="width:${lv >= 10 ? 100 : Math.round(((xp - prev) / (next - prev)) * 100)}%"></b></i></p>`; }).join('')}</div></details>`;
+    })() : ''}`;
+  if (skillsOpen) panel.querySelector('.sims-skills')?.setAttribute('open', '');
 }
+
+// Monedas por usar la app de verdad: tareas, recetas, riego, fotos y planes.
+const LIFE_REWARDS = { task: 20, cook: 15, water: 10, moment: 15, plan: 10 };
+window.addEventListener('umbral:life', (event) => {
+  const amount = LIFE_REWARDS[event.detail?.kind];
+  if (!amount || !myAvatarPerson()) return;
+  addCoins(amount, simsState.open ? sims[meKey()] : null);
+});
 
 // ---------- Abrir, cerrar, gestos cuando están quietos y libre albedrío ----------
 const timeOfDay = (hour) => (hour < 7 || hour >= 21 ? 'night' : hour < 9 || hour >= 19 ? 'dusk' : 'day');
@@ -2520,6 +2586,8 @@ async function openSims() {
   loadSimPicks();
   buildSims();
   loadDecor();
+  syncPlaces();
+  if (typeof loadPlaces === 'function' && !travelPlaces().length) loadPlaces().catch(() => {});
   simsState.open = true;
   simsState.last = 0;
   simsState.tip = Math.floor(Math.random() * SIM_TIPS.length);
@@ -2955,8 +3023,8 @@ function startSharkGame() {
     if (record) saveSimLook({ sharkBest: S.score });
     liveSend('game', { score: S.score, record });
     boostNeeds({ fun: 25, energy: -5 }).catch(() => {});
-    const me = sims[meKey()];
-    if (me) simFloat(me, '🎮 +25');
+    addCoins(Math.max(5, Math.round(S.score / 3)));
+    gainSkill('logic', 10);
   }
   function step(t) {
     G.raf = requestAnimationFrame(step);
@@ -3060,13 +3128,586 @@ function startSharkGame() {
   G.raf = requestAnimationFrame(step);
 }
 
+// ---------- Vida Sims: monedas, habilidades, relación, ánimo y cola de acciones ----------
+// Todo vive en memoria mientras jugáis y se guarda (con un poco de retraso, para no escribir a
+// cada segundo) dentro de look, junto con la ropa, la decoración y los récords.
+const SKILLS = {
+  cooking: ['🍳', 'Cocina'],
+  fitness: ['💪', 'Forma física'],
+  logic: ['🧠', 'Lógica'],
+  music: ['🎸', 'Música'],
+  creativity: ['🎨', 'Creatividad'],
+  charisma: ['💬', 'Carisma']
+};
+const ACTION_SKILL = {
+  cook: 'cooking', coffee: 'cooking', yoga: 'fitness', jump: 'fitness', goout: 'fitness',
+  puzzle: 'logic', read: 'logic', readsofa: 'logic', readbed: 'logic', beanread: 'logic', stargaze: 'logic', work: 'logic',
+  guitar: 'music', sing: 'music', dance: 'music', paint: 'creativity', pose: 'creativity', admire: 'creativity'
+};
+const SHOP = {
+  guitar: { label: 'Guitarra española', emoji: '🎸', price: 200, where: 'Dormitorio, junto a la ventana', does: 'Tocarla sube la diversión y la habilidad de música' },
+  beanbag: { label: 'Puf gigante', emoji: '🛋️', price: 150, where: 'Salón, junto al sillón', does: 'Para leer o echarse un rato' },
+  easel: { label: 'Caballete de pintura', emoji: '🎨', price: 250, where: 'Cocina, junto a la mesa', does: 'Pintar sube la creatividad (y el cuadro se va llenando)' },
+  telescope: { label: 'Telescopio', emoji: '🔭', price: 400, where: 'Salón, frente a la ventana', does: 'Mirar las estrellas (o Superga de día) sube la lógica' },
+  aquarium: { label: 'Acuario con tiburoncito', emoji: '🐠', price: 500, where: 'Salón, entre la tele y el escritorio', does: 'Mirar y dar de comer a los peces relaja' },
+  arcade: { label: 'Máquina recreativa', emoji: '🕹️', price: 700, where: 'Dormitorio, rincón gamer', does: 'Acceso a todos los minijuegos' }
+};
+const skillLevel = (xp) => Math.min(10, Math.floor(Math.sqrt((xp || 0) / 14)));
+simsState.queue = [];
+simsState.events = [];
+function getLife() {
+  // Hasta que no llega tu fila de la base de datos no se fija nada (para no pisar lo guardado).
+  if (!simsState.life && !avatarRows[myAvatarPerson()]) return { coins: 0, skills: {}, rel: { friend: 80, romance: 85 } };
+  if (!simsState.life) {
+    const look = simLookOf(myAvatarPerson());
+    simsState.life = {
+      coins: Number.isFinite(look.coins) ? look.coins : 300,
+      skills: { ...(look.skills || {}) },
+      rel: { friend: 80, romance: 85, ...(look.rel || {}) }
+    };
+    // La relación se enfría un poco si pasan días sin interactuar (como en los Sims).
+    const days = look.rel?.at ? Math.floor((Date.now() - Date.parse(look.rel.at)) / 86400000) : 0;
+    if (days > 1) { simsState.life.rel.friend = Math.max(40, simsState.life.rel.friend - days); simsState.life.rel.romance = Math.max(40, simsState.life.rel.romance - days * 2); }
+  }
+  return simsState.life;
+}
+// Foto completa de lo vuestro para guardarla de una vez (así no se pisan cambios seguidos).
+function lifeSnapshot() {
+  const snap = {};
+  if (simsState.life) {
+    const life = simsState.life;
+    Object.assign(snap, { coins: Math.round(life.coins), skills: life.skills, rel: { ...life.rel, at: life.rel.at || new Date().toISOString() } });
+  }
+  if (simsState.decorAt) snap.decor = { ...simsWorld.getDecor(), at: simsState.decorAt };
+  const pick = simsState.outfitPick?.[meKey()];
+  if (pick) snap.simOutfit = pick;
+  return snap;
+}
+let lifeTimer = 0;
+function saveLife() {
+  clearTimeout(lifeTimer);
+  lifeTimer = setTimeout(() => saveSimLook({}), 1500);
+}
+function addCoins(amount, sim = sims[meKey()]) {
+  if (!amount) return;
+  const life = getLife();
+  life.coins = Math.max(0, life.coins + amount);
+  if (sim && simsState.open) simFloat(sim, `${amount > 0 ? '+' : ''}§${amount}`);
+  if (amount > 0) simBlip(1560, 0.05, 'triangle');
+  saveLife();
+  renderHud();
+}
+function gainSkill(skill, xp, sim = sims[meKey()]) {
+  if (!SKILLS[skill] || !xp) return;
+  const life = getLife();
+  const before = skillLevel(life.skills[skill]);
+  life.skills[skill] = (life.skills[skill] || 0) + xp;
+  const after = skillLevel(life.skills[skill]);
+  if (after > before && sim) {
+    simBubble(sim, `🎉 ¡Nivel ${after} de ${SKILLS[skill][1]}!`, { secs: 3 });
+    world()?.emit('sparkle', sim.x, sim.headY + 6, { count: 12, spread: 22, vy: -16 });
+    simTune([784, 988, 1175, 1568], 110, 'triangle');
+    pushEvent('levelup');
+  }
+  saveLife();
+}
+function pushEvent(kind) {
+  simsState.events.push({ kind, at: Date.now() });
+  simsState.events = simsState.events.filter((event) => Date.now() - event.at < 4 * 3600000).slice(-30);
+}
+const recent = (kind, ms) => simsState.events.some((event) => event.kind === kind && Date.now() - event.at < ms);
+// Cómo cambia la relación con cada interacción (amistad y romance, de 0 a 100).
+const REL_DELTA = {
+  friendly: [3, 0], fun: [4, 1], romance: [2, 5], intimate: [1, 6], angry: [-8, -5], plans: [4, 3]
+};
+function relChange(kind) {
+  const social = SOCIALS[kind];
+  if (!social) return;
+  const life = getLife();
+  const [df, dr] = kind === 'apologize' ? [8, 4] : REL_DELTA[social.cat] || [2, 0];
+  life.rel.friend = Math.max(0, Math.min(100, life.rel.friend + df));
+  life.rel.romance = Math.max(0, Math.min(100, life.rel.romance + dr));
+  life.rel.at = new Date().toISOString();
+  pushEvent(social.cat === 'angry' && kind !== 'apologize' ? 'fight' : social.cat === 'romance' || social.cat === 'intimate' ? 'love' : 'social');
+  saveLife();
+}
+// ¿Le apetece al otro? Si está enfadado, agotado o no hay confianza, puede decir que no.
+function socialVerdict(kind) {
+  const social = SOCIALS[kind];
+  const partner = sims[partnerKeyOf()];
+  if (!social || social.trip || !partner) return null;
+  const pNeeds = needsOf(partner);
+  const life = getLife();
+  const angry = partner.angryUntil && partner.angryUntil > Date.now();
+  const name = simPerson(partner.key);
+  if (angry && ['romance', 'intimate', 'fun'].includes(social.cat)) return `😤 ${partner.key === 'matteo' ? 'Adesso no, sono arrabbiato' : 'Ahora no, estoy enfadada'}`;
+  if (['intimate'].includes(social.cat) && (pNeeds.energy < 15 || pNeeds.hygiene < 15)) return partner.key === 'matteo' ? '😮‍💨 Sono distrutto… domani?' : '😮‍💨 Estoy agotada… ¿mañana?';
+  if (social.cat === 'fun' && pNeeds.energy < 10) return `🥱 ${name} no tiene fuerzas ahora`;
+  if (['romance', 'intimate'].includes(social.cat) && life.rel.romance < 30) return '🙄 Mmm… primero arreglemos lo de antes';
+  if (social.cat === 'angry' && kind !== 'apologize' && life.rel.friend > 90 && Math.random() < 0.3) return partner.key === 'matteo' ? '😄 Dai, non litighiamo!' : '😄 Venga, no discutamos';
+  return null;
+}
+// Moodlets: lo que le pasa ahora a tu muñeco (como en los Sims).
+function moodlets(person = myAvatarPerson()) {
+  const needs = currentNeeds(avatarRows[person]);
+  const list = [];
+  const isMe = person === myAvatarPerson();
+  if (needs.hunger > 80) list.push(['😋', 'Bien comido']);
+  if (needs.hunger < 30) list.push(['🍽️', 'Hambriento']);
+  if (needs.energy < 30) list.push(['🥱', 'Cansado']);
+  if (needs.energy > 85) list.push(['⚡', 'Descansado']);
+  if (needs.hygiene < 30) list.push(['🫧', 'Necesita una ducha']);
+  if (needs.fun > 80) list.push(['🎉', 'Se lo está pasando bien']);
+  if (needs.fun < 30) list.push(['😐', 'Aburrido']);
+  if (needs.social < 30) list.push(['🫂', 'Necesita mimos']);
+  if (isMe && recent('love', 2 * 3600000)) list.push(['💞', 'Enamorado']);
+  if (isMe && recent('fight', 3600000)) list.push(['😤', 'Molesto']);
+  if (isMe && recent('levelup', 3600000)) list.push(['🌟', 'Ha mejorado en algo']);
+  if (isMe && recent('purchase', 2 * 3600000)) list.push(['🛍️', 'Estrena mueble']);
+  if (curScene() !== 'house') list.push(['🧳', 'De viaje']);
+  if (new Date().getHours() >= 23 || new Date().getHours() < 6) list.push(['🌙', 'Es tarde']);
+  return list.slice(0, 5);
+}
+
+// Cola de acciones: si estás haciendo algo, lo siguiente espera su turno (hasta 4).
+function queueOrRun(entry) {
+  const me = sims[meKey()];
+  if (me?.busy && me.doing) {
+    if (simsState.queue.length >= 4) return showToast('Ya tienes 4 cosas en cola');
+    simsState.queue.push(entry);
+    simBlip(1320, 0.04);
+    renderHud();
+    return;
+  }
+  runEntry(entry);
+}
+function runEntry(entry) {
+  if (entry.type === 'act') return doAction(meKey(), entry.value);
+  if (entry.type === 'social') return doSocial(entry.value);
+  return null;
+}
+function runQueued() {
+  const me = sims[meKey()];
+  if (!simsState.open || !me || me.busy || !simsState.queue.length) return;
+  const next = simsState.queue.shift();
+  renderHud();
+  runEntry(next);
+}
+// Lo que deja cada acción terminada: monedas y experiencia.
+function lifeAfterAction(id) {
+  const action = SIM_ACTIONS[id];
+  if (!action) return;
+  const coins = id === 'work' ? 40 : Math.max(1, Math.round((action.secs || 2) / 2));
+  addCoins(coins);
+  const skill = ACTION_SKILL[id];
+  if (skill) gainSkill(skill, Math.round((action.secs || 4) * 1.5));
+}
+
+// ---------- Tienda de muebles ----------
+function shopCard() {
+  const life = getLife();
+  const owned = simsWorld.getDecor().items || [];
+  showSimsCard('is-shop', `<h3>🛍️ Tienda de muebles</h3>
+    <p class="sims-card-hint">Tienes <b>§${Math.round(life.coins)}</b>. Se ganan haciendo cosas en el juego, con los minijuegos y usando la app de verdad (tareas, plantas, recetas, fotos y planes).</p>
+    <div class="sims-shop">${Object.entries(SHOP).map(([id, item]) => {
+      const has = owned.includes(id);
+      return `<div class="sims-shop-item${has ? ' is-owned' : ''}"><span class="sims-shop-emoji">${item.emoji}</span><div><b>${escapeHtml(item.label)}</b><small>${escapeHtml(item.does)}</small><small>📍 ${escapeHtml(item.where)}</small></div>${has ? '<em>✓ Vuestro</em>' : `<button type="button" data-buy="${id}"${life.coins < item.price ? ' disabled' : ''}>§${item.price}</button>`}</div>`;
+    }).join('')}</div>`);
+}
+function buyItem(id) {
+  const item = SHOP[id];
+  const life = getLife();
+  const owned = simsWorld.getDecor().items || [];
+  if (!item || owned.includes(id)) return;
+  if (curScene() !== 'house') return showToast('Los muebles se compran en casa 🏠');
+  if (life.coins < item.price) return showToast(`Te faltan §${item.price - Math.round(life.coins)}`);
+  life.coins -= item.price;
+  pushEvent('purchase');
+  setDecorChoice('items', [...owned, id]);
+  simTune([660, 880, 1320], 90, 'triangle');
+  const me = sims[meKey()];
+  if (me) { simBubble(me, `${item.emoji} ¡Nuevo! ${item.label}`, { secs: 2.6 }); me.expr = 'happy'; }
+  shopCard();
+  renderHud();
+}
+
+// ---------- Sala de juegos: Sudoku, Binairo y crucigrama ----------
+function gamesCard() {
+  const best = simLookOf(myAvatarPerson());
+  showSimsCard('is-games', `<h3>🧩 Sala de juegos</h3>
+    <div class="sims-games">
+      <button type="button" data-play="shark"><span>🦈</span><b>Tiburón hambriento</b><small>Récord: ${Number(best.sharkBest) || 0}</small></button>
+      <button type="button" data-play="sudoku"><span>🔢</span><b>Sudoku</b><small>Tres niveles</small></button>
+      <button type="button" data-play="binairo"><span>⚪</span><b>Binairo</b><small>Ceros y unos, sin tres seguidos</small></button>
+      <button type="button" data-play="crossword"><span>✏️</span><b>Crucigrama</b><small>Con pistas sobre vosotros</small></button>
+    </div>`);
+}
+function playGame(id) {
+  simsHouse.querySelector('.sims-card')?.remove();
+  if (id === 'shark') return startSharkGame();
+  if (id === 'sudoku') return startSudoku();
+  if (id === 'binairo') return startBinairo();
+  if (id === 'crossword') return startCrossword();
+  return null;
+}
+const shuffled = (list) => list.map((value) => [Math.random(), value]).sort((a, b) => a[0] - b[0]).map(([, value]) => value);
+// Ventana común de los juegos de mesa: cabecera con reloj y salir, y el tablero debajo.
+function puzzleShell(title) {
+  hidePie();
+  toggleChatBar(false);
+  simsHouse.querySelector('.sims-puzzle')?.remove();
+  const host = document.createElement('div');
+  host.className = 'sims-puzzle';
+  host.innerHTML = `<div class="sims-puzzle-head"><b>${title}</b><span data-p="time">0:00</span><button type="button" data-puzzle-quit aria-label="Salir">✕</button></div><div class="sims-puzzle-body"></div>`;
+  simsHouse.appendChild(host);
+  const start = Date.now();
+  const timer = setInterval(() => {
+    if (!host.isConnected) return clearInterval(timer);
+    const s = Math.floor((Date.now() - start) / 1000);
+    host.querySelector('[data-p="time"]').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }, 1000);
+  host.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (event.target.closest('[data-puzzle-quit]')) { clearInterval(timer); host.remove(); }
+  });
+  return { host, body: host.querySelector('.sims-puzzle-body'), elapsed: () => Math.floor((Date.now() - start) / 1000), stop: () => clearInterval(timer) };
+}
+function puzzleWin(shell, { game, coins, xp }) {
+  shell.stop();
+  const secs = shell.elapsed();
+  const panel = document.createElement('div');
+  panel.className = 'sims-game-msg';
+  panel.innerHTML = `<b>🏆 ¡Resuelto!</b><span class="sims-game-score">${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span><small>+§${coins} · +${xp} de lógica</small><div><button type="button" data-puzzle-quit>Volver a casa</button></div>`;
+  shell.host.appendChild(panel);
+  simTune([523, 659, 784, 1047], 140, 'triangle');
+  addCoins(coins);
+  gainSkill('logic', xp);
+  boostNeeds({ fun: 20 }).catch(() => {});
+  liveSend('game', { game, score: secs, record: false });
+}
+
+// Sudoku: se genera uno nuevo cada vez (y vale cualquier solución que cumpla las reglas).
+function makeSudoku(holes) {
+  const g = Array(81).fill(0);
+  const ok = (i, n) => {
+    const r = Math.floor(i / 9);
+    const c = i % 9;
+    for (let k = 0; k < 9; k += 1) if (g[r * 9 + k] === n || g[k * 9 + c] === n) return false;
+    const br = r - (r % 3);
+    const bc = c - (c % 3);
+    for (let y = 0; y < 3; y += 1) for (let x = 0; x < 3; x += 1) if (g[(br + y) * 9 + bc + x] === n) return false;
+    return true;
+  };
+  const fill = (i) => {
+    if (i === 81) return true;
+    for (const n of shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+      if (ok(i, n)) { g[i] = n; if (fill(i + 1)) return true; g[i] = 0; }
+    }
+    return false;
+  };
+  fill(0);
+  const puzzle = [...g];
+  shuffled([...Array(81).keys()]).slice(0, holes).forEach((i) => { puzzle[i] = 0; });
+  return puzzle;
+}
+function sudokuConflicts(cells) {
+  const bad = new Set();
+  const groups = [];
+  for (let k = 0; k < 9; k += 1) {
+    groups.push([...Array(9).keys()].map((i) => k * 9 + i));
+    groups.push([...Array(9).keys()].map((i) => i * 9 + k));
+    const br = Math.floor(k / 3) * 3;
+    const bc = (k % 3) * 3;
+    groups.push([...Array(9).keys()].map((i) => (br + Math.floor(i / 3)) * 9 + bc + (i % 3)));
+  }
+  groups.forEach((group) => {
+    const seen = {};
+    group.forEach((i) => { if (cells[i]) (seen[cells[i]] ||= []).push(i); });
+    Object.values(seen).forEach((list) => { if (list.length > 1) list.forEach((i) => bad.add(i)); });
+  });
+  return bad;
+}
+function startSudoku(levelName) {
+  const shell = puzzleShell('🔢 Sudoku');
+  if (!levelName) {
+    shell.body.innerHTML = `<div class="sims-puzzle-pick"><p>¿Qué nivel?</p>${[['easy', 'Fácil 🙂'], ['medium', 'Medio 🤔'], ['hard', 'Difícil 🔥']].map(([id, label]) => `<button type="button" data-level="${id}">${label}</button>`).join('')}</div>`;
+    shell.body.addEventListener('click', (event) => {
+      const pick = event.target.closest('[data-level]');
+      if (pick) { shell.stop(); shell.host.remove(); startSudoku(pick.dataset.level); }
+    });
+    return;
+  }
+  const holes = { easy: 38, medium: 46, hard: 53 }[levelName];
+  const givens = makeSudoku(holes);
+  const cells = [...givens];
+  let selected = -1;
+  const render = () => {
+    const bad = sudokuConflicts(cells);
+    const sel = selected >= 0 ? cells[selected] : 0;
+    shell.body.innerHTML = `<div class="sims-sudoku">${cells.map((n, i) => {
+      const cls = [givens[i] ? 'is-given' : '', i === selected ? 'is-sel' : '', bad.has(i) ? 'is-bad' : '', sel && n === sel ? 'is-same' : '', (i % 9) % 3 === 2 && i % 9 !== 8 ? 'is-r' : '', Math.floor(i / 9) % 3 === 2 && i < 72 ? 'is-b' : ''].join(' ');
+      return `<button type="button" class="${cls}" data-cell="${i}">${n || ''}</button>`;
+    }).join('')}</div>
+    <div class="sims-pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button type="button" data-num="${n}">${n}</button>`).join('')}<button type="button" data-num="0">⌫</button></div>`;
+  };
+  render();
+  shell.body.addEventListener('click', (event) => {
+    const cell = event.target.closest('[data-cell]');
+    if (cell) { selected = Number(cell.dataset.cell); return render(); }
+    const num = event.target.closest('[data-num]');
+    if (num && selected >= 0 && !givens[selected]) {
+      cells[selected] = Number(num.dataset.num);
+      simBlip(900 + Number(num.dataset.num) * 40, 0.03);
+      render();
+      if (cells.every(Boolean) && !sudokuConflicts(cells).size) puzzleWin(shell, { game: 'sudoku', coins: { easy: 40, medium: 70, hard: 110 }[levelName], xp: { easy: 20, medium: 35, hard: 55 }[levelName] });
+    }
+  });
+}
+
+// Binairo (o Takuzu): cada fila y columna con tantos ceros como unos y nunca tres iguales seguidos.
+function binairoRuleBreaks(cells, n) {
+  const bad = new Set();
+  const lines = [];
+  for (let k = 0; k < n; k += 1) { lines.push([...Array(n).keys()].map((i) => k * n + i)); lines.push([...Array(n).keys()].map((i) => i * n + k)); }
+  lines.forEach((lineCells) => {
+    for (let i = 0; i + 2 < n; i += 1) {
+      const [a, b, c] = [lineCells[i], lineCells[i + 1], lineCells[i + 2]];
+      if (cells[a] !== null && cells[a] === cells[b] && cells[b] === cells[c]) [a, b, c].forEach((x) => bad.add(x));
+    }
+    const ones = lineCells.filter((i) => cells[i] === 1).length;
+    const zeros = lineCells.filter((i) => cells[i] === 0).length;
+    if (ones > n / 2 || zeros > n / 2) lineCells.forEach((i) => { if (cells[i] !== null) bad.add(i); });
+  });
+  return bad;
+}
+function makeBinairo(n) {
+  const g = Array(n * n).fill(null);
+  const valid = (i) => {
+    const r = Math.floor(i / n);
+    const c = i % n;
+    const row = [...Array(n).keys()].map((k) => g[r * n + k]);
+    const col = [...Array(n).keys()].map((k) => g[k * n + c]);
+    for (const lineVals of [row, col]) {
+      if (lineVals.filter((v) => v === 1).length > n / 2 || lineVals.filter((v) => v === 0).length > n / 2) return false;
+      for (let k = 0; k + 2 < n; k += 1) if (lineVals[k] !== null && lineVals[k] === lineVals[k + 1] && lineVals[k + 1] === lineVals[k + 2]) return false;
+    }
+    return true;
+  };
+  const fill = (i) => {
+    if (i === n * n) return true;
+    for (const v of shuffled([0, 1])) { g[i] = v; if (valid(i) && fill(i + 1)) return true; }
+    g[i] = null;
+    return false;
+  };
+  fill(0);
+  const puzzle = [...g];
+  shuffled([...Array(n * n).keys()]).slice(0, Math.round(n * n * 0.58)).forEach((i) => { puzzle[i] = null; });
+  return puzzle;
+}
+function startBinairo(size) {
+  const shell = puzzleShell('⚪ Binairo');
+  if (!size) {
+    shell.body.innerHTML = `<div class="sims-puzzle-pick"><p>Rellena con 🔴 y 🔵: en cada fila y columna, tantos de uno como de otro y nunca tres iguales seguidos.</p><button type="button" data-size="6">6 × 6 🙂</button><button type="button" data-size="8">8 × 8 🔥</button></div>`;
+    shell.body.addEventListener('click', (event) => {
+      const pick = event.target.closest('[data-size]');
+      if (pick) { shell.stop(); shell.host.remove(); startBinairo(Number(pick.dataset.size)); }
+    });
+    return;
+  }
+  const n = size;
+  const givens = makeBinairo(n);
+  const cells = [...givens];
+  const render = () => {
+    const bad = binairoRuleBreaks(cells, n);
+    shell.body.innerHTML = `<p class="sims-puzzle-hint">Toca una casilla para cambiarla: vacía → 🔴 → 🔵</p><div class="sims-binairo" style="--n:${n}">${cells.map((v, i) => `<button type="button" class="${givens[i] !== null ? 'is-given' : ''} ${bad.has(i) ? 'is-bad' : ''}" data-bin="${i}">${v === null ? '' : `<i class="is-${v}"></i>`}</button>`).join('')}</div>`;
+  };
+  render();
+  shell.body.addEventListener('click', (event) => {
+    const cell = event.target.closest('[data-bin]');
+    if (!cell) return;
+    const i = Number(cell.dataset.bin);
+    if (givens[i] !== null) return;
+    cells[i] = cells[i] === null ? 0 : cells[i] === 0 ? 1 : null;
+    simBlip(cells[i] === 1 ? 760 : 620, 0.03);
+    render();
+    if (cells.every((v) => v !== null) && !binairoRuleBreaks(cells, n).size) puzzleWin(shell, { game: 'binairo', coins: n === 6 ? 40 : 80, xp: n === 6 ? 20 : 45 });
+  });
+}
+
+// Crucigrama: se monta uno distinto cada vez con palabras vuestras (Turín, Chieti, Kika…).
+const CROSS_WORDS = [
+  ['TIBURON', 'Así os llamáis con cariño (en singular)'], ['TURIN', 'Ciudad donde vivís'], ['MOLE', 'La ___ Antonelliana, símbolo de Turín'],
+  ['CHIETI', 'Ciudad de la familia de Matteo'], ['KIKA', 'La perrita salchicha arlequín'], ['LOCO', 'El labrador rubio de Chieti'],
+  ['PAELLA', 'Arroz valenciano en paellera'], ['GELATO', 'Helado, en italiano'], ['VESPA', 'Moto italiana con mucho estilo'],
+  ['OLA', 'La gran ___ de Kanagawa, vuestro puzzle'], ['SOFA', 'Es verde caqui y está en el salón'], ['AMORE', 'Amor, en italiano'],
+  ['PIZZA', 'Margarita, diavola o cuatro quesos'], ['MAJELLA', 'Montaña que se ve desde Chieti'], ['BICERIN', 'Café, chocolate y nata: muy turinés'],
+  ['ALBA', 'Ciudad piamontesa de la trufa blanca'], ['GENOVA', 'Ciudad del pesto, en italiano'], ['NIZA', 'Ciudad de la Costa Azul'],
+  ['MENORCA', 'Isla balear de calas turquesa'], ['SEVILLA', 'Ciudad de la Giralda'], ['GRANADA', 'Ciudad de la Alhambra'],
+  ['ELDA', 'Ciudad alicantina del calzado'], ['NONNA', 'Abuela, en italiano'], ['TRUFA', 'Tesoro que se busca en Alba'],
+  ['PESTO', 'Salsa de albahaca, piñones y queso'], ['SIESTA', 'Costumbre española después de comer'], ['BESO', 'Se da con los labios'],
+  ['NOLI', 'Pueblo de la Riviera ligur que visitasteis'], ['ANTIBES', 'Ciudad francesa de la Costa Azul con murallas'], ['VALENCIA', 'Ciudad de las Fallas'],
+  ['BURGOS', 'Ciudad de la catedral gótica y el Cid'], ['MADRID', 'Capital de España'], ['ALICANTE', 'Ciudad de la Explanada y el castillo de Santa Bárbara'],
+  ['ESPRESSO', 'Café corto italiano'], ['PIAMONTE', 'Región de Turín']
+];
+function makeCrossword(target = 8) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const pool = shuffled(CROSS_WORDS).slice(0, 22).sort((a, b) => b[0].length - a[0].length);
+    const grid = new Map();
+    const placed = [];
+    const at = (x, y) => grid.get(`${x},${y}`);
+    const put = ([word, clue], x, y, dir) => {
+      [...word].forEach((ch, i) => grid.set(`${x + (dir === 'h' ? i : 0)},${y + (dir === 'v' ? i : 0)}`, ch));
+      placed.push({ word, clue, x, y, dir });
+    };
+    const fits = (word, x, y, dir) => {
+      const dx = dir === 'h' ? 1 : 0;
+      const dy = dir === 'v' ? 1 : 0;
+      if (at(x - dx, y - dy) || at(x + dx * word.length, y + dy * word.length)) return -1;
+      let crosses = 0;
+      for (let i = 0; i < word.length; i += 1) {
+        const cx = x + dx * i;
+        const cy = y + dy * i;
+        const cur = at(cx, cy);
+        if (cur) { if (cur !== word[i]) return -1; crosses += 1; continue; }
+        // Una letra nueva no puede tocar otras de lado (saldrían palabras raras).
+        if (at(cx + dy, cy + dx) || at(cx - dy, cy - dx)) return -1;
+      }
+      return crosses;
+    };
+    put(pool[0], 0, 0, 'h');
+    for (const entry of pool.slice(1)) {
+      if (placed.length >= target) break;
+      const [word] = entry;
+      const options = [];
+      placed.forEach((other) => {
+        [...other.word].forEach((ch, oi) => {
+          [...word].forEach((wc, wi) => {
+            if (ch !== wc) return;
+            const dir = other.dir === 'h' ? 'v' : 'h';
+            const ox = other.x + (other.dir === 'h' ? oi : 0);
+            const oy = other.y + (other.dir === 'v' ? oi : 0);
+            const x = dir === 'h' ? ox - wi : ox;
+            const y = dir === 'v' ? oy - wi : oy;
+            const crosses = fits(word, x, y, dir);
+            if (crosses > 0) options.push({ x, y, dir, crosses });
+          });
+        });
+      });
+      if (options.length) {
+        const best = options.sort((a, b) => b.crosses - a.crosses || Math.random() - 0.5)[0];
+        put(entry, best.x, best.y, best.dir);
+      }
+    }
+    if (placed.length < Math.min(6, target)) continue;
+    const xs = [...grid.keys()].map((k) => Number(k.split(',')[0]));
+    const ys = [...grid.keys()].map((k) => Number(k.split(',')[1]));
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const w = Math.max(...xs) - minX + 1;
+    const h = Math.max(...ys) - minY + 1;
+    if (w > 13 || h > 13) continue;
+    placed.forEach((p) => { p.x -= minX; p.y -= minY; });
+    // Números en orden de lectura.
+    const starts = [...new Set(placed.map((p) => `${p.y},${p.x}`))].sort((a, b) => { const [ay, ax] = a.split(',').map(Number); const [by, bx] = b.split(',').map(Number); return ay - by || ax - bx; });
+    placed.forEach((p) => { p.num = starts.indexOf(`${p.y},${p.x}`) + 1; });
+    const letters = {};
+    grid.forEach((ch, key) => { const [x, y] = key.split(',').map(Number); letters[`${x - minX},${y - minY}`] = ch; });
+    return { w, h, placed, letters };
+  }
+  return null;
+}
+function startCrossword() {
+  const shell = puzzleShell('✏️ Crucigrama');
+  const cw = makeCrossword(8);
+  if (!cw) { shell.body.textContent = 'No se pudo montar el crucigrama, prueba otra vez'; return; }
+  const numAt = {};
+  cw.placed.forEach((p) => { numAt[`${p.x},${p.y}`] = p.num; });
+  let dir = 'h';
+  const cellsHtml = [];
+  for (let y = 0; y < cw.h; y += 1) for (let x = 0; x < cw.w; x += 1) {
+    const key = `${x},${y}`;
+    if (!cw.letters[key]) { cellsHtml.push('<span class="is-void"></span>'); continue; }
+    cellsHtml.push(`<label>${numAt[key] ? `<small>${numAt[key]}</small>` : ''}<input maxlength="1" autocomplete="off" autocapitalize="characters" spellcheck="false" data-cw="${key}" aria-label="Casilla" /></label>`);
+  }
+  const clues = (d) => cw.placed.filter((p) => p.dir === d).sort((a, b) => a.num - b.num).map((p) => `<li data-clue="${p.x},${p.y},${p.dir}"><b>${p.num}</b> ${escapeHtml(p.clue)} <i>(${p.word.length})</i></li>`).join('');
+  shell.body.innerHTML = `<div class="sims-cross" style="--w:${cw.w}">${cellsHtml.join('')}</div>
+    <div class="sims-cross-clues"><div><h4>Horizontales</h4><ol>${clues('h')}</ol></div><div><h4>Verticales</h4><ol>${clues('v')}</ol></div></div>
+    <div class="sims-cross-actions"><button type="button" data-cw-check>Comprobar</button><button type="button" data-cw-hint>💡 Una letra</button></div>`;
+  const input = (x, y) => shell.body.querySelector(`[data-cw="${x},${y}"]`);
+  const check = (final) => {
+    let all = true;
+    shell.body.querySelectorAll('[data-cw]').forEach((el) => {
+      const right = el.value.toUpperCase() === cw.letters[el.dataset.cw];
+      if (!right) all = false;
+      if (final) el.parentElement.classList.toggle('is-bad', Boolean(el.value) && !right);
+      el.parentElement.classList.toggle('is-good', final && right);
+    });
+    return all;
+  };
+  shell.body.addEventListener('focusin', (event) => {
+    const el = event.target.closest('[data-cw]');
+    if (!el) return;
+    const [x, y] = el.dataset.cw.split(',').map(Number);
+    // Si solo hay palabra en un sentido, escribe en ese.
+    const hasH = cw.letters[`${x - 1},${y}`] || cw.letters[`${x + 1},${y}`];
+    const hasV = cw.letters[`${x},${y - 1}`] || cw.letters[`${x},${y + 1}`];
+    if (hasH && !hasV) dir = 'h';
+    if (hasV && !hasH) dir = 'v';
+  });
+  shell.body.addEventListener('input', (event) => {
+    const el = event.target.closest('[data-cw]');
+    if (!el) return;
+    el.value = el.value.slice(-1).toUpperCase();
+    el.parentElement.classList.remove('is-bad', 'is-good');
+    if (el.value) {
+      const [x, y] = el.dataset.cw.split(',').map(Number);
+      const next = dir === 'h' ? input(x + 1, y) : input(x, y + 1);
+      next?.focus();
+    }
+    if (check(false)) { check(true); puzzleWin(shell, { game: 'crossword', coins: 60, xp: 35 }); }
+  });
+  shell.body.addEventListener('click', (event) => {
+    const clue = event.target.closest('[data-clue]');
+    if (clue) { const [x, y, d] = clue.dataset.clue.split(','); dir = d; input(x, y)?.focus(); return; }
+    if (event.target.closest('[data-cw-check]')) return check(true);
+    if (event.target.closest('[data-cw-hint]')) {
+      const empty = [...shell.body.querySelectorAll('[data-cw]')].filter((el) => el.value.toUpperCase() !== cw.letters[el.dataset.cw]);
+      const pick = pickOne(empty);
+      if (pick) { pick.value = cw.letters[pick.dataset.cw]; pick.parentElement.classList.add('is-hint'); if (check(false)) { check(true); puzzleWin(shell, { game: 'crossword', coins: 60, xp: 35 }); } }
+    }
+  });
+}
+
+// ---------- El mapa de vuestros viajes (el mismo que en Nosotros) ----------
+const travelPlaces = () => (typeof places !== 'undefined' && Array.isArray(places) ? places : []);
+function syncPlaces() {
+  if (world()) world().state.places = travelPlaces();
+}
+window.addEventListener('umbral:places', syncPlaces);
+function travelMapCard() {
+  const list = travelPlaces();
+  const countries = [...new Set(list.map((place) => place.country).filter(Boolean))];
+  const card = showSimsCard('is-map', `<h3>🗺️ Vuestro mapa</h3>
+    <canvas class="sims-travelmap" width="324" height="190"></canvas>
+    <p class="sims-card-hint">${list.length} sitios juntos en ${countries.length} ${countries.length === 1 ? 'país' : 'países'}: 🏠 casa · 👪 familia · ❤️ viajes</p>
+    <button type="button" class="sims-card-link" data-card-open="nosotros-map">Abrir el mapa en Nosotros</button>`);
+  const canvas = card.querySelector('canvas');
+  const draw = (t) => {
+    if (!canvas.isConnected) return;
+    simsWorld.drawTravelMap(canvas.getContext('2d'), 0, 0, 324, 190, list, { cell: 3, t, labels: true });
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+}
+
 // ---------- Barra de herramientas del juego ----------
 const SIM_TOOLS = [
   ['chat', '💬', 'Escribir un mensaje'],
   ['photo', '📸', 'Hacer una foto'],
   ['wardrobe', '👗', 'Cambiarte de ropa'],
   ['decor', '🎨', 'Decorar la casa'],
-  ['game', '🦈', 'Jugar a Tiburón hambriento']
+  ['shop', '🛍️', 'Tienda de muebles'],
+  ['game', '🧩', 'Sala de juegos']
 ];
 function handleSimTool(tool) {
   hidePie();
@@ -3074,7 +3715,8 @@ function handleSimTool(tool) {
   if (tool === 'photo') return takeSimPhoto();
   if (tool === 'wardrobe') return wardrobeCard();
   if (tool === 'decor') return decorCard();
-  if (tool === 'game') return startSharkGame();
+  if (tool === 'shop') return shopCard();
+  if (tool === 'game') return gamesCard();
 }
 
 // ---------- Pantalla completa en horizontal ----------
@@ -3136,7 +3778,9 @@ simsHouse.addEventListener('click', async (event) => {
     if (event.target.closest('[data-chat-close]')) toggleChatBar(false);
     return;
   }
-  if (event.target.closest('.sims-game')) return;
+  if (event.target.closest('.sims-game, .sims-puzzle')) return;
+  const queued = event.target.closest('[data-queue]');
+  if (queued) { simsState.queue.splice(Number(queued.dataset.queue), 1); renderHud(); return; }
   const option = event.target.closest('[data-pie]');
   if (option) return handlePieChoice(option.dataset.pie);
   if (event.target.closest('.sims-hud-home')) return goHome();
@@ -3156,6 +3800,10 @@ simsHouse.addEventListener('click', async (event) => {
       appCard.querySelectorAll(`[data-decor^="${part}:"]`).forEach((button) => button.setAttribute('aria-pressed', String(button === decorButton)));
       return;
     }
+    const buy = event.target.closest('[data-buy]');
+    if (buy) return buyItem(buy.dataset.buy);
+    const play = event.target.closest('[data-play]');
+    if (play) return playGame(play.dataset.play);
     if (event.target.closest('[data-snapshot-save]')) return saveSnapshot(event.target.closest('[data-snapshot-save]'));
     if (event.target.closest('[data-snapshot-download]')) return downloadSnapshot();
     const toggle = event.target.closest('[data-shop-toggle]');
@@ -3180,7 +3828,11 @@ simsHouse.addEventListener('click', async (event) => {
       const target = open.dataset.cardOpen;
       appCard.remove();
       closeSims();
-      setTimeout(() => (target === 'calendar' ? typeof openCalendar === 'function' && openCalendar() : showView(target)), 300);
+      setTimeout(() => {
+        if (target === 'calendar') return typeof openCalendar === 'function' && openCalendar();
+        if (target === 'nosotros-map') { showView('nosotros'); return typeof setUsView === 'function' && setUsView('map'); }
+        return showView(target);
+      }, 300);
     }
     return;
   }
@@ -3199,6 +3851,7 @@ simsHouse.addEventListener('click', async (event) => {
     return card.remove();
   }
   if (event.target.closest('.sims-hud-cancel')) {
+    simsState.queue = [];
     liveSend('cancel');
     const me = sims[meKey()];
     const partner = sims[partnerKeyOf()];
