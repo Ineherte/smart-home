@@ -223,6 +223,42 @@
     }
   }
 
+  // Papel pintado: topitos, rayas, flores o rombos, en tonos del color de la pared.
+  function wallpaper(c, x0, y0, x1, y1, base, accent, pattern) {
+    if (pattern === 'plain' || !pattern) return;
+    const soft = tone(base, -0.07);
+    const deep = tone(base, -0.14);
+    c.save();
+    c.beginPath();
+    c.rect(x0, y0, x1 - x0, y1 - y0);
+    c.clip();
+    if (pattern === 'dots') {
+      for (let y = y0 + 2; y < y1; y += 8) for (let x = x0 + (((y - y0) / 8) % 2 ? 2 : 6); x < x1; x += 8) R(c, x, y, 1, 1, deep);
+    } else if (pattern === 'stripes') {
+      for (let x = x0 + 2; x < x1; x += 8) { R(c, x, y0, 3, y1 - y0, soft); R(c, x + 3, y0, 1, y1 - y0, tone(base, 0.06)); }
+    } else if (pattern === 'flowers') {
+      for (let y = y0 + 3, row = 0; y < y1; y += 10, row += 1) {
+        for (let x = x0 + (row % 2 ? 4 : 10); x < x1; x += 12) {
+          R(c, x, y - 1, 1, 1, accent);
+          R(c, x - 1, y, 3, 1, accent);
+          R(c, x, y + 1, 1, 1, accent);
+          R(c, x, y, 1, 1, '#e8b84a');
+          R(c, x + 2, y + 2, 1, 1, tone(accent, -0.2));
+        }
+      }
+    } else if (pattern === 'diamonds') {
+      for (let y = y0, row = 0; y < y1; y += 8, row += 1) {
+        for (let x = x0 + (row % 2 ? 4 : 0); x < x1; x += 8) {
+          R(c, x + 3, y, 1, 1, soft);
+          R(c, x + 2, y + 1, 3, 1, soft);
+          R(c, x + 3, y + 2, 1, 1, soft);
+          R(c, x + 3, y + 1, 1, 1, deep);
+        }
+      }
+    }
+    c.restore();
+  }
+
   // Pared vista de frente, con rodapié abajo y sombra del techo arriba.
   function wallFace(c, x0, x1, y0, y1, style) {
     const w = x1 - x0;
@@ -243,9 +279,8 @@
       const paint = decorOf('walls');
       const base = { bedroom: paint.bed, kitchen: '#f0e3c6', living: paint.base }[style];
       R(c, x0, y0, w, h, base);
-      if (style === 'bedroom') {
-        for (let y = y0 + 6; y < y1 - 8; y += 8) for (let x = x0 + (((y - y0) / 8) % 2 ? 2 : 6); x < x1; x += 8) R(c, x, y, 1, 1, tone(base, -0.12));
-      }
+      if (style === 'bedroom') wallpaper(c, x0, y0 + 4, x1, y1 - 7, base, paint.trim, decorOf('paperBed').pattern);
+      if (style === 'living') wallpaper(c, x0, y0 + 4, x1, y1 - 21, base, paint.trim, decorOf('paperLiving').pattern);
       if (style === 'living') {
         // Zócalo de madera pintada en verde salvia, con su moldura.
         const trim = paint.trim;
@@ -258,13 +293,15 @@
         }
       }
       if (style === 'kitchen') {
-        // Azulejos tipo metro detrás de la encimera.
+        // Azulejos tipo metro detrás de la encimera (del color que elijáis).
+        const tile = decorOf('tiles');
         for (let y = y0 + 22; y < y1 - 4; y += 5) {
           for (let x = x0 + (((y - y0) / 5) % 2 ? 5 : 0) - 10; x < x1; x += 10) {
             const xa = Math.max(x, x0);
             const xb = Math.min(x + 10, x1);
-            R(c, xa, y, xb - xa, 5, '#d4cbb8');
-            R(c, xa + 1, y + 1, xb - xa - 1, 4, '#faf7f0');
+            R(c, xa, y, xb - xa, 5, tone(tile, -0.18));
+            R(c, xa + 1, y + 1, xb - xa - 1, 4, tile);
+            R(c, xa + 1, y + 1, Math.max(0, xb - xa - 2), 1, tone(tile, 0.12));
           }
         }
       }
@@ -491,9 +528,13 @@
     },
     sofa: { khaki: '#7d7f4f', mustard: '#c39a3c', grey: '#8b8d92', navy: '#4c6585', rose: '#c48c8a', terracotta: '#b8674a' },
     bedding: { cream: ['#e4dccb', '#8a8c5a'], white: ['#f2efe8', '#9db4c8'], blue: ['#9fb8d0', '#3f5f86'], rose: ['#e8c4c0', '#b86a6a'], green: ['#c8d4b4', '#5e7a52'], mustard: ['#ecd9a8', '#c39a3c'] },
-    theme: ['auto', 'none', 'halloween', 'xmas', 'valentine', 'spring']
+    theme: ['auto', 'none', 'halloween', 'xmas', 'valentine', 'spring'],
+    // Papel pintado del dormitorio y del salón, y azulejos de la cocina.
+    paperBed: { dots: { pattern: 'dots' }, plain: { pattern: 'plain' }, stripes: { pattern: 'stripes' }, flowers: { pattern: 'flowers' }, diamonds: { pattern: 'diamonds' } },
+    paperLiving: { plain: { pattern: 'plain' }, stripes: { pattern: 'stripes' }, flowers: { pattern: 'flowers' }, diamonds: { pattern: 'diamonds' }, dots: { pattern: 'dots' } },
+    tiles: { white: '#faf7f0', green: '#cfe3c8', blue: '#cfe0ef', terracotta: '#f0c9b0', black: '#3a3d42' }
   };
-  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto', items: [], place: {} };
+  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto', items: [], place: {}, paperBed: 'dots', paperLiving: 'plain', tiles: 'white' };
   // Muebles que se pueden mover en el modo construcción (los de la tienda y algunos sueltos).
   const MOVABLE = ['guitar', 'beanbag', 'easel', 'telescope', 'aquarium', 'arcade', 'armchair', 'sidetable', 'olivetree'];
   let decor = { ...DEFAULT_DECOR };
@@ -2476,7 +2517,18 @@
     if (a.kind === 'dog') return drawDog(c, a, t);
     if (a.shadow !== false) shadow(c, a.x, a.y, 9, 3, 0.26);
     if (a.clipY) clipRect(c, a.x - 40, a.y - 70, 80, a.clipY - (a.y - 70));
+    // Rebote al llegar o al sentarse: se aplasta un poco y vuelve (desde los pies).
+    const k = a.squashAt ? (t - a.squashAt) / 260 : 1;
+    const squashing = k > 0 && k < 1;
+    if (squashing) {
+      const amount = Math.sin(k * Math.PI);
+      c.save();
+      c.translate(a.x, a.y);
+      c.scale(1 + amount * 0.07, 1 - amount * 0.09);
+      c.translate(-a.x, -a.y);
+    }
     drawActorFrame(c, a, a.x + (a.ox || 0), a.y + (a.oy || 0), a.scale || 1);
+    if (squashing) c.restore();
     if (a.clipY) c.restore();
     drawProp(c, a);
   }
@@ -2572,6 +2624,16 @@
       sc.clearRect(0, 0, W, H);
       sc.imageSmoothingEnabled = false;
       if (scene.id === 'house') PHOTO_SLOTS.slice(0, 8).forEach((slot, i) => drawSlot(sc, slot, state.photos[i]));
+      // Sombras suaves de contacto bajo cada mueble (la luz viene de arriba a la izquierda).
+      scene.objects.filter((object) => object.block && (!object.shop || owns(object.id))).forEach((object) => {
+        const [x, y, w, h] = object.block;
+        [[4, 0.07], [2, 0.08], [0, 0.09]].forEach(([grow, alpha]) => {
+          sc.globalAlpha = alpha;
+          sc.fillStyle = '#2b1a12';
+          sc.fillRect(x + 2 - grow, y + 3 - grow / 2, w + grow * 2, h + grow);
+        });
+      });
+      sc.globalAlpha = 1;
       scene.objects.filter((object) => object.layer === 'static').sort((a, b) => a.sort - b.sort).forEach((object) => object.draw(sc, state, 0));
     }
     // Cambiar de sitio: la casa, Turín, Chieti o España.
@@ -2692,8 +2754,14 @@
 
     function updateCamera() {
       const cam = state.cam;
-      const z = state.zoom ? 2 : 1;
-      cam.z += (z - cam.z) * 0.15;
+      // El zoom va de 1 (toda la casa) a 3; true/false de antes valen como 2 y 1.
+      const zSet = typeof state.zoom === 'number' ? Math.max(1, Math.min(3, state.zoom)) : state.zoom ? 2 : 1;
+      // En la franja horizontal de pantalla completa ya se ve de cerca: ahí el zoom extra va a la mitad.
+      const strip = state.view.h < H - 1 || state.view.w < W - 1;
+      const zRaw = strip ? 1 + (zSet - 1) * 0.5 : zSet;
+      // Al soltar, el zoom se ajusta a uno en el que cada píxel del dibujo mide lo mismo (nítido).
+      const z = state.pinching ? zRaw : Math.max(1, Math.round(zRaw * scale) / scale);
+      cam.z += (z - cam.z) * (state.pinching ? 0.5 : 0.15);
       if (Math.abs(cam.z - z) < 0.01) cam.z = z;
       const vw = state.view.w / cam.z;
       const vh = state.view.h / cam.z;
@@ -2728,7 +2796,9 @@
       lc.fillStyle = ambient;
       lc.fillRect(0, 0, W, H);
       lc.globalCompositeOperation = 'lighter';
+      const bloom = [];
       const glow = (x, y, r, color, strength = 1) => {
+        bloom.push([x, y, r, color, strength]);
         const grad = lc.createRadialGradient(x, y, 0, x, y, r);
         grad.addColorStop(0, color);
         grad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -2765,6 +2835,19 @@
       if (state.props.stove) glow(394, 40, 20, 'rgba(255,140,80,.8)');
       c.globalCompositeOperation = 'multiply';
       c.drawImage(light, 0, 0);
+      // Halo: de noche, las luces brillan un poco por encima de lo que iluminan.
+      if (ph.dark > 0.25) {
+        c.globalCompositeOperation = 'lighter';
+        bloom.forEach(([x, y, r, color, strength]) => {
+          const grad = c.createRadialGradient(x, y, 0, x, y, r * 0.55);
+          grad.addColorStop(0, color);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          c.globalAlpha = Math.min(1, 0.16 * ph.dark * strength);
+          c.fillStyle = grad;
+          c.fillRect(x - r, y - r, r * 2, r * 2);
+        });
+        c.globalAlpha = 1;
+      }
       c.globalCompositeOperation = 'source-over';
     }
 
@@ -2924,6 +3007,19 @@
       drawParticles();
       drawDust(t);
       drawLighting(t);
+      // Viñeta muy suave en los bordes, como en la cámara de un juego.
+      if (scene.indoor) {
+        const cw = canvas.width;
+        const ch = canvas.height;
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        const vg = c.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.42, cw / 2, ch / 2, Math.max(cw, ch) * 0.72);
+        vg.addColorStop(0, 'rgba(20,12,10,0)');
+        vg.addColorStop(1, 'rgba(20,12,10,.2)');
+        c.fillStyle = vg;
+        c.fillRect(0, 0, cw, ch);
+        c.restore();
+      }
       drawRomance();
       state.actors.forEach((a) => drawMoodFx(c, a, t));
       drawMarker(t);

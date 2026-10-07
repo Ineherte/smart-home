@@ -65,6 +65,7 @@
       const aspiration = ASPIRATIONS[id];
       addCoins(coins, simsState.open ? sims[meKey()] : null);
       diary(medal, `${aspiration.name}: ${tierName}`);
+      if (reached >= 2) window.simsMind?.remember(medal, `${aspiration.name}: ${tierName}`, `¿Te acuerdas de cuando conseguimos «${aspiration.name}»?`);
       celebrate(`${medal} ${aspiration.emoji} ${aspiration.name}`, reached === 3 ? `¡Oro! Ahora sois «${aspiration.title}» · +§${coins}` : `Nivel ${tierName} · +§${coins}`);
       saveLife();
     });
@@ -92,7 +93,7 @@
   }
 
   // ---------- Tarjeta de metas: aspiraciones y diario ----------
-  let goalsTab = 'aspire';
+  let goalsTab = 'you';
   function goalsCard() {
     if (!ready()) return showToast('Espera un momento: tu muñeco aún se está cargando');
     const life = lifeData();
@@ -110,11 +111,13 @@
       return `${header}<li><span>${escapeHtml(entry.emoji)}</span><p>${escapeHtml(entry.text)}</p><time>${hourText(entry.at)}</time></li>`;
     }).join('') : '<li class="sims-diary-empty">Aquí irá lo que os pase en casa: deseos, niveles, viajes y sucesos.</li>';
     const card = showSimsCard('is-goals', `<h3>🏆 Vuestra vida</h3>
-      <div class="sims-goals-tabs" role="tablist"><button type="button" data-goals-tab="aspire" aria-selected="${goalsTab === 'aspire'}">Aspiraciones</button><button type="button" data-goals-tab="diary" aria-selected="${goalsTab === 'diary'}">Diario</button></div>
-      ${goalsTab === 'aspire' ? `<ul class="sims-aspire-list">${aspire}</ul>` : `<ul class="sims-diary">${entries}</ul>`}`);
+      <div class="sims-goals-tabs" role="tablist">${[['you', 'Tú'], ['aspire', 'Metas'], ['memories', 'Recuerdos'], ['diary', 'Diario']].map(([id, label]) => `<button type="button" data-goals-tab="${id}" aria-selected="${goalsTab === id}">${label}</button>`).join('')}</div>
+      ${goalsTab === 'you' ? window.simsMind?.youHtml() || '' : goalsTab === 'memories' ? window.simsMind?.memoriesHtml() || '' : goalsTab === 'aspire' ? `<ul class="sims-aspire-list">${aspire}</ul>` : `<ul class="sims-diary">${entries}</ul>`}`);
     card.addEventListener('click', (event) => {
       const tab = event.target.closest('[data-goals-tab]');
       if (tab) { goalsTab = tab.dataset.goalsTab; goalsCard(); }
+      const trait = event.target.closest('[data-trait]');
+      if (trait) { window.simsMind?.toggleTrait(trait.dataset.trait); goalsCard(); renderSimsNeeds(); }
     });
   }
 
@@ -174,7 +177,7 @@
       start: (ctx) => { ctx.npc = visitor('ped-b', 'El repartidor', ['¡Un paquete para ustedes!', 'Firme aquí, por favor'], 'it-m'); setTimeout(() => npcSay(ctx.npc, 'Pacco per voi! 📦', { force: true }), 2600); addProp({ kind: 'parcel', x: 440, y: 352 }); },
       choices: [
         { label: '📦 Abrirlo yo', run: async (ctx) => { await goTo(436, 340, A(ctx)); setProps([]); const coins = pickOne([40, 60, 80, 120]); addCoins(coins); say(A(ctx), pickOne(['¡Unos cupones! 🎟️', '¡Un regalo de mamá! 💝', '¡Lo que pedimos! 🎉']) + ` +§${coins}`); needs({ fun: 15 }); return `Abriste un paquete: +§${coins}`; } },
-        { label: () => `🎁 Que lo abra ${partnerName()}`, run: async (ctx) => { await goTo(436, 340, B(ctx)); setProps([]); say(B(ctx), pickOne(['¡Es para ti! 💕', '¡Sorpresa!'])); getLife().rel.romance = Math.min(100, getLife().rel.romance + 6); needs({ social: 15, fun: 10 }); return `${partnerName()} abrió un regalo para ti`; } }
+        { label: () => `🎁 Que lo abra ${partnerName()}`, memory: '¿Te acuerdas del paquete sorpresa? 🎁', run: async (ctx) => { await goTo(436, 340, B(ctx)); setProps([]); say(B(ctx), pickOne(['¡Es para ti! 💕', '¡Sorpresa!'])); getLife().rel.romance = Math.min(100, getLife().rel.romance + 6); needs({ social: 15, fun: 10 }); return `${partnerName()} abrió un regalo para ti`; } }
       ],
       end: (ctx) => { sendAway(ctx.npc); setProps([]); }
     },
@@ -194,7 +197,7 @@
       when: () => true,
       start: (ctx) => { const w = world(); if (w) { w.state.blackout = true; w.state.lamps = false; } simTune([392, 330, 262], 160, 'sawtooth'); say(A(ctx), '¡Uy! 😱'); },
       choices: [
-        { label: '🕯️ Encender velas', run: (ctx) => { const w = world(); if (w) w.state.candles = [[110, 330], [128, 334], [392, 128]]; setProps([{ kind: 'candle', x: 110, y: 330 }, { kind: 'candle', x: 128, y: 334 }, { kind: 'candle', x: 392, y: 128 }]); getLife().rel.romance = Math.min(100, getLife().rel.romance + 10); pushEvent('love'); needs({ social: 20, fun: 10 }); say(A(ctx), 'Qué romántico… 💕'); return 'Cena a la luz de las velas'; }, keep: 45000 },
+        { label: '🕯️ Encender velas', memory: '¿Te acuerdas del apagón y la cena con velas? 🕯️', run: (ctx) => { const w = world(); if (w) w.state.candles = [[110, 330], [128, 334], [392, 128]]; setProps([{ kind: 'candle', x: 110, y: 330 }, { kind: 'candle', x: 128, y: 334 }, { kind: 'candle', x: 392, y: 128 }]); getLife().rel.romance = Math.min(100, getLife().rel.romance + 10); pushEvent('love'); needs({ social: 20, fun: 10 }); say(A(ctx), 'Qué romántico… 💕'); return 'Cena a la luz de las velas'; }, keep: 45000 },
         { label: '🔌 Revisar los plomos', run: async (ctx) => { await goTo(470, 330, A(ctx)); const ok = skillCheck('logic'); gainSkill('logic', 25); if (ok) { say(A(ctx), '¡Arreglado! 💡'); addCoins(20); return 'Arreglaste los plomos: +§20'; } say(A(ctx), 'Ay… ¡calambre! ⚡'); needs({ fun: -10, energy: -10 }); return 'Los plomos se resistieron (habrá que subir lógica)'; } }
       ],
       end: () => { const w = world(); if (w) { w.state.blackout = false; w.state.candles = []; } setProps([]); }
@@ -214,7 +217,7 @@
       text: () => 'La pizzería de abajo ha abierto el horno de leña. Tenéis hambre…',
       when: () => needsOf().hunger < 70 && hour() >= 12,
       choices: [
-        { label: '🍕 Pedir una margherita (§25)', run: async (ctx) => { addCoins(-25); setProps([{ kind: 'pizza', x: 120, y: 330 }]); await goTo(150, 320, A(ctx)); needs({ hunger: 55, fun: 10 }); say(A(ctx), '¡Qué buena! 🍕'); say(B(ctx), 'Buonissima!'); return 'Pizza margherita en el sofá'; }, keep: 30000 },
+        { label: '🍕 Pedir una margherita (§25)', memory: '¿Te acuerdas de la pizza en el sofá? 🍕', run: async (ctx) => { addCoins(-25); setProps([{ kind: 'pizza', x: 120, y: 330 }]); await goTo(150, 320, A(ctx)); needs({ hunger: 55, fun: 10 }); say(A(ctx), '¡Qué buena! 🍕'); say(B(ctx), 'Buonissima!'); return 'Pizza margherita en el sofá'; }, keep: 30000 },
         { label: '🍳 Mejor cocinamos juntos', run: (ctx) => { queueOrRun({ type: 'act', value: 'cook', emoji: '🍳' }); return 'Decidisteis cocinar en casa'; } }
       ],
       end: () => setProps([])
@@ -224,7 +227,7 @@
       text: () => 'El gato del vecino se ha colado por la ventana del salón y os mira muy serio.',
       start: (ctx) => { addProp({ kind: 'cat', x: 364, y: 244 }); },
       choices: [
-        { label: '🐟 Darle de comer', run: async (ctx) => { await goTo(364, 268, A(ctx)); needs({ fun: 20, social: 10 }); say(A(ctx), '¡Miau! 😻'); return 'Le disteis de comer al gato del vecino'; }, keep: 20000 },
+        { label: '🐟 Darle de comer', memory: '¿Te acuerdas del gato que se coló por la ventana? 🐱', run: async (ctx) => { await goTo(364, 268, A(ctx)); needs({ fun: 20, social: 10 }); say(A(ctx), '¡Miau! 😻'); return 'Le disteis de comer al gato del vecino'; }, keep: 20000 },
         { label: '📸 Hacerle fotos', run: async (ctx) => { await goTo(380, 280, A(ctx)); takeSimPhoto(); needs({ fun: 15 }); return 'Sesión de fotos con el gato'; }, keep: 12000 }
       ],
       end: () => setProps([])
@@ -254,7 +257,7 @@
       when: () => hour() >= 11 && hour() < 22,
       start: (ctx) => { const def = FAMILY.spain[0]; ctx.npc = visitor(def.id, def.name, def.lines, def.voice); setTimeout(() => npcSay(ctx.npc, pickOne(def.greet), { force: true }), 2600); },
       choices: [
-        { label: '🍽️ Comer todos juntos', run: async (ctx) => { await goTo(392, 140, A(ctx)); needs({ hunger: 50, social: 30 }); setProps([{ kind: 'pizza', x: 392, y: 132 }]); setTimeout(() => npcSay(ctx.npc, '¡Comed, que estáis muy delgados!', { force: true }), 400); return 'Comisteis la tortilla de Mari Cruz'; }, keep: 20000 },
+        { label: '🍽️ Comer todos juntos', memory: '¡Qué buena estaba la tortilla de tu madre! 🥘', run: async (ctx) => { await goTo(392, 140, A(ctx)); needs({ hunger: 50, social: 30 }); setProps([{ kind: 'pizza', x: 392, y: 132 }]); setTimeout(() => npcSay(ctx.npc, '¡Comed, que estáis muy delgados!', { force: true }), 400); return 'Comisteis la tortilla de Mari Cruz'; }, keep: 20000 },
         { label: '🏠 Enseñarle la casa', run: async (ctx) => { await goTo(300, 320, A(ctx)); gainSkill('charisma', 30); needs({ social: 25 }); setTimeout(() => npcSay(ctx.npc, '¡Qué bonito lo tenéis todo!', { force: true }), 400); return 'Le enseñasteis la casa a Mari Cruz'; }, keep: 12000 }
       ],
       end: (ctx) => { setProps([]); sendAway(ctx.npc); }
@@ -265,7 +268,7 @@
       when: () => hour() >= 11 && hour() < 22,
       start: (ctx) => { const def = FAMILY.chieti[0]; ctx.npc = visitor(def.id, def.name, def.lines, def.voice); setTimeout(() => npcSay(ctx.npc, pickOne(def.greet), { force: true }), 2600); },
       choices: [
-        { label: '🍝 Comer la lasaña', run: async (ctx) => { await goTo(392, 140, A(ctx)); needs({ hunger: 55, social: 25 }); setProps([{ kind: 'pizza', x: 392, y: 132 }]); setTimeout(() => npcSay(ctx.npc, 'Mangiate, mangiate!', { force: true }), 400); return 'Lasaña de Giuliana para todos'; }, keep: 20000 },
+        { label: '🍝 Comer la lasaña', memory: 'La lasaña de tu madre… ¡qué maravilla! 🍝', run: async (ctx) => { await goTo(392, 140, A(ctx)); needs({ hunger: 55, social: 25 }); setProps([{ kind: 'pizza', x: 392, y: 132 }]); setTimeout(() => npcSay(ctx.npc, 'Mangiate, mangiate!', { force: true }), 400); return 'Lasaña de Giuliana para todos'; }, keep: 20000 },
         { label: '☕ Un café y a charlar', run: async (ctx) => { await goTo(300, 320, A(ctx)); gainSkill('charisma', 25); needs({ social: 30, fun: 10 }); setTimeout(() => npcSay(ctx.npc, 'Che bella coppia che siete!', { force: true }), 400); return 'Café y charla con Giuliana'; }, keep: 12000 }
       ],
       end: (ctx) => { setProps([]); sendAway(ctx.npc); }
@@ -319,6 +322,7 @@
     try { result = (await choice.run(ctx)) || ''; } catch (error) { console.warn('[Umbral] Suceso:', error); }
     if (!auto) stat('events');
     if (result) diary(def.emoji, result);
+    if (result && choice.memory) window.simsMind?.remember(def.emoji, result, choice.memory);
     if (result && !auto) setTimeout(() => showToast(remote ? `${def.emoji} ${partnerName()} eligió: ${result}` : `${def.emoji} ${result}`), 400);
     const keep = typeof choice.keep === 'number' ? choice.keep : 4000;
     setTimeout(() => finish(ctx), keep);

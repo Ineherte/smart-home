@@ -323,10 +323,14 @@ const SIM_TIPS = [
 
 const simsModal = document.querySelector('#simsModal');
 const simsHouse = document.querySelector('#simsHouse');
+const ZOOM_CLOSE = 1.8;
 const simsState = { open: false, timer: null, raf: 0, last: 0, needsOf: 'me', tip: 0, sound: true, zoom: false, world: null, bubbles: [], pieAt: null, photoIndex: 0, npcs: [], dog: null, nextTram: 0, full: false, needsMini: false, drag: null, dragged: false, wakeLock: null };
 try {
   simsState.sound = localStorage.getItem('umbral-sims-sound') !== 'off';
-  simsState.zoom = localStorage.getItem('umbral-sims-zoom') === 'on';
+  simsState.music = localStorage.getItem('umbral-sims-music') !== 'off';
+  // Zoom continuo: por defecto, de cerca (1,8). Se guarda el último que elegiste.
+  const savedZoom = localStorage.getItem('umbral-sims-zoom');
+  simsState.zoom = savedZoom === 'on' ? 2 : savedZoom === 'off' ? 1 : Number(savedZoom) >= 1 ? Math.min(3, Number(savedZoom)) : ZOOM_CLOSE;
 } catch {}
 const sims = {};
 const simWait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -368,6 +372,50 @@ async function simTune(notes, gap = 120, type = 'sine') {
     await simWait(gap);
   }
 }
+// Un soplo de ruido filtrado: agua, fritura, sábanas o páginas (según el filtro).
+function simNoise(secs = 0.4, freq = 1800, volume = 0.05, type = 'bandpass') {
+  if (!simsState.sound) return;
+  try {
+    simsAudio ||= new (window.AudioContext || window.webkitAudioContext)();
+    const length = Math.floor(simsAudio.sampleRate * secs);
+    const buffer = simsAudio.createBuffer(1, length, simsAudio.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+    const source = simsAudio.createBufferSource();
+    source.buffer = buffer;
+    const filter = simsAudio.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = freq;
+    const gain = simsAudio.createGain();
+    gain.gain.value = volume;
+    source.connect(filter).connect(gain).connect(simsAudio.destination);
+    source.start();
+  } catch {}
+}
+// El sonido de cada cosa al empezar a usarla.
+const ACTION_SFX = {
+  stove: () => { simNoise(1.2, 3200, 0.04, 'highpass'); simTune([330, 392], 90, 'triangle'); },
+  coffee: () => { simNoise(0.8, 900, 0.05); simTune([700, 0, 820], 120, 'sine'); },
+  fridge: () => { simBlip(110, 0.25, 'sine', 0.06); simTune([523, 659], 80, 'triangle'); },
+  tv: () => simTune([1320, 0, 990], 60, 'square'),
+  games: () => simTune([523, 659, 784, 1047], 70, 'square'),
+  arcade: () => simTune([392, 523, 659, 784, 1047], 60, 'square'),
+  shower: () => simNoise(1.6, 2600, 0.05),
+  bath: () => simNoise(1.4, 1400, 0.05, 'lowpass'),
+  ksink: () => simNoise(0.9, 2200, 0.04),
+  sink: () => simNoise(0.7, 2400, 0.04),
+  washer: () => { simBlip(98, 0.4, 'sawtooth', 0.03); simTune([880, 880], 140, 'square'); },
+  bed: () => simNoise(0.5, 600, 0.04, 'lowpass'),
+  sofa: () => simBlip(120, 0.12, 'sine', 0.08),
+  bookshelf: () => simNoise(0.25, 4200, 0.03, 'highpass'),
+  plant: () => simTune([1200, 980, 1320], 90, 'sine'),
+  mirror: () => simTune([1568, 2093], 70, 'sine'),
+  wardrobe: () => simNoise(0.3, 900, 0.04),
+  door: () => simTune([392, 294], 120, 'triangle')
+};
+
+// Pequeño rebote al llegar a un sitio o al sentarse (como en un juego de verdad).
+const squash = (sim, delay = 0) => { sim.squashAt = performance.now() + delay; };
 // Sonido ambiente muy bajito: lluvia de fondo, pájaros de día fuera, grillos de noche.
 // Solo con el sonido puesto.
 let simsRain = null;
@@ -606,7 +654,7 @@ function stepSim(sim, dt, t) {
     const dy = target.y - sim.y;
     const dist = Math.hypot(dx, dy);
     // Aceleran al arrancar y frenan al llegar; con poca energía van más despacio.
-    const top = sim.kind === 'dog' ? (sim.breed === 'labrador' ? 92 : 78) : sim.run ? 100 : sim.def?.kid ? 60 : sim.npc ? 46 : needs.energy < 25 ? 44 : WALK_SPEED;
+    const top = (sim.kind === 'dog' ? (sim.breed === 'labrador' ? 92 : 78) : sim.run ? 100 : sim.def?.kid ? 60 : sim.npc ? 46 : needs.energy < 25 ? 44 : WALK_SPEED) * (sim.npc ? 1 : window.simsMind?.speedMult(sim) ?? 1);
     sim.speed = Math.min(top, sim.speed + 260 * dt);
     if (sim.path.length === 1 && dist < 14) sim.speed = Math.max(18, Math.min(sim.speed, (top * dist) / 14));
     const step = sim.speed * dt;
@@ -623,9 +671,9 @@ function stepSim(sim, dt, t) {
     // Andando o, si el camino es largo, corriendo (con polvillo en la calle).
     sim.anim = sim.run ? 'run' : 'walk';
     sim.frame = sim.run ? Math.floor(sim.stride / 6) % 8 : 1 + (Math.floor(sim.stride / 4.5) % 8);
-    if (sim.run && curScene() !== 'house' && Math.floor(sim.stride / 14) !== sim.lastDust) {
+    if (sim.run && Math.floor(sim.stride / 14) !== sim.lastDust) {
       sim.lastDust = Math.floor(sim.stride / 14);
-      world()?.emit('puff', sim.x, sim.y - 2, { vy: -4, spread: 4, color: '#d8ccb8' });
+      world()?.emit('puff', sim.x, sim.y - 2, { vy: -4, spread: 4, color: curScene() === 'house' ? '#efe4d2' : '#d8ccb8' });
     }
     // Pasitos suaves (solo los tuyos).
     if (!sim.npc && sim.key === meKey() && Math.floor(sim.stride / 18) !== sim.lastStep) {
@@ -634,6 +682,7 @@ function stepSim(sim, dt, t) {
     }
     if (!sim.path.length) {
       sim.speed = 0;
+      if (sim.run) squash(sim);
       sim.run = false;
       idle(sim);
       const resolve = sim.walkResolve;
@@ -869,6 +918,7 @@ function sitOn(sim, seat, pose = 'sit') {
   sim.sortY = seat.sortY;
   sim.shadow = false;
   sim.slide = { fx: sim.x, fy: sim.y, tx: seat.x, ty: seat.y, t: 0, dur: 0.4, hop: 3 };
+  squash(sim, 380);
   if (pose === 'lie') setAnim(sim, 'idle', { dir: 'down', frames: [0], fps: 1 });
   else setAnim(sim, 'sit', { dir: seat.dir, frames: [2], fps: 1 });
 }
@@ -967,6 +1017,7 @@ async function doAction(key, id, { autonomous = false } = {}) {
     await walkTo(sim, place.approach, token);
     enterPose(sim, action, place);
     entered = true;
+    if (own || sims[partnerKeyOf()] === sim) (ACTION_SFX[action.prop] || ACTION_SFX[action.object] || ACTION_SFX[action.pose])?.();
     if (action.family && own) joinFamilyMeal(id);
     setProp(action.prop, true);
     if (action.propStays) setTimeout(() => setProp(action.prop, false), action.propStays);
@@ -991,7 +1042,8 @@ async function doAction(key, id, { autonomous = false } = {}) {
       // Si dormís a la vez, la energía sube más a los dos (cada uno en su móvil).
       const partner = sims[partnerKeyOf()];
       const together = id === 'sleep' && (partner?.doing === 'sleep' || (avatarRows[simPerson(partner?.key)]?.activity === 'sleep' && Date.now() - Date.parse(avatarRows[simPerson(partner.key)].activity_at || 0) < 20 * 60000));
-      const delta = together ? { ...action.needs, energy: (action.needs.energy || 0) + 20, social: (action.needs.social || 0) + 15 } : action.needs;
+      const base = together ? { ...action.needs, energy: (action.needs.energy || 0) + 20, social: (action.needs.social || 0) + 15 } : action.needs;
+      const delta = window.simsMind?.needsDelta(base) || base;
       await boostNeeds(delta).catch(() => {});
       const text = needsText(delta);
       if (text) simFloat(sim, text);
@@ -1154,6 +1206,7 @@ async function doTrip(dest, { incoming = false, at = new Date().toISOString() } 
   if (!trip || curScene() === dest) return;
   wantProgress({ trip: true });
   if (!incoming) { window.simsLife?.stat('trips'); window.simsLife?.diary(trip.icon, `Excursión a ${trip.label}`); }
+  window.simsMind?.remember(trip.icon, `Excursión a ${trip.label}`, pickOne([`¿Te acuerdas de la excursión a ${trip.label}?`, `Tenemos que volver a ${trip.label} pronto`]));
   const both = [sims[meKey()], sims[partnerKeyOf()]];
   const tokens = both.map((sim) => ++sim.token);
   both.forEach((sim) => { sim.busy = true; sim.doing = `trip-${dest}`; sim.progress = null; stopSim(sim); });
@@ -2379,6 +2432,7 @@ function renderSimsNeeds() {
       ${simsState.needsOf === 'me' && window.simsLife?.bestTitle() ? `<span class="sims-title">${escapeHtml(window.simsLife.bestTitle())}</span>` : ''}<span class="sims-plumbob is-${level}" title="Cómo está"></span>
     </div>
     <div class="sims-needs-grid">${Object.entries(NEEDS).map(([key, need]) => `<div class="sims-need"><span class="sims-need-emoji">${need.emoji}</span><div><small>${need.label}</small><span class="sims-need-track"><span class="${color(needs[key])}" style="width:${needs[key]}%"></span></span></div></div>`).join('')}</div>
+    ${window.simsMind ? (() => { const id = window.simsMind.emotionOf(person); const emotion = window.simsMind.EMOTIONS[id]; return `<div class="sims-emotion is-${id}"><span>${emotion.emoji}</span><b>${escapeHtml(window.simsMind.emotionLabel(person, id).replace(/^\S+\s/, ''))}</b><small>${escapeHtml(emotion.text)}</small></div>`; })() : ''}
     <div class="sims-moodlets">${moodlets(person).map(([emoji, text]) => `<span title="${escapeHtml(text)}">${emoji} <em>${escapeHtml(text)}</em></span>`).join('')}</div>
     ${simsState.needsOf === 'me' ? (() => {
       const life = getLife();
@@ -2438,7 +2492,11 @@ function todaysWants() {
   if (life.wants?.day !== day) {
     const person = myAvatarPerson() || 'yo';
     const ids = Object.keys(WANTS);
-    life.wants = { day, done: [], list: [...wantPick(`${day}|${person}|casa`, ids.filter((id) => !WANTS[id][4]), 2), ...wantPick(`${day}|${person}|vida`, ids.filter((id) => WANTS[id][4]), 1)] };
+    // Uno de los deseos de casa sale de lo que le gusta por su personalidad (si hay).
+    const liked = (window.simsMind?.likedWants() || []).filter((id) => WANTS[id] && !WANTS[id][4]);
+    const fav = liked.length ? wantPick(`${day}|${person}|gusto`, liked, 1) : [];
+    const house = [...fav, ...wantPick(`${day}|${person}|casa`, ids.filter((id) => !WANTS[id][4] && !fav.includes(id)), 2 - fav.length)];
+    life.wants = { day, done: [], list: [...house, ...wantPick(`${day}|${person}|vida`, ids.filter((id) => WANTS[id][4]), 1)] };
   }
   return life.wants;
 }
@@ -2680,6 +2738,8 @@ function simsTick() {
   ambientTick();
   renderChatLog();
   window.simsLife?.tick();
+  window.simsMind?.tick();
+  window.simsMusic?.setMood(curScene(), new Date().getHours());
   // Ropa según dónde estéis, la hora y el tiempo (si no están haciendo nada).
   Object.values(sims).forEach((sim) => { if (!sim.busy) checkOutfit(sim); });
   // Mientras eliges en el menú, nadie hace nada por su cuenta.
@@ -2693,7 +2753,7 @@ function simsTick() {
     if (key === me && idleFor > 14000 && curScene() === 'house') {
       const needs = currentNeeds(avatarRows[myAvatarPerson()]);
       const [lowest, amount] = Object.entries(needs).sort((a, b) => a[1] - b[1])[0];
-      if (amount < 45) return doAction(key, pickOne(NEED_ACTIONS[lowest]), { autonomous: true });
+      if (amount < 45) return doAction(key, window.simsMind?.preferAction(NEED_ACTIONS[lowest]) || pickOne(NEED_ACTIONS[lowest]), { autonomous: true });
     }
     if (idleFor > (key === me ? 16000 : 10000)) return wander(sim);
     if (idleFor > 4000 && Math.random() < 0.35) fidget(sim);
@@ -2749,6 +2809,7 @@ function hideSims() {
   if (simsState.full) setSimsFull(false);
   simsModal.classList.remove('visible');
   simsState.open = false;
+  window.simsMusic?.stop();
   window.simsLife?.onClose();
   window.simsBuild?.stop();
   liveDisconnect();
@@ -2759,13 +2820,18 @@ function hideSims() {
   try { speechSynthesis.cancel(); } catch {}
 }
 
-function updateZoom() {
+function updateZoom({ save = true } = {}) {
   const button = document.querySelector('#simsZoom');
-  button.setAttribute('aria-pressed', String(simsState.zoom));
-  button.setAttribute('aria-label', simsState.zoom ? 'Ver toda la casa' : 'Seguir de cerca a tu muñeco');
-  button.innerHTML = `<i data-lucide="${simsState.zoom ? 'zoom-out' : 'zoom-in'}"></i>`;
-  lucide.createIcons();
+  const close = simsState.zoom > 1.05;
+  button.setAttribute('aria-pressed', String(close));
+  button.setAttribute('aria-label', close ? 'Ver toda la casa' : 'Seguir de cerca a tu muñeco');
+  if (button.dataset.close !== String(close)) {
+    button.dataset.close = String(close);
+    button.innerHTML = `<i data-lucide="${close ? 'zoom-out' : 'zoom-in'}"></i>`;
+    lucide.createIcons();
+  }
   if (world()) world().state.zoom = simsState.zoom;
+  if (save) try { localStorage.setItem('umbral-sims-zoom', String(Math.round(simsState.zoom * 100) / 100)); } catch {}
 }
 
 // ---------- Lo vuestro que se guarda en la fila de cada uno (look) ----------
@@ -2838,11 +2904,15 @@ const DECOR_LABELS = {
   floor: ['Suelo', { oak: 'Roble', light: 'Claro', dark: 'Nogal', grey: 'Gris' }],
   rug: ['Alfombra del salón', { red: 'Roja', blue: 'Azul', beige: 'Yute', green: 'Verde', pink: 'Rosa' }],
   sofa: ['Sofá', { khaki: 'Caqui', mustard: 'Mostaza', grey: 'Gris', navy: 'Marino', rose: 'Rosa', terracotta: 'Teja' }],
-  bedding: ['Edredón', { cream: 'Crema', white: 'Blanco', blue: 'Azul', rose: 'Rosa', green: 'Verde', mustard: 'Mostaza' }]
+  bedding: ['Edredón', { cream: 'Crema', white: 'Blanco', blue: 'Azul', rose: 'Rosa', green: 'Verde', mustard: 'Mostaza' }],
+  paperBed: ['Papel del dormitorio', { dots: '· Topitos', plain: '▢ Liso', stripes: '║ Rayas', flowers: '✿ Flores', diamonds: '◆ Rombos' }],
+  paperLiving: ['Papel del salón', { plain: '▢ Liso', stripes: '║ Rayas', flowers: '✿ Flores', diamonds: '◆ Rombos', dots: '· Topitos' }],
+  tiles: ['Azulejos de la cocina', { white: 'Blanco', green: 'Verde', blue: 'Azul', terracotta: 'Teja', black: 'Negro' }]
 };
 const decorSwatch = (part, id) => {
   const value = simsWorld.DECOR[part]?.[id];
   if (part === 'walls') return value.base;
+  if (value?.pattern) return null;
   if (Array.isArray(value)) return value[0];
   return typeof value === 'string' ? value : null;
 };
@@ -3159,7 +3229,7 @@ function startSharkGame() {
     if (record) saveSimLook({ sharkBest: S.score });
     liveSend('game', { score: S.score, record });
     boostNeeds({ fun: 25, energy: -5 }).catch(() => {});
-    addCoins(Math.max(5, Math.round(S.score / 3)));
+    addCoins(window.simsMind?.gameCoins(Math.max(5, Math.round(S.score / 3))) ?? Math.max(5, Math.round(S.score / 3)));
     gainSkill('logic', 10);
   }
   function step(t) {
@@ -3317,6 +3387,8 @@ function lifeSnapshot() {
     if (life.wants?.day) snap.wants = life.wants;
     // Contadores, aspiraciones y diario (sims-life.js).
     if (life.stats) Object.assign(snap, { stats: life.stats, aspire: life.aspire, diary: life.diary });
+    // Personalidad, trabajo y recuerdos (sims-mind.js).
+    if (life.mind) Object.assign(snap, { traits: life.mind.traits, career: life.mind.career, memories: life.mind.memories });
   }
   if (simsState.decorAt) snap.decor = { ...simsWorld.getDecor(), at: simsState.decorAt };
   const pick = simsState.outfitPick?.[meKey()];
@@ -3339,6 +3411,8 @@ function addCoins(amount, sim = sims[meKey()]) {
 }
 function gainSkill(skill, xp, sim = sims[meKey()]) {
   if (!SKILLS[skill] || !xp) return;
+  // Rasgos y emoción: inspirada aprende antes a pintar, agobiado aprende peor…
+  xp = Math.max(1, Math.round(xp * (window.simsMind?.skillMult(skill) ?? 1)));
   const life = getLife();
   const before = skillLevel(life.skills[skill]);
   life.skills[skill] = (life.skills[skill] || 0) + xp;
@@ -3346,6 +3420,7 @@ function gainSkill(skill, xp, sim = sims[meKey()]) {
   if (after > before && sim) {
     simBubble(sim, `🎉 ¡Nivel ${after} de ${SKILLS[skill][1]}!`, { secs: 3 });
     window.simsLife?.diary(SKILLS[skill][0], `Nivel ${after} de ${SKILLS[skill][1]}`);
+    if (after >= 5) window.simsMind?.remember(SKILLS[skill][0], `Nivel ${after} de ${SKILLS[skill][1]}`, `¿Te acuerdas de cuando llegué al nivel ${after} de ${SKILLS[skill][1].toLowerCase()}?`);
     world()?.emit('sparkle', sim.x, sim.headY + 6, { count: 12, spread: 22, vy: -16 });
     simTune([784, 988, 1175, 1568], 110, 'triangle');
     pushEvent('levelup');
@@ -3365,7 +3440,11 @@ function relChange(kind) {
   const social = SOCIALS[kind];
   if (!social) return;
   const life = getLife();
-  const [df, dr] = kind === 'apologize' ? [8, 4] : REL_DELTA[social.cat] || [2, 0];
+  const [df0, dr0] = kind === 'apologize' ? [8, 4] : REL_DELTA[social.cat] || [2, 0];
+  // Romántica o enamorado: lo bueno de pareja cuenta más.
+  const relBoost = window.simsMind?.relMult() ?? 1;
+  const df = df0 > 0 ? Math.round(df0 * relBoost) : df0;
+  const dr = dr0 > 0 ? Math.round(dr0 * relBoost) : dr0;
   life.rel.friend = Math.max(0, Math.min(100, life.rel.friend + df));
   life.rel.romance = Math.max(0, Math.min(100, life.rel.romance + dr));
   life.rel.at = new Date().toISOString();
@@ -3379,6 +3458,8 @@ function socialVerdict(kind) {
   const social = SOCIALS[kind];
   const partner = sims[partnerKeyOf()];
   if (!social || social.trip || !partner) return null;
+  // Si la enfadada eres tú, tampoco te apetece (hasta que hagáis las paces).
+  if (['romance', 'intimate'].includes(social.cat) && window.simsMind?.emotionOf() === 'angry') return '😤 Con este enfado, mejor primero pedir perdón';
   const pNeeds = needsOf(partner);
   const life = getLife();
   const angry = partner.angryUntil && partner.angryUntil > Date.now();
@@ -3441,8 +3522,9 @@ function runQueued() {
 function lifeAfterAction(id) {
   const action = SIM_ACTIONS[id];
   if (!action) return;
-  const coins = id === 'work' ? 40 : Math.max(1, Math.round((action.secs || 2) / 2));
+  const coins = id === 'work' ? (window.simsMind?.work() ?? 40) : Math.max(1, Math.round((action.secs || 2) / 2));
   addCoins(coins);
+  window.simsMind?.afterAction(id);
   wantProgress({ act: id });
   const skill = ACTION_SKILL[id];
   if (skill) gainSkill(skill, Math.round((action.secs || 4) * 1.5));
@@ -3529,7 +3611,7 @@ function puzzleWin(shell, { game, coins, xp }) {
   panel.innerHTML = `<b>🏆 ¡Resuelto!</b><span class="sims-game-score">${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</span><small>+§${coins} · +${xp} de lógica</small><div><button type="button" data-puzzle-quit>Volver a casa</button></div>`;
   shell.host.appendChild(panel);
   simTune([523, 659, 784, 1047], 140, 'triangle');
-  addCoins(coins);
+  addCoins(window.simsMind?.gameCoins(coins) ?? coins);
   gainSkill('logic', xp);
   boostNeeds({ fun: 20 }).catch(() => {});
   liveSend('game', { game, score: secs, record: false });
@@ -3913,12 +3995,18 @@ document.addEventListener('visibilitychange', async () => {
   try { simsState.wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
 });
 
+// El altavoz tiene tres estados: sonido y música, solo sonido, y silencio.
 function updateSoundButton() {
   const button = document.querySelector('#simsSound');
+  const music = simsState.sound && simsState.music;
   button.setAttribute('aria-pressed', String(simsState.sound));
-  button.innerHTML = `<i data-lucide="${simsState.sound ? 'volume-2' : 'volume-x'}"></i>`;
+  button.innerHTML = `<i data-lucide="${music ? 'volume-2' : simsState.sound ? 'volume-1' : 'volume-x'}"></i>`;
   lucide.createIcons();
-  button.setAttribute('aria-label', simsState.sound ? 'Quitar el sonido' : 'Poner el sonido');
+  const label = music ? 'Quitar la música' : simsState.sound ? 'Silenciar' : 'Poner sonido y música';
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  if (simsState.open && music) { window.simsMusic?.setMood(curScene(), new Date().getHours()); window.simsMusic?.start(); }
+  else window.simsMusic?.stop();
 }
 
 simsHouse.addEventListener('click', async (event) => {
@@ -4035,12 +4123,47 @@ simsHouse.addEventListener('pointermove', (event) => {
 });
 simsHouse.addEventListener('pointerleave', () => { if (world()) world().state.hover = null; });
 // Arrastrar el dedo (o el ratón) por la casa para mirar alrededor cuando no cabe entera.
+// Pellizco con dos dedos para acercar o alejar (y rueda del ratón en el ordenador).
+const pinch = { points: new Map(), startDist: 0, startZoom: 1 };
+const pinchDist = () => { const [a, b] = [...pinch.points.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
 simsHouse.addEventListener('pointerdown', (event) => {
   const w = world();
   if (!w || event.target !== w.canvas) return;
+  pinch.points.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (pinch.points.size === 2) {
+    pinch.startDist = pinchDist();
+    pinch.startZoom = simsState.zoom;
+    simsState.drag = null;
+    w.state.pinching = true;
+    hidePie();
+    return;
+  }
   simsState.drag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
   simsState.dragged = false;
 });
+simsHouse.addEventListener('pointermove', (event) => {
+  if (!pinch.points.has(event.pointerId)) return;
+  pinch.points.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (pinch.points.size !== 2 || !pinch.startDist) return;
+  simsState.zoom = Math.max(1, Math.min(3, pinch.startZoom * (pinchDist() / pinch.startDist)));
+  simsState.dragged = true;
+  updateZoom({ save: false });
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach((type) => simsHouse.addEventListener(type, (event) => {
+  if (!pinch.points.delete(event.pointerId)) return;
+  if (pinch.points.size < 2 && pinch.startDist) {
+    pinch.startDist = 0;
+    if (world()) world().state.pinching = false;
+    updateZoom();
+  }
+}));
+simsHouse.addEventListener('wheel', (event) => {
+  const w = world();
+  if (!w || event.target !== w.canvas) return;
+  event.preventDefault();
+  simsState.zoom = Math.max(1, Math.min(3, simsState.zoom * Math.exp(-event.deltaY * 0.0015)));
+  updateZoom();
+}, { passive: false });
 simsHouse.addEventListener('pointermove', (event) => {
   const drag = simsState.drag;
   const w = world();
@@ -4094,17 +4217,20 @@ document.querySelector('#simsNeeds').addEventListener('click', (event) => {
   renderSimsNeeds();
 });
 document.querySelector('#simsSound').addEventListener('click', () => {
-  simsState.sound = !simsState.sound;
-  try { localStorage.setItem('umbral-sims-sound', simsState.sound ? 'on' : 'off'); } catch {}
+  if (simsState.sound && simsState.music) simsState.music = false;
+  else if (simsState.sound) simsState.sound = false;
+  else { simsState.sound = true; simsState.music = true; }
+  try { localStorage.setItem('umbral-sims-sound', simsState.sound ? 'on' : 'off'); localStorage.setItem('umbral-sims-music', simsState.music ? 'on' : 'off'); } catch {}
   updateSoundButton();
+  showToast(simsState.sound ? (simsState.music ? '🎵 Sonido y música' : '🔉 Solo sonido, sin música') : '🔇 Silencio');
   if (!simsState.sound) { setRainSound(false); try { speechSynthesis.cancel(); } catch {} }
 });
 document.querySelector('#closeSims').addEventListener('click', closeSims);
 document.querySelector('#simsFull').addEventListener('click', () => setSimsFull(!simsState.full));
 document.querySelector('#simsZoom').addEventListener('click', () => {
   hidePie();
-  simsState.zoom = !simsState.zoom;
-  try { localStorage.setItem('umbral-sims-zoom', simsState.zoom ? 'on' : 'off'); } catch {}
+  simsState.zoom = simsState.zoom > 1.05 ? 1 : ZOOM_CLOSE;
+  world()?.endPan();
   updateZoom();
 });
 document.querySelector('#simsTip').addEventListener('click', (event) => {

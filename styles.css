@@ -2468,7 +2468,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-sound { font-size: 16px; }
 .sims-house { --pixel-font: "Pixelify Sans", var(--font-body); position: relative; margin: -18px calc(var(--gutter) * -1) 0; overflow: hidden; background: #241c1d; }
 /* El piso en pixel art: se pinta en un canvas a resolución de juego y se amplía sin suavizar. */
-.sims-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.sims-canvas { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .sims-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sims-zoom { font-size: 16px; }
 .sims-zoom[aria-pressed="true"] { background: var(--green); color: var(--lime); }
@@ -2968,3 +2968,40 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-build-actions .is-done { background: #3fbf6a; color: #fff; }
 .sims-build-start { margin: 0 0 8px; }
 .sims-modal.is-full .sims-build { top: max(8px, env(safe-area-inset-top)); right: calc(max(8px, env(safe-area-inset-right)) + 50px); }
+
+/* ---------- Modo Sims: emociones, personalidad, trabajo y recuerdos (sims-mind.js) ---------- */
+.sims-emotion { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; margin-top: 10px; padding: 7px 10px; border-radius: 12px; background: var(--green-soft); }
+.sims-emotion span { grid-row: span 2; font-size: 22px; line-height: 1; }
+.sims-emotion b { font-size: 14px; }
+.sims-emotion small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+.sims-emotion.is-angry, .sims-emotion.is-tense { background: var(--coral-soft); }
+.sims-emotion.is-sad { background: var(--blue-soft); }
+.sims-emotion.is-romantic { background: #fbe1ea; }
+.sims-emotion.is-inspired, .sims-emotion.is-playful { background: var(--amber-soft); }
+.sims-emotion.is-focused, .sims-emotion.is-energized { background: var(--lilac-soft); }
+:root[data-theme="dark"] .sims-emotion.is-romantic { background: rgba(232, 120, 160, .16); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sims-emotion.is-romantic { background: rgba(232, 120, 160, .16); } }
+.sims-modal.is-full .sims-emotion { margin-top: 4px; padding: 2px 4px; background: none; }
+.sims-modal.is-full .sims-emotion span { font-size: 13px; }
+.sims-modal.is-full .sims-emotion b { font-size: 11px; }
+.sims-modal.is-full .sims-emotion small { display: none; }
+
+.sims-goals-tabs button { padding: 6px 2px; font-size: 13px; }
+.sims-you-emotion, .sims-career { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; }
+.sims-you-emotion > span, .sims-career > span { font-size: 26px; }
+.sims-you-emotion div, .sims-career div { display: grid; flex: 1; min-width: 0; gap: 1px; }
+.sims-you-emotion strong, .sims-career strong { font-size: 16px; }
+.sims-you-emotion small, .sims-career small { color: #6a5a4a; font-size: 12px; line-height: 1.25; }
+.sims-card h4 em { font-style: normal; text-transform: none; letter-spacing: 0; }
+.sims-traits { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.sims-traits button { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 6px; padding: 6px 7px; border: 2px solid rgba(43, 31, 29, .35); border-radius: 6px; background: #faf4e6; color: #2b1f1d; font-family: var(--pixel-font); text-align: left; }
+.sims-traits button span { grid-row: span 2; font-size: 18px; }
+.sims-traits button b { font-size: 13px; }
+.sims-traits button small { color: #6a5a4a; font-size: 10.5px; line-height: 1.2; }
+.sims-traits button[aria-pressed="true"] { border-color: #2b1f1d; background: #c8e6a0; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); }
+.sims-you .sims-card-hint { margin: 6px 0 0; }
+.sims-memories li { align-items: flex-start; padding: 7px 0; }
+.sims-memories li > span { flex: none; width: 28px; font-size: 20px; text-align: center; }
+.sims-memories p { display: grid; flex: 1; margin: 0; }
+.sims-card .sims-memories b { min-width: 0; color: #2b1f1d; font-size: 14px; font-weight: 400; }
+.sims-memories small { color: #8a7a6a; font-size: 12px; }
