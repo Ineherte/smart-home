@@ -6,7 +6,19 @@ con piezas del Liberated Pixel Cup. Sus licencias (CC-BY-SA 3.0, OGA-BY 3.0, GPL
 obligan a citar a sus autores, que son estos. ines-lpc.json y matteo-lpc.json se pueden
 importar en el generador (Import from Clipboard) para cambiarles la ropa o el pelo.
 
-La casa en pixel art (sims-world.js) está dibujada a mano en código para esta app.
+La casa en pixel art (sims-world.js) está dibujada a mano en código para esta app, salvo los
+suelos.
+
+## Suelos de la casa (house-floors.png)
+
+house-floors.png es un recorte de 11 baldosas de
+["[LPC] Floors"](https://opengameart.org/content/lpc-floors) by bluecarrot16, Lanea Zimmerman (Sharm),
+William Thompson (William.Thompsonj), Hyptosis, SpiderDave, Cougarmint, Stephen Challener (Redshrike),
+Bonsaiheldin, Tyler Olsen (Roots), Jetrel, jestan, The Open Surge team (http://opensnc.sourceforge.net),
+Gaurav Munjal, Reemax, Silveira Neto, bleutailfly, Casper Nilsson, NaRNeRZz, Buch, keith karnage,
+Arthur Carvalho, Guilherme Vieira (n2liquid), Chris Hamons (maintainer). Licencia CC-BY-SA 4.0
+(https://creativecommons.org/licenses/by-sa/4.0/), y el recorte se comparte con la misma licencia.
+El detalle de cada pieza original está en CREDITS-floors.txt.
 
 ## Ines
 

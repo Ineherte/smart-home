@@ -2664,7 +2664,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 @keyframes sims-rotate-phone { 0%, 20% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 /* En horizontal y poca altura, sin pantalla completa: la casa cabe sin tener que desplazarse. */
 @media (orientation: landscape) and (max-height: 520px) {
-  .sims-modal:not(.is-full) .sims-canvas { width: auto; height: calc(100dvh - 120px); margin: 0 auto; }
+  .sims-modal:not(.is-full) .sims-canvas { width: auto; height: calc(100dvh - 186px); margin: 0 auto; }
 }
 
 /* ---------- Modo Sims: barra de herramientas, chat, armario, decoración, fotos y minijuego ---------- */
@@ -2713,6 +2713,13 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-game-msg button { padding: 8px 14px; border: 2px solid #2b1f1d; border-radius: 8px; background: #3fbf6a; box-shadow: 0 3px 0 rgba(0, 0, 0, .3); color: #fff; font: 15px var(--pixel-font); }
 .sims-game-msg button[data-game-quit] { background: #faf4e6; color: #2b1f1d; }
 .sims-modal.is-full .sims-toolbar { right: calc(max(8px, env(safe-area-inset-right)) + 50px); bottom: max(8px, env(safe-area-inset-bottom)); }
+.sims-tool-label { display: none; }
+/* Fuera de pantalla completa, la barra es un panel de madera bajo la casa: no tapa el salón. */
+.sims-modal:not(.is-full) .sims-house { padding-bottom: 66px; }
+.sims-modal:not(.is-full) .sims-toolbar { right: 0; bottom: 0; left: 0; justify-content: space-around; gap: 2px; height: 66px; padding: 7px 8px 8px; border-top: 3px solid #2b1f1d; background: linear-gradient(#6b4a35, #553826 60%, #46301f); box-shadow: inset 0 2px 0 rgba(255, 220, 170, .22); }
+.sims-modal:not(.is-full) .sims-toolbar button { display: grid; flex: 1; gap: 2px; width: auto; max-width: 72px; height: 50px; place-items: center; align-content: center; padding: 0; }
+.sims-modal:not(.is-full) .sims-tool-emoji { font-size: 19px; line-height: 1; }
+.sims-modal:not(.is-full) .sims-tool-label { display: block; color: #2b1f1d; font-family: "Pixelify Sans", var(--font-body); font-size: 11px; font-weight: 600; line-height: 1; }
 .sims-modal.is-full .sims-chatlog { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 96px); left: max(8px, env(safe-area-inset-left)); }
 .sims-modal.is-full .sims-chatbar { right: calc(max(8px, env(safe-area-inset-right)) + 50px); left: calc(max(8px, env(safe-area-inset-left)) + 164px); bottom: calc(max(8px, env(safe-area-inset-bottom)) + 46px); }
 
@@ -2905,3 +2912,48 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .hs-chip svg.lucide { width: 13px; height: 13px; }
 .hs-chip.is-warn { background: var(--amber-soft); color: var(--amber-ink); }
 .hs-chip.is-alert { background: var(--coral-soft); color: var(--coral-ink); }
+
+/* ---------- Modo Sims: sucesos, aspiraciones y diario (sims-life.js) ---------- */
+.sims-event { position: absolute; top: 46px; left: 8px; z-index: 4; width: min(272px, calc(100% - 16px)); padding: 10px 10px 9px; border: 2px solid #2b1f1d; border-radius: 6px; background: #fbf6dc; box-shadow: 0 4px 0 rgba(0, 0, 0, .3); color: #2b1f1d; font-family: var(--pixel-font); animation: sims-event-in .35s cubic-bezier(.2, 1.4, .4, 1) both; }
+.sims-event-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.sims-event-head span { display: grid; width: 30px; height: 30px; flex-shrink: 0; place-items: center; border: 2px solid #2b1f1d; border-radius: 6px; background: #f2c230; font-size: 16px; animation: sims-event-ring 1s ease-in-out 2; }
+.sims-event-head strong { font-size: 16px; line-height: 1.1; }
+.sims-event p { margin: 0 0 8px; font-size: 13px; line-height: 1.3; }
+.sims-event-choices { display: grid; gap: 5px; }
+.sims-event-choices button { padding: 7px 8px; border: 2px solid #2b1f1d; border-radius: 6px; background: #faf4e6; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); color: #2b1f1d; font: 13px var(--pixel-font); text-align: left; }
+.sims-event-choices button:first-child { background: #3fbf6a; color: #fff; }
+.sims-event-choices button:active { transform: translateY(2px); box-shadow: none; }
+@keyframes sims-event-in { from { opacity: 0; transform: translateX(-24px) rotate(-2deg); } to { opacity: 1; transform: none; } }
+@keyframes sims-event-ring { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+.sims-modal.is-full .sims-event { top: max(52px, calc(env(safe-area-inset-top) + 44px)); left: max(8px, env(safe-area-inset-left)); }
+
+.sims-banner { position: absolute; top: 50%; left: 50%; z-index: 7; display: grid; justify-items: center; gap: 2px; width: min(290px, calc(100% - 24px)); padding: 12px 14px; border: 3px solid #2b1f1d; border-radius: 8px; background: linear-gradient(#fff4c2, #f2c230); box-shadow: 0 6px 0 rgba(0, 0, 0, .3), 0 0 0 6px rgba(255, 244, 194, .35); color: #2b1f1d; font-family: var(--pixel-font); text-align: center; transform: translate(-50%, -50%); animation: sims-banner-in .5s cubic-bezier(.2, 1.5, .4, 1) both; pointer-events: none; }
+.sims-banner b { color: #8a5a10; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.sims-banner strong { font-size: 18px; line-height: 1.15; }
+.sims-banner span { font-size: 13px; }
+.sims-banner.is-out { opacity: 0; transform: translate(-50%, -60%); transition: opacity .5s ease, transform .5s ease; }
+@keyframes sims-banner-in { from { opacity: 0; transform: translate(-50%, -50%) scale(.6); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+
+.sims-title { flex: 1; overflow: hidden; color: var(--amber-ink); font-size: 12px; font-weight: 700; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+
+.sims-card.is-goals .sims-card-paper { width: min(360px, 100%); transform: none; }
+.sims-goals-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.sims-goals-tabs button { flex: 1; padding: 6px; border: 2px solid #2b1f1d; border-radius: 6px; background: #faf4e6; color: #2b1f1d; font: 14px var(--pixel-font); }
+.sims-goals-tabs button[aria-selected="true"] { background: #2b1f1d; color: #fbf6dc; }
+.sims-card .sims-aspire { align-items: flex-start; gap: 10px; padding: 8px 0; }
+.sims-aspire-emoji { display: grid; width: 34px; height: 34px; flex: none !important; place-items: center; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; font-size: 18px; }
+.sims-aspire.is-gold .sims-aspire-emoji { background: #f2c230; }
+.sims-aspire > div { flex: 1; min-width: 0; }
+.sims-aspire p { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0; }
+.sims-aspire strong { font-size: 15px; }
+.sims-aspire em i { font-size: 13px; font-style: normal; opacity: .25; filter: grayscale(1); }
+.sims-aspire em i.is-on { opacity: 1; filter: none; }
+.sims-aspire-bar { display: block; height: 7px; margin: 4px 0 2px; overflow: hidden; border: 1px solid rgba(43, 31, 29, .4); border-radius: 4px; background: rgba(43, 31, 29, .1); }
+.sims-aspire-bar b { display: block; height: 100%; min-width: 0 !important; background: linear-gradient(90deg, #3fbf6a, #9be36f); }
+.sims-card .sims-aspire-count { color: #6a5a4a; }
+.sims-diary li { align-items: flex-start; padding: 6px 0; }
+.sims-diary li > span { flex: none; width: 22px; font-size: 15px; text-align: center; }
+.sims-diary li p { flex: 1; margin: 0; font-size: 14px; line-height: 1.25; }
+.sims-diary time { flex-shrink: 0; color: #8a7a6a; font-size: 12px; }
+.sims-card .sims-diary-day { min-height: 0; padding: 8px 0 2px; border: 0; color: #c0503e; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.sims-card .sims-diary-empty { color: #8a7a6a; font-size: 14px; }

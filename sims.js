@@ -1151,6 +1151,7 @@ async function doTrip(dest, { incoming = false, at = new Date().toISOString() } 
   const trip = TRIPS[dest];
   if (!trip || curScene() === dest) return;
   wantProgress({ trip: true });
+  if (!incoming) { window.simsLife?.stat('trips'); window.simsLife?.diary(trip.icon, `Excursión a ${trip.label}`); }
   const both = [sims[meKey()], sims[partnerKeyOf()]];
   const tokens = both.map((sim) => ++sim.token);
   both.forEach((sim) => { sim.busy = true; sim.doing = `trip-${dest}`; sim.progress = null; stopSim(sim); });
@@ -2368,7 +2369,7 @@ function renderSimsNeeds() {
   panel.innerHTML = `
     <div class="sims-needs-head">
       <div class="segmented">${[[me, 'me'], [partner, 'partner']].map(([name, who]) => `<button type="button" data-needs-who="${who}" aria-pressed="${simsState.needsOf === who}">${escapeHtml(name)}${who === 'me' ? ' (tú)' : ''}</button>`).join('')}</div>
-      <span class="sims-plumbob is-${level}" title="Cómo está"></span>
+      ${simsState.needsOf === 'me' && window.simsLife?.bestTitle() ? `<span class="sims-title">${escapeHtml(window.simsLife.bestTitle())}</span>` : ''}<span class="sims-plumbob is-${level}" title="Cómo está"></span>
     </div>
     <div class="sims-needs-grid">${Object.entries(NEEDS).map(([key, need]) => `<div class="sims-need"><span class="sims-need-emoji">${need.emoji}</span><div><small>${need.label}</small><span class="sims-need-track"><span class="${color(needs[key])}" style="width:${needs[key]}%"></span></span></div></div>`).join('')}</div>
     <div class="sims-moodlets">${moodlets(person).map(([emoji, text]) => `<span title="${escapeHtml(text)}">${emoji} <em>${escapeHtml(text)}</em></span>`).join('')}</div>
@@ -2387,6 +2388,7 @@ window.addEventListener('umbral:life', (event) => {
   if (!amount || !myAvatarPerson()) return;
   addCoins(amount, simsState.open ? sims[meKey()] : null);
   wantProgress({ life: event.detail.kind });
+  window.simsLife?.stat('real');
 });
 
 // ---------- Deseos de hoy (como los deseos de los Sims) ----------
@@ -2447,6 +2449,8 @@ function wantProgress(event) {
   const hit = wants.list.find((id) => !wants.done.includes(id) && wantMatches(id, event));
   if (!hit) return;
   wants.done.push(hit);
+  window.simsLife?.stat('wants');
+  window.simsLife?.diary('⭐', `Deseo cumplido: ${wantText(hit)}`);
   const me = simsState.open ? sims[meKey()] : null;
   const [emoji, , , coins] = WANTS[hit];
   addCoins(coins, me);
@@ -2510,7 +2514,7 @@ function updateClock() {
   w.state.time = timeOfDay(new Date().getHours());
   // Las lámparas se encienden poco a poco según oscurece (ciclo de día y noche continuo).
   const dark = simsWorld.dayPhase().dark;
-  w.state.lamps = curScene() === 'house' ? dark > 0.2 : dark > 0.55;
+  w.state.lamps = !w.state.blackout && (curScene() === 'house' ? dark > 0.2 : dark > 0.55);
   if (window.umbralWeather) w.state.weather = { code: Number(window.umbralWeather.code ?? 1), temp: Number(window.umbralWeather.temp ?? 18) };
 }
 
@@ -2519,7 +2523,7 @@ function buildSims() {
   simsState.bubbles = [];
   const w = simsWorld.createWorld(simsHouse);
   simsState.world = w;
-  simsHouse.insertAdjacentHTML('beforeend', `<div class="sims-hud"></div><div class="sims-chatlog" aria-live="polite"></div><div class="sims-toolbar">${SIM_TOOLS.map(([id, emoji, label]) => `<button type="button" data-tool="${id}" aria-label="${label}" title="${label}">${emoji}</button>`).join('')}</div>`);
+  simsHouse.insertAdjacentHTML('beforeend', `<div class="sims-hud"></div><div class="sims-chatlog" aria-live="polite"></div><div class="sims-toolbar">${SIM_TOOLS.map(([id, emoji, label, short]) => `<button type="button" data-tool="${id}" aria-label="${label}" title="${label}"><span class="sims-tool-emoji">${emoji}</span><span class="sims-tool-label">${short}</span></button>`).join('')}</div>`);
   Object.keys(propUsers).forEach((prop) => { propUsers[prop] = 0; });
   const starts = [{ x: 210, y: 300 }, { x: 262, y: 310 }];
   [meKey(), partnerKeyOf()].forEach((key) => {
@@ -2668,6 +2672,7 @@ function simsTick() {
   npcTick();
   ambientTick();
   renderChatLog();
+  window.simsLife?.tick();
   // Ropa según dónde estéis, la hora y el tiempo (si no están haciendo nada).
   Object.values(sims).forEach((sim) => { if (!sim.busy) checkOutfit(sim); });
   // Mientras eliges en el menú, nadie hace nada por su cuenta.
@@ -2737,6 +2742,7 @@ function hideSims() {
   if (simsState.full) setSimsFull(false);
   simsModal.classList.remove('visible');
   simsState.open = false;
+  window.simsLife?.onClose();
   liveDisconnect();
   setRainSound(false);
   clearInterval(simsState.timer);
@@ -2905,7 +2911,7 @@ const SCENE_NAMES = { house: 'en casa', turin: 'en Turín', chieti: 'en Chieti',
 async function takeSimPhoto({ remote = false } = {}) {
   const w = world();
   if (!w) return;
-  if (!remote) wantProgress({ photo: true });
+  if (!remote) { wantProgress({ photo: true }); window.simsLife?.stat('photos'); }
   const flash = document.createElement('div');
   flash.className = 'sims-flash';
   simsHouse.appendChild(flash);
@@ -3300,6 +3306,8 @@ function lifeSnapshot() {
     const life = simsState.life;
     Object.assign(snap, { coins: Math.round(life.coins), skills: life.skills, rel: { ...life.rel, at: life.rel.at || new Date().toISOString() } });
     if (life.wants?.day) snap.wants = life.wants;
+    // Contadores, aspiraciones y diario (sims-life.js).
+    if (life.stats) Object.assign(snap, { stats: life.stats, aspire: life.aspire, diary: life.diary });
   }
   if (simsState.decorAt) snap.decor = { ...simsWorld.getDecor(), at: simsState.decorAt };
   const pick = simsState.outfitPick?.[meKey()];
@@ -3328,6 +3336,7 @@ function gainSkill(skill, xp, sim = sims[meKey()]) {
   const after = skillLevel(life.skills[skill]);
   if (after > before && sim) {
     simBubble(sim, `🎉 ¡Nivel ${after} de ${SKILLS[skill][1]}!`, { secs: 3 });
+    window.simsLife?.diary(SKILLS[skill][0], `Nivel ${after} de ${SKILLS[skill][1]}`);
     world()?.emit('sparkle', sim.x, sim.headY + 6, { count: 12, spread: 22, vy: -16 });
     simTune([784, 988, 1175, 1568], 110, 'triangle');
     pushEvent('levelup');
@@ -3352,6 +3361,7 @@ function relChange(kind) {
   life.rel.romance = Math.max(0, Math.min(100, life.rel.romance + dr));
   life.rel.at = new Date().toISOString();
   wantProgress({ social: kind, cat: social.cat });
+  if (['romance', 'intimate'].includes(social.cat)) window.simsLife?.stat('love');
   pushEvent(social.cat === 'angry' && kind !== 'apologize' ? 'fight' : social.cat === 'romance' || social.cat === 'intimate' ? 'love' : 'social');
   saveLife();
 }
@@ -3450,6 +3460,8 @@ function buyItem(id) {
   life.coins -= item.price;
   pushEvent('purchase');
   setDecorChoice('items', [...owned, id]);
+  window.simsLife?.diary(item.emoji, `Comprasteis: ${item.label}`);
+  window.simsLife?.checkAspirations();
   simTune([660, 880, 1320], 90, 'triangle');
   const me = sims[meKey()];
   if (me) { simBubble(me, `${item.emoji} ¡Nuevo! ${item.label}`, { secs: 2.6 }); me.expr = 'happy'; }
@@ -3471,6 +3483,7 @@ function gamesCard() {
 function playGame(id) {
   simsHouse.querySelector('.sims-card')?.remove();
   wantProgress({ game: true });
+  window.simsLife?.stat('games');
   if (id === 'shark') return startSharkGame();
   if (id === 'sudoku') return startSudoku();
   if (id === 'binairo') return startBinairo();
@@ -3830,12 +3843,13 @@ function travelMapCard() {
 
 // ---------- Barra de herramientas del juego ----------
 const SIM_TOOLS = [
-  ['chat', '💬', 'Escribir un mensaje'],
-  ['photo', '📸', 'Hacer una foto'],
-  ['wardrobe', '👗', 'Cambiarte de ropa'],
-  ['decor', '🎨', 'Decorar la casa'],
-  ['shop', '🛍️', 'Tienda de muebles'],
-  ['game', '🧩', 'Sala de juegos']
+  ['chat', '💬', 'Escribir un mensaje', 'Chat'],
+  ['photo', '📸', 'Hacer una foto', 'Foto'],
+  ['wardrobe', '👗', 'Cambiarte de ropa', 'Armario'],
+  ['decor', '🎨', 'Decorar la casa', 'Decorar'],
+  ['shop', '🛍️', 'Tienda de muebles', 'Tienda'],
+  ['game', '🧩', 'Sala de juegos', 'Juegos'],
+  ['goals', '🏆', 'Aspiraciones y diario', 'Metas']
 ];
 function handleSimTool(tool) {
   hidePie();
@@ -3845,6 +3859,7 @@ function handleSimTool(tool) {
   if (tool === 'decor') return decorCard();
   if (tool === 'shop') return shopCard();
   if (tool === 'game') return gamesCard();
+  if (tool === 'goals') return window.simsLife?.goalsCard();
 }
 
 // ---------- Pantalla completa en horizontal ----------
@@ -3909,7 +3924,7 @@ simsHouse.addEventListener('click', async (event) => {
     if (event.target.closest('[data-chat-close]')) toggleChatBar(false);
     return;
   }
-  if (event.target.closest('.sims-game, .sims-puzzle')) return;
+  if (event.target.closest('.sims-game, .sims-puzzle, .sims-event, .sims-banner')) return;
   const queued = event.target.closest('[data-queue]');
   if (queued) { simsState.queue.splice(Number(queued.dataset.queue), 1); renderHud(); return; }
   const option = event.target.closest('[data-pie]');

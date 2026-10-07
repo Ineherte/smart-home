@@ -741,16 +741,109 @@
     }
   }
 
+  // ---------- Cosas de los sucesos (sims-life.js las pone y las quita) ----------
+  // Velas del apagón, el paquete del repartidor, el charco del grifo, la pizza y el gato.
+  function drawEventProp(c, p, t) {
+    const { x, y } = p;
+    if (p.kind === 'candle') {
+      shadow(c, x, y + 1, 4, 1.5, 0.25);
+      box(c, x - 2, y - 7, 4, 7, '#f4ecd8', { hi: 0.25, lo: -0.2 });
+      const flick = Math.sin(t / 90 + x) > 0 ? 1 : 0;
+      R(c, x - 1, y - 10 - flick, 2, 3, '#ffcf5a');
+      R(c, x, y - 11 - flick, 1, 1, '#fff2b0');
+      return;
+    }
+    if (p.kind === 'parcel') {
+      shadow(c, x, y + 1, 10, 3, 0.25);
+      box(c, x - 9, y - 12, 18, 12, '#c9955c', { hi: 0.2, lo: -0.25 });
+      R(c, x - 9, y - 7, 18, 2, '#e8d2a8');
+      R(c, x - 1, y - 12, 2, 12, '#e8d2a8');
+      R(c, x - 6, y - 4, 4, 2, '#f6f1e8');
+      return;
+    }
+    if (p.kind === 'puddle') {
+      c.globalAlpha = 0.65;
+      ovalBox(c, x, y, 14 + Math.sin(t / 700) * 0.6, 4, '#8fc6dd');
+      c.globalAlpha = 1;
+      oval(c, x - 4, y - 1, 3, 1, '#d8f0f8');
+      return;
+    }
+    if (p.kind === 'pizza') {
+      shadow(c, x, y + 1, 11, 2, 0.25);
+      box(c, x - 10, y - 5, 20, 5, '#e9dcc0', { hi: 0.25, lo: -0.25 });
+      R(c, x - 7, y - 4, 6, 1, '#c0503e');
+      R(c, x + 2, y - 3, 4, 1, '#c0503e');
+      if (Math.sin(t / 400) > 0.6) R(c, x + (Math.sin(t / 300) * 4), y - 9, 1, 2, 'rgba(255,255,255,.6)');
+      return;
+    }
+    if (p.kind === 'cat') {
+      // Un gato atigrado que se lame la pata y mueve la cola.
+      const tail = Math.round(Math.sin(t / 260) * 2);
+      shadow(c, x, y + 1, 7, 2, 0.25);
+      ovalBox(c, x, y - 4, 6, 4, '#d9893c');
+      ovalBox(c, x - 5, y - 9, 4, 4, '#d9893c');
+      pixels(c, [[x - 8, y - 14, 2, 2], [x - 4, y - 14, 2, 2]], '#d9893c');
+      pixels(c, [[x - 7, y - 10, 1, 1], [x - 4, y - 10, 1, 1]], OL);
+      pixels(c, [[x + 5, y - 8 + tail, 2, 5]], '#c47530');
+      pixels(c, [[x - 1, y - 6, 1, 3], [x + 2, y - 6, 1, 3]], '#b8692a');
+    }
+  }
+
+  // ---------- Suelos de verdad: baldosas LPC ([LPC] Floors, de bluecarrot16 y otros; ver CREDITS.md) ----------
+  // house-floors.png lleva solo las baldosas que usa la casa, de 32 × 32: espiga y tarima en
+  // roble, nogal y gris, el octógono del baño y la hidráulica de la cocina.
+  const FLOOR_TILE = { oakHerring: 0, oakPlank: [1, 2], darkHerring: 3, darkPlank: [4, 5], greyHerring: 6, greyPlank: [7, 8], bath: 9, kitchen: 10 };
+  const FLOOR_SET = {
+    oak: { living: FLOOR_TILE.oakHerring, bed: FLOOR_TILE.oakPlank, livingLighten: 0.16 },
+    light: { living: FLOOR_TILE.oakHerring, bed: FLOOR_TILE.oakPlank, lighten: 0.22, livingLighten: 0.34 },
+    dark: { living: FLOOR_TILE.darkHerring, bed: FLOOR_TILE.darkPlank },
+    grey: { living: FLOOR_TILE.greyHerring, bed: FLOOR_TILE.greyPlank }
+  };
+  const floorImages = {};
+  const floorAtlas = () => (floorImages.atlas?.naturalWidth ? floorImages.atlas : null);
+  // Rellena un rectángulo con una baldosa (o una tira de varias) alineada a su esquina.
+  function tileFloor(c, x0, y0, w, h, tiles, { lighten = 0 } = {}) {
+    const img = floorAtlas();
+    const list = [].concat(tiles);
+    const span = 32 * list.length;
+    c.save();
+    c.beginPath();
+    c.rect(x0, y0, w, h);
+    c.clip();
+    for (let y = y0, row = 0; y < y0 + h; y += 32, row += 1) {
+      // Las tarimas se desplazan media pieza en cada fila, como en un suelo de verdad.
+      const shift = list.length > 1 ? (row % 2) * 16 : 0;
+      for (let x = x0 - shift; x < x0 + w; x += span) list.forEach((tile, i) => c.drawImage(img, tile * 32, 0, 32, 32, x + i * 32, y, 32, 32));
+    }
+    if (lighten) {
+      c.globalCompositeOperation = 'screen';
+      c.globalAlpha = lighten;
+      c.fillStyle = '#f3d9b0';
+      c.fillRect(x0, y0, w, h);
+    }
+    c.restore();
+  }
+
   function bakeBackground() {
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const c = canvas.getContext('2d');
     R(c, 0, 0, W, H, '#33292a');
-    planks(c, ...ROOMS.bedroom, decorOf('floor')[1]);
-    bathTiles(c, ...ROOMS.bathroom);
-    checker(c, ...ROOMS.kitchen);
-    planks(c, 8, 176, 496, 200, decorOf('floor')[0]);
+    if (floorAtlas()) {
+      const set = FLOOR_SET[decor.floor] || FLOOR_SET.oak;
+      tileFloor(c, ...ROOMS.bedroom, set.bed, set);
+      tileFloor(c, ...ROOMS.bathroom, FLOOR_TILE.bath);
+      tileFloor(c, ...ROOMS.kitchen, FLOOR_TILE.kitchen);
+      // El salón, un punto más claro: la espiga es mucho dibujo detrás de los muñecos.
+      tileFloor(c, 8, 176, 496, 200, set.living, { lighten: set.livingLighten ?? set.lighten ?? 0.12 });
+    } else {
+      // Mientras no llegan las baldosas (o sin conexión la primera vez), el suelo dibujado de siempre.
+      planks(c, ...ROOMS.bedroom, decorOf('floor')[1]);
+      bathTiles(c, ...ROOMS.bathroom);
+      checker(c, ...ROOMS.kitchen);
+      planks(c, 8, 176, 496, 200, decorOf('floor')[0]);
+    }
     // Sombra del suelo junto a las paredes.
     const ao = (x, y, w, h, dir) => {
       for (let i = 0; i < 6; i += 1) {
@@ -2173,7 +2266,8 @@
     return Promise.all([
       ...['ines', 'matteo'].map((key) => loadImage(images, key, SHEETS[key].src)),
       // Sin las caras, los muñecos funcionan igual (solo no cambian de expresión).
-      ...Object.entries(FACES).map(([key, face]) => loadImage(faceImages, key, face.src, true))
+      ...Object.entries(FACES).map(([key, face]) => loadImage(faceImages, key, face.src, true)),
+      loadImage(floorImages, 'atlas', 'assets/sims/house-floors.png?v=1', true)
     ]);
   }
 
@@ -2563,11 +2657,14 @@
     }
 
     function drawLighting(t) {
-      const ph = state.phase || dayPhase();
+      // En un apagón (un suceso del juego) la casa se queda a oscuras aunque sea de día: solo
+      // brillan las velas que encendáis.
+      const ph0 = state.phase || dayPhase();
+      const ph = state.blackout && scene.id === 'house' ? { ...ph0, dark: Math.max(ph0.dark, 0.85), amb: mixHex(ph0.amb, '#262a46', 0.9) } : ph0;
       const theme = scene.id === 'house' ? themeNow() : 'none';
       const ambient = ph.amb;
       const busy = state.props.tv || state.props.games || state.bedMode === 'woohoo';
-      if (ph.dark < 0.02 && !busy) return;
+      if (ph.dark < 0.02 && !busy && !state.blackout) return;
       lc.globalCompositeOperation = 'source-over';
       lc.fillStyle = ambient;
       lc.fillRect(0, 0, W, H);
@@ -2581,7 +2678,10 @@
         lc.fillRect(x - r, y - r, r * 2, r * 2);
         lc.globalAlpha = 1;
       };
-      if (state.lamps) {
+      if (state.blackout && scene.id === 'house') {
+        (state.candles || []).forEach(([x, y], i) => glow(x, y, 54, `rgba(255,190,110,${0.85 + Math.sin(t / 120 + i * 2) * 0.08})`, 1));
+      }
+      if (state.lamps && !(state.blackout && scene.id === 'house')) {
         (scene.lights || []).forEach(([x, y, r]) => glow(x, y, r, 'rgba(255,214,150,.9)', 0.35 + ph.dark * 0.45));
         if (scene.id === 'house') {
           glow(55, 42, 30, 'rgba(255,200,120,.9)');
@@ -2596,7 +2696,7 @@
       }
       if (state.props.laptop) glow(262, 330, 24, 'rgba(170,210,255,.7)');
       // Lucecitas del dormitorio y la lámpara del sillón.
-      if (scene.id === 'house' && ph.dark > 0.3) { glow(104, 18, 40, 'rgba(255,220,150,.75)', ph.dark); glow(482, 252, 26, 'rgba(255,214,150,.85)', ph.dark); }
+      if (scene.id === 'house' && ph.dark > 0.3 && !state.blackout) { glow(104, 18, 40, 'rgba(255,220,150,.75)', ph.dark); glow(482, 252, 26, 'rgba(255,214,150,.85)', ph.dark); }
       // Luces de la temática: el árbol de Navidad o las calabazas encendidas.
       if (theme === 'xmas') glow(324, 340, 40, `rgba(255,220,150,${0.6 + Math.sin(t / 300) * 0.1})`);
       if (theme === 'halloween') { glow(324, 356, 30, 'rgba(255,150,60,.85)'); glow(392, 120, 16, 'rgba(255,170,60,.7)'); }
@@ -2757,6 +2857,7 @@
       // Muebles y muñecos ordenados por profundidad.
       const drawables = scene.objects.filter((object) => object.draw && object.layer !== 'static' && (!object.shop || owns(object.id))).map((object) => ({ y: object.sort, draw: () => object.draw(c, state, t) }));
       state.actors.forEach((a) => drawables.push({ y: a.sortY ?? a.y, draw: () => drawActor(c, a, t) }));
+      if (scene.id === 'house') (state.eventProps || []).forEach((p) => drawables.push({ y: p.sort ?? p.y, draw: () => drawEventProp(c, p, t) }));
       drawables.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
       scene.drawFront?.(c, state, t);
       drawWeather(t);
