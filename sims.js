@@ -931,9 +931,11 @@ function actionEffects(sim, action, elapsed) {
   if (action.routine === 'yoga' && elapsed % 1500 < 300) w.emit('sparkle', sim.x, sim.headY + 10, { vy: -8, spread: 16 });
   if (action.object === 'window' && elapsed % 1400 < 300) w.emit('sparkle', 358, 210, { vy: -6, spread: 20 });
   if (action.fx === 'notes' && elapsed % 700 < 300) w.emit('note', sim.x + 6, sim.headY + 6, { vy: -16, spread: 10 });
-  if (action.fx === 'paint' && elapsed % 900 < 300) { w.state.paintStrokes = Math.min(10, (w.state.paintStrokes || 0) + 1); w.emit('spark', 360, 146, { vy: -6, spread: 10 }); }
-  if (action.fx === 'stars' && elapsed % 1000 < 300) w.emit('sparkle', 372, 230, { vy: -8, spread: 16 });
-  if (action.fx === 'feed' && elapsed % 800 < 300) w.emit('drop', 196, 336, { vy: 14, spread: 8 });
+  // Los muebles que se pueden mover llevan sus efectos con ellos.
+  const { dx = 0, dy = 0 } = (action.object && simsWorld.objectInfo?.(action.object)?.offset) || {};
+  if (action.fx === 'paint' && elapsed % 900 < 300) { w.state.paintStrokes = Math.min(10, (w.state.paintStrokes || 0) + 1); w.emit('spark', 360 + dx, 146 + dy, { vy: -6, spread: 10 }); }
+  if (action.fx === 'stars' && elapsed % 1000 < 300) w.emit('sparkle', 372 + dx, 230 + dy, { vy: -8, spread: 16 });
+  if (action.fx === 'feed' && elapsed % 800 < 300) w.emit('drop', 196 + dx, 336 + dy, { vy: 14, spread: 8 });
 }
 
 async function doAction(key, id, { autonomous = false } = {}) {
@@ -1778,6 +1780,10 @@ function onLive(msg) {
     case 'game':
       simBubble(partner, `🦈 ${msg.record ? '¡Récord! ' : ''}${Number(msg.score) || 0} puntos`, { secs: 3.5 });
       break;
+    case 'event':
+    case 'event-choice':
+      window.simsLife?.onRemote(msg);
+      break;
     case 'wave':
       setAnim(partner, 'emote', { dir: 'down', frames: [0, 2, 1, 2], fps: 4 });
       simBubble(partner, simlish(partner.key), { secs: 2 });
@@ -2262,6 +2268,7 @@ function partnerMenu() {
 function handleHouseTap(event) {
   const w = world();
   if (!w || event.target.closest('.sims-pie-option') || event.target.closest('.sims-hud') || event.target.closest('.sims-photo-card')) return;
+  if (window.simsBuild?.isOn()) return event.target.closest('.sims-build') ? null : window.simsBuild.tap(event);
   if (event.target.closest('.sims-pie')) return hidePie();
   if (simsHouse.querySelector('.sims-pie')) return hidePie();
   if (event.target.closest('.sims-travel')) return;
@@ -2743,6 +2750,7 @@ function hideSims() {
   simsModal.classList.remove('visible');
   simsState.open = false;
   window.simsLife?.onClose();
+  window.simsBuild?.stop();
   liveDisconnect();
   setRainSound(false);
   clearInterval(simsState.timer);
@@ -2863,6 +2871,7 @@ function decorCard() {
   if (curScene() !== 'house') return showToast('La decoración se cambia en casa 🏠');
   const decor = simsWorld.getDecor();
   showSimsCard('is-decor', `<h3>🎨 Decorar la casa</h3>
+    <button type="button" class="sims-card-link is-primary sims-build-start" data-build-start>🔨 Mover muebles por la casa</button>
     ${Object.entries(DECOR_LABELS).map(([part, [title, options]]) => `<h4>${title}</h4><div class="sims-swatches${part === 'theme' ? ' is-theme' : ''}">${Object.entries(options).map(([id, label]) => {
       const color = part === 'theme' ? null : decorSwatch(part, id);
       return `<button type="button" data-decor="${part}:${id}" aria-pressed="${decor[part] === id}">${color ? `<i style="background:${color}"></i>` : ''}${escapeHtml(label)}</button>`;
@@ -3444,10 +3453,10 @@ function shopCard() {
   const life = getLife();
   const owned = simsWorld.getDecor().items || [];
   showSimsCard('is-shop', `<h3>🛍️ Tienda de muebles</h3>
-    <p class="sims-card-hint">Tienes <b>§${Math.round(life.coins)}</b>. Se ganan haciendo cosas en el juego, con los minijuegos y usando la app de verdad (tareas, plantas, recetas, fotos y planes).</p>
+    <p class="sims-card-hint">Tienes <b>§${Math.round(life.coins)}</b>. Se ganan haciendo cosas en el juego, con los minijuegos y usando la app de verdad (tareas, plantas, recetas, fotos y planes). Lo que compréis se puede recolocar en 🎨 Decorar → Mover muebles.</p>
     <div class="sims-shop">${Object.entries(SHOP).map(([id, item]) => {
       const has = owned.includes(id);
-      return `<div class="sims-shop-item${has ? ' is-owned' : ''}"><span class="sims-shop-emoji">${item.emoji}</span><div><b>${escapeHtml(item.label)}</b><small>${escapeHtml(item.does)}</small><small>📍 ${escapeHtml(item.where)}</small></div>${has ? '<em>✓ Vuestro</em>' : `<button type="button" data-buy="${id}"${life.coins < item.price ? ' disabled' : ''}>§${item.price}</button>`}</div>`;
+      return `<div class="sims-shop-item${has ? ' is-owned' : ''}"><span class="sims-shop-emoji">${item.emoji}</span><div><b>${escapeHtml(item.label)}</b><small>${escapeHtml(item.does)}</small><small>📍 ${escapeHtml(item.where)}${has ? ' (o donde lo pongáis)' : ''}</small></div>${has ? '<em>✓ Vuestro</em>' : `<button type="button" data-buy="${id}"${life.coins < item.price ? ' disabled' : ''}>§${item.price}</button>`}</div>`;
     }).join('')}</div>`);
 }
 function buyItem(id) {
@@ -3933,6 +3942,7 @@ simsHouse.addEventListener('click', async (event) => {
   const appCard = event.target.closest('.sims-card');
   if (appCard) {
     if (event.target.closest('[data-card-close]') || event.target === appCard) return appCard.remove();
+    if (event.target.closest('[data-build-start]')) return window.simsBuild?.start();
     const outfit = event.target.closest('[data-outfit]');
     if (outfit) {
       pickOutfit(outfit.dataset.outfit);

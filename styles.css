@@ -2957,3 +2957,14 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-diary time { flex-shrink: 0; color: #8a7a6a; font-size: 12px; }
 .sims-card .sims-diary-day { min-height: 0; padding: 8px 0 2px; border: 0; color: #c0503e; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
 .sims-card .sims-diary-empty { color: #8a7a6a; font-size: 14px; }
+
+/* ---------- Modo Sims: modo construcción (sims-build.js) ---------- */
+.sims-build { position: absolute; top: 8px; right: 8px; left: 8px; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 2px solid #2b1f1d; border-radius: 6px; background: repeating-linear-gradient(-45deg, #f2c230 0 10px, #e8b420 10px 20px); box-shadow: 0 3px 0 rgba(0, 0, 0, .3); color: #2b1f1d; font-family: var(--pixel-font); animation: sims-event-in .3s ease both; }
+.sims-build-copy { display: grid; gap: 1px; min-width: 0; padding: 2px 6px; border-radius: 4px; background: rgba(251, 246, 220, .9); }
+.sims-build-copy b { font-size: 14px; }
+.sims-build-copy span { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.sims-build-actions { display: flex; flex-shrink: 0; gap: 5px; }
+.sims-build-actions button { padding: 7px 10px; border: 2px solid #2b1f1d; border-radius: 6px; background: #faf4e6; box-shadow: 0 2px 0 rgba(0, 0, 0, .25); color: #2b1f1d; font: 13px var(--pixel-font); }
+.sims-build-actions .is-done { background: #3fbf6a; color: #fff; }
+.sims-build-start { margin: 0 0 8px; }
+.sims-modal.is-full .sims-build { top: max(8px, env(safe-area-inset-top)); right: calc(max(8px, env(safe-area-inset-right)) + 50px); }

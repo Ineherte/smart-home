@@ -493,7 +493,9 @@
     bedding: { cream: ['#e4dccb', '#8a8c5a'], white: ['#f2efe8', '#9db4c8'], blue: ['#9fb8d0', '#3f5f86'], rose: ['#e8c4c0', '#b86a6a'], green: ['#c8d4b4', '#5e7a52'], mustard: ['#ecd9a8', '#c39a3c'] },
     theme: ['auto', 'none', 'halloween', 'xmas', 'valentine', 'spring']
   };
-  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto', items: [] };
+  const DEFAULT_DECOR = { floor: 'oak', walls: 'cream', rug: 'red', sofa: 'khaki', bedding: 'cream', theme: 'auto', items: [], place: {} };
+  // Muebles que se pueden mover en el modo construcción (los de la tienda y algunos sueltos).
+  const MOVABLE = ['guitar', 'beanbag', 'easel', 'telescope', 'aquarium', 'arcade', 'armchair', 'sidetable', 'olivetree'];
   let decor = { ...DEFAULT_DECOR };
   const decorOf = (key) => DECOR[key][decor[key]] || DECOR[key][DEFAULT_DECOR[key]];
   function setDecorValues(next = {}) {
@@ -501,13 +503,68 @@
     Object.keys(DEFAULT_DECOR).forEach((key) => {
       const value = next[key];
       if (key === 'items') clean.items = Array.isArray(value) ? [...new Set(value.filter((id) => SHOP_ITEMS.includes(id)))] : [];
+      else if (key === 'place') clean.place = cleanPlace(value);
       else if (key === 'theme' ? DECOR.theme.includes(value) : DECOR[key][value]) clean[key] = value;
     });
     // Si cambian los muebles comprados, la casa se vuelve a calcular para andar.
-    if (String(clean.items) !== String(decor.items || [])) delete SCENES.house?.nav;
+    const moved = JSON.stringify(clean.place) !== JSON.stringify(decor.place || {});
+    if (String(clean.items) !== String(decor.items || []) || moved) delete SCENES.house?.nav;
     decor = clean;
+    if (moved) applyPlacement();
     return clean;
   }
+  // Lo que llega guardado: solo muebles movibles y desplazamientos razonables (en píxeles, de 4 en 4).
+  function cleanPlace(value) {
+    const out = {};
+    if (!value || typeof value !== 'object') return out;
+    MOVABLE.forEach((id) => {
+      const off = value[id];
+      const dx = Math.round(Number(off?.dx) / 4) * 4;
+      const dy = Math.round(Number(off?.dy) / 4) * 4;
+      if (Number.isFinite(dx) && Number.isFinite(dy) && Math.abs(dx) <= W && Math.abs(dy) <= H && (dx || dy)) out[id] = { dx, dy };
+    });
+    return out;
+  }
+  // Coloca cada mueble movible según decor.place: desplaza su dibujo, la zona que se toca, el
+  // hueco que ocupa en el suelo, su orden de profundidad y los sitios donde se ponen los muñecos.
+  const shiftRect = (rect, dx, dy) => rect && [rect[0] + dx, rect[1] + dy, rect[2], rect[3]];
+  const shiftPoint = (point, dx, dy) => point && { ...point, x: point.x + dx, y: point.y + dy };
+  const placeBase = {};
+  let placementReady = false;
+  function applyPlacement() {
+    if (!placementReady) return;
+    MOVABLE.forEach((id) => {
+      const object = OBJECT_BY_ID[id];
+      if (!object) return;
+      // Los que no tenían zona para tocar (sillón, mesita, olivo) la sacan de su hueco en el suelo.
+      const hitOf = () => object.hit || (object.block && [object.block[0] - 2, object.block[1] - 22, object.block[2] + 4, object.block[3] + 22]);
+      const base = (placeBase[id] ||= { hit: hitOf(), block: object.block, sort: object.sort, spot: object.spot, seats: object.seats, draw: object.draw });
+      const { dx = 0, dy = 0 } = decor.place?.[id] || {};
+      object.hit = shiftRect(base.hit, dx, dy);
+      object.block = shiftRect(base.block, dx, dy);
+      object.sort = base.sort + dy;
+      object.spot = shiftPoint(base.spot, dx, dy);
+      object.seats = base.seats?.map((seat) => ({ ...shiftPoint(seat, dx, dy), sortY: seat.sortY + dy, exit: shiftPoint(seat.exit, dx, dy) }));
+      object.draw = dx || dy ? (c, st, t) => shifted(c, dx, dy, () => base.draw(c, st, t)) : base.draw;
+      object.offset = { dx, dy };
+    });
+  }
+  const overlaps = (a, b) => a && b && a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+  // ¿Cabe el mueble con este desplazamiento? Tiene que quedar dentro de una habitación, sin
+  // pisar otros muebles, las puertas ni el paso de la entrada.
+  function canPlace(id, dx, dy) {
+    const object = OBJECT_BY_ID[id];
+    const base = placeBase[id] || object;
+    if (!object || !MOVABLE.includes(id)) return false;
+    const block = shiftRect(base.block, dx, dy);
+    const hit = shiftRect(base.hit || base.block, dx, dy);
+    const inRoom = Object.values(ROOMS).some(([x, y, w, h]) => block[0] >= x + 2 && block[1] >= y + 2 && block[0] + block[2] <= x + w - 2 && block[1] + block[3] <= y + h - 2);
+    if (!inRoom) return false;
+    const keepClear = [...DOORS.map(([x, w]) => [x - 4, 160, w + 8, 96]), [430, 340, 56, 40]];
+    if (keepClear.some((zone) => overlaps(block, zone) || overlaps(hit, zone))) return false;
+    return !OBJECTS.some((other) => other.id !== id && other.block && (!other.shop || owns(other.id)) && overlaps(block, other.block));
+  }
+
   // Temática de temporada: Halloween, Navidad, San Valentín o primavera (si está en «auto»).
   function seasonalTheme(date = new Date()) {
     const m = date.getMonth() + 1;
@@ -2002,6 +2059,8 @@
     ...SHOP_OBJECTS
   ];
   const OBJECT_BY_ID = Object.fromEntries(OBJECTS.map((object) => [object.id, object]));
+  placementReady = true;
+  applyPlacement();
 
   // ---------- Por dónde se puede andar (una red por escena) ----------
   const CELL = 4;
@@ -2807,9 +2866,9 @@
       c.globalAlpha = 1 - age;
       for (let i = 0; i < 16; i += 1) {
         const a = (i / 16) * Math.PI * 2;
-        R(c, m.x + Math.cos(a) * r, m.y + Math.sin(a) * r * 0.45, 1, 1, '#3fd46a');
+        R(c, m.x + Math.cos(a) * r, m.y + Math.sin(a) * r * 0.45, 1, 1, m.bad ? '#e0503e' : '#3fd46a');
       }
-      R(c, m.x - 1, m.y - 1, 3, 2, '#3fd46a');
+      R(c, m.x - 1, m.y - 1, 3, 2, m.bad ? '#e0503e' : '#3fd46a');
       c.globalAlpha = 1;
     }
 
@@ -2868,6 +2927,16 @@
       drawRomance();
       state.actors.forEach((a) => drawMoodFx(c, a, t));
       drawMarker(t);
+      // Modo construcción: borde punteado que late en cada mueble que se puede mover.
+      if (state.buildMode) {
+        const pulse = 0.55 + Math.sin(t / 220) * 0.25;
+        state.buildMode.forEach(([x, y, w, h]) => {
+          c.globalAlpha = pulse;
+          for (let i = 0; i < w; i += 4) { R(c, x + i, y - 1, 2, 1, '#ffe27a'); R(c, x + i, y + h, 2, 1, '#ffe27a'); }
+          for (let i = 0; i < h; i += 4) { R(c, x - 1, y + i, 1, 2, '#ffe27a'); R(c, x + w, y + i, 1, 2, '#ffe27a'); }
+          c.globalAlpha = 1;
+        });
+      }
       drawBrackets(state.selected || state.hover, t);
       state.actors.forEach((a) => drawPlumbob(c, a, t));
       // Emoji del estado de ánimo junto a la cabeza.
@@ -2938,7 +3007,7 @@
 
   window.simsWorld = {
     W, H, ANIMS, OL, loadSprites, loadSheet, createWorld, findPath, nearestFree, free, lineFree, registerScene, PLANT_SLOTS,
-    portrait, DECOR, DEFAULT_DECOR, SHOP_ITEMS, owns, drawTravelMap, getDecor: () => ({ ...decor }), setDecorValues, seasonalTheme, themeNow, dayPhase, mixHex,
+    portrait, DECOR, DEFAULT_DECOR, SHOP_ITEMS, MOVABLE, canPlace, objectInfo: (id) => OBJECT_BY_ID[id] && { hit: OBJECT_BY_ID[id].hit, block: OBJECT_BY_ID[id].block, offset: OBJECT_BY_ID[id].offset || { dx: 0, dy: 0 }, base: placeBase[id] || OBJECT_BY_ID[id] }, owns, drawTravelMap, getDecor: () => ({ ...decor }), setDecorValues, seasonalTheme, themeNow, dayPhase, mixHex,
     // Para el jardín de la pantalla de inicio (garden.js): mismos muñecos, perros y diamante.
     drawActor, drawPlumbob, drawMoodFx,
     // Pinceles para dibujar los sitios de fuera (sims-places.js).

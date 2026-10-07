@@ -150,6 +150,9 @@
   }
   const me = () => sims[meKey()];
   const partner = () => sims[partnerKeyOf()];
+  // Quien elige (A) y el otro (B): en el móvil de quien no eligió, se ven al revés.
+  const A = (ctx) => (ctx?.remoteChoice ? partner() : me());
+  const B = (ctx) => (ctx?.remoteChoice ? me() : partner());
   const say = (sim, text, secs = 2.8) => { if (sim) simBubble(sim, text, { secs }); };
   // Tu muñeco va hasta donde pasa la cosa (la puerta, el fregadero, la ventana) antes del resultado.
   async function goTo(x, y, sim = me()) {
@@ -170,8 +173,8 @@
       text: () => 'Es el repartidor con un paquete para vosotros. ¿Quién lo abre?',
       start: (ctx) => { ctx.npc = visitor('ped-b', 'El repartidor', ['¡Un paquete para ustedes!', 'Firme aquí, por favor'], 'it-m'); setTimeout(() => npcSay(ctx.npc, 'Pacco per voi! 📦', { force: true }), 2600); addProp({ kind: 'parcel', x: 440, y: 352 }); },
       choices: [
-        { label: '📦 Abrirlo yo', run: async (ctx) => { await goTo(436, 340); setProps([]); const coins = pickOne([40, 60, 80, 120]); addCoins(coins); say(me(), pickOne(['¡Unos cupones! 🎟️', '¡Un regalo de mamá! 💝', '¡Lo que pedimos! 🎉']) + ` +§${coins}`); needs({ fun: 15 }); return `Abriste un paquete: +§${coins}`; } },
-        { label: () => `🎁 Que lo abra ${partnerName()}`, run: async () => { await goTo(436, 340, partner()); setProps([]); say(partner(), pickOne(['¡Es para ti! 💕', '¡Sorpresa!'])); getLife().rel.romance = Math.min(100, getLife().rel.romance + 6); needs({ social: 15, fun: 10 }); return `${partnerName()} abrió un regalo para ti`; } }
+        { label: '📦 Abrirlo yo', run: async (ctx) => { await goTo(436, 340, A(ctx)); setProps([]); const coins = pickOne([40, 60, 80, 120]); addCoins(coins); say(A(ctx), pickOne(['¡Unos cupones! 🎟️', '¡Un regalo de mamá! 💝', '¡Lo que pedimos! 🎉']) + ` +§${coins}`); needs({ fun: 15 }); return `Abriste un paquete: +§${coins}`; } },
+        { label: () => `🎁 Que lo abra ${partnerName()}`, run: async (ctx) => { await goTo(436, 340, B(ctx)); setProps([]); say(B(ctx), pickOne(['¡Es para ti! 💕', '¡Sorpresa!'])); getLife().rel.romance = Math.min(100, getLife().rel.romance + 6); needs({ social: 15, fun: 10 }); return `${partnerName()} abrió un regalo para ti`; } }
       ],
       end: (ctx) => { sendAway(ctx.npc); setProps([]); }
     },
@@ -189,20 +192,20 @@
       emoji: '🕯️', title: '¡Apagón!',
       text: () => 'Se ha ido la luz en todo el edificio. ¿Qué hacéis?',
       when: () => true,
-      start: () => { const w = world(); if (w) { w.state.blackout = true; w.state.lamps = false; } simTune([392, 330, 262], 160, 'sawtooth'); say(me(), '¡Uy! 😱'); },
+      start: (ctx) => { const w = world(); if (w) { w.state.blackout = true; w.state.lamps = false; } simTune([392, 330, 262], 160, 'sawtooth'); say(A(ctx), '¡Uy! 😱'); },
       choices: [
-        { label: '🕯️ Encender velas', run: () => { const w = world(); if (w) w.state.candles = [[110, 330], [128, 334], [392, 128]]; setProps([{ kind: 'candle', x: 110, y: 330 }, { kind: 'candle', x: 128, y: 334 }, { kind: 'candle', x: 392, y: 128 }]); getLife().rel.romance = Math.min(100, getLife().rel.romance + 10); pushEvent('love'); needs({ social: 20, fun: 10 }); say(me(), 'Qué romántico… 💕'); return 'Cena a la luz de las velas'; }, keep: 45000 },
-        { label: '🔌 Revisar los plomos', run: async () => { await goTo(470, 330); const ok = skillCheck('logic'); gainSkill('logic', 25); if (ok) { say(me(), '¡Arreglado! 💡'); addCoins(20); return 'Arreglaste los plomos: +§20'; } say(me(), 'Ay… ¡calambre! ⚡'); needs({ fun: -10, energy: -10 }); return 'Los plomos se resistieron (habrá que subir lógica)'; } }
+        { label: '🕯️ Encender velas', run: (ctx) => { const w = world(); if (w) w.state.candles = [[110, 330], [128, 334], [392, 128]]; setProps([{ kind: 'candle', x: 110, y: 330 }, { kind: 'candle', x: 128, y: 334 }, { kind: 'candle', x: 392, y: 128 }]); getLife().rel.romance = Math.min(100, getLife().rel.romance + 10); pushEvent('love'); needs({ social: 20, fun: 10 }); say(A(ctx), 'Qué romántico… 💕'); return 'Cena a la luz de las velas'; }, keep: 45000 },
+        { label: '🔌 Revisar los plomos', run: async (ctx) => { await goTo(470, 330, A(ctx)); const ok = skillCheck('logic'); gainSkill('logic', 25); if (ok) { say(A(ctx), '¡Arreglado! 💡'); addCoins(20); return 'Arreglaste los plomos: +§20'; } say(A(ctx), 'Ay… ¡calambre! ⚡'); needs({ fun: -10, energy: -10 }); return 'Los plomos se resistieron (habrá que subir lógica)'; } }
       ],
       end: () => { const w = world(); if (w) { w.state.blackout = false; w.state.candles = []; } setProps([]); }
     },
     leak: {
       emoji: '💧', title: 'Gotea el grifo',
       text: () => 'Hay un charco bajo el fregadero de la cocina. Algo pierde agua.',
-      start: () => { addProp({ kind: 'puddle', x: 404, y: 76, sort: 40 }); world()?.emit('drop', 404, 60, { count: 6, vy: 20, spread: 6 }); },
+      start: (ctx) => { addProp({ kind: 'puddle', x: 404, y: 76, sort: 40 }); world()?.emit('drop', 404, 60, { count: 6, vy: 20, spread: 6 }); },
       choices: [
-        { label: '🔧 Arreglarlo yo', run: async () => { await goTo(404, 100); const ok = skillCheck('fitness', 0.45); gainSkill('logic', 20); if (ok) { addCoins(30); say(me(), '¡Como nuevo! 🔧'); needs({ fun: 10 }); return 'Arreglaste el grifo: +§30'; } world()?.emit('drop', me()?.x || 400, (me()?.headY || 60) + 4, { count: 14, vy: -10, spread: 16 }); say(me(), '¡Me he empapado! 💦'); needs({ hygiene: -25, fun: -5 }); return 'El grifo te dejó empapado'; } },
-        { label: '📞 Llamar al fontanero (§60)', run: () => { addCoins(-60); say(me(), 'Viene mañana, menos mal 😮‍💨'); return 'Llamasteis al fontanero: −§60'; } }
+        { label: '🔧 Arreglarlo yo', run: async (ctx) => { await goTo(404, 100, A(ctx)); const ok = skillCheck('fitness', 0.45); gainSkill('logic', 20); if (ok) { addCoins(30); say(A(ctx), '¡Como nuevo! 🔧'); needs({ fun: 10 }); return 'Arreglaste el grifo: +§30'; } world()?.emit('drop', A(ctx)?.x || 400, (A(ctx)?.headY || 60) + 4, { count: 14, vy: -10, spread: 16 }); say(A(ctx), '¡Me he empapado! 💦'); needs({ hygiene: -25, fun: -5 }); return 'El grifo te dejó empapado'; } },
+        { label: '📞 Llamar al fontanero (§60)', run: (ctx) => { addCoins(-60); say(A(ctx), 'Viene mañana, menos mal 😮‍💨'); return 'Llamasteis al fontanero: −§60'; } }
       ],
       end: () => setProps([])
     },
@@ -211,18 +214,18 @@
       text: () => 'La pizzería de abajo ha abierto el horno de leña. Tenéis hambre…',
       when: () => needsOf().hunger < 70 && hour() >= 12,
       choices: [
-        { label: '🍕 Pedir una margherita (§25)', run: async () => { addCoins(-25); setProps([{ kind: 'pizza', x: 120, y: 330 }]); await goTo(150, 320); needs({ hunger: 55, fun: 10 }); say(me(), '¡Qué buena! 🍕'); say(partner(), 'Buonissima!'); return 'Pizza margherita en el sofá'; }, keep: 30000 },
-        { label: '🍳 Mejor cocinamos juntos', run: () => { queueOrRun({ type: 'act', value: 'cook', emoji: '🍳' }); return 'Decidisteis cocinar en casa'; } }
+        { label: '🍕 Pedir una margherita (§25)', run: async (ctx) => { addCoins(-25); setProps([{ kind: 'pizza', x: 120, y: 330 }]); await goTo(150, 320, A(ctx)); needs({ hunger: 55, fun: 10 }); say(A(ctx), '¡Qué buena! 🍕'); say(B(ctx), 'Buonissima!'); return 'Pizza margherita en el sofá'; }, keep: 30000 },
+        { label: '🍳 Mejor cocinamos juntos', run: (ctx) => { queueOrRun({ type: 'act', value: 'cook', emoji: '🍳' }); return 'Decidisteis cocinar en casa'; } }
       ],
       end: () => setProps([])
     },
     cat: {
       emoji: '🐱', title: 'Un gato en la ventana',
       text: () => 'El gato del vecino se ha colado por la ventana del salón y os mira muy serio.',
-      start: () => { addProp({ kind: 'cat', x: 364, y: 244 }); },
+      start: (ctx) => { addProp({ kind: 'cat', x: 364, y: 244 }); },
       choices: [
-        { label: '🐟 Darle de comer', run: async () => { await goTo(364, 268); needs({ fun: 20, social: 10 }); say(me(), '¡Miau! 😻'); return 'Le disteis de comer al gato del vecino'; }, keep: 20000 },
-        { label: '📸 Hacerle fotos', run: async () => { await goTo(380, 280); takeSimPhoto(); needs({ fun: 15 }); return 'Sesión de fotos con el gato'; }, keep: 12000 }
+        { label: '🐟 Darle de comer', run: async (ctx) => { await goTo(364, 268, A(ctx)); needs({ fun: 20, social: 10 }); say(A(ctx), '¡Miau! 😻'); return 'Le disteis de comer al gato del vecino'; }, keep: 20000 },
+        { label: '📸 Hacerle fotos', run: async (ctx) => { await goTo(380, 280, A(ctx)); takeSimPhoto(); needs({ fun: 15 }); return 'Sesión de fotos con el gato'; }, keep: 12000 }
       ],
       end: () => setProps([])
     },
@@ -230,10 +233,10 @@
       emoji: '🎶', title: 'Fiesta en el piso de arriba',
       text: () => 'Los vecinos de arriba tienen música a todo volumen.',
       when: () => hour() >= 19 || hour() < 2,
-      start: () => { simTune([392, 494, 587, 494], 140, 'square'); },
+      start: (ctx) => { simTune([392, 494, 587, 494], 140, 'square'); },
       choices: [
-        { label: '💃 Bailar en casa', run: () => { queueOrRun({ type: 'act', value: 'dance', emoji: '💃' }); needs({ fun: 25, energy: -10 }); return 'Os unisteis a la fiesta bailando en casa'; } },
-        { label: '🛌 Tapones y a dormir', run: () => { needs({ energy: 15, fun: -5 }); say(me(), 'Zzz… 😴'); return 'Tapones y a dormir'; } }
+        { label: '💃 Bailar en casa', run: (ctx) => { queueOrRun({ type: 'act', value: 'dance', emoji: '💃' }); needs({ fun: 25, energy: -10 }); return 'Os unisteis a la fiesta bailando en casa'; } },
+        { label: '🛌 Tapones y a dormir', run: (ctx) => { needs({ energy: 15, fun: -5 }); say(A(ctx), 'Zzz… 😴'); return 'Tapones y a dormir'; } }
       ]
     },
     rain: {
@@ -241,16 +244,38 @@
       text: () => 'Llueve en Turín de verdad. Plan perfecto para quedarse en casa.',
       when: () => isRainy(),
       choices: [
-        { label: () => `🛋️ Manta y peli con ${partnerName()}`, run: () => { queueOrRun({ type: 'social', value: 'cuddle', emoji: '🛋️' }); return 'Manta y peli mientras llovía'; } },
-        { label: '📚 Leer junto a la ventana', run: () => { queueOrRun({ type: 'act', value: 'readsofa', emoji: '📚' }); return 'Lectura con lluvia'; } }
+        { label: () => `🛋️ Manta y peli con ${partnerName()}`, run: (ctx) => { queueOrRun({ type: 'social', value: 'cuddle', emoji: '🛋️' }); return 'Manta y peli mientras llovía'; } },
+        { label: '📚 Leer junto a la ventana', run: (ctx) => { queueOrRun({ type: 'act', value: 'readsofa', emoji: '📚' }); return 'Lectura con lluvia'; } }
       ]
+    },
+    momEs: {
+      emoji: '🥘', title: '¡Visita de Mari Cruz!',
+      text: () => 'La madre de Ines se ha presentado en Turín con un táper de tortilla y ganas de veros.',
+      when: () => hour() >= 11 && hour() < 22,
+      start: (ctx) => { const def = FAMILY.spain[0]; ctx.npc = visitor(def.id, def.name, def.lines, def.voice); setTimeout(() => npcSay(ctx.npc, pickOne(def.greet), { force: true }), 2600); },
+      choices: [
+        { label: '🍽️ Comer todos juntos', run: async (ctx) => { await goTo(392, 140, A(ctx)); needs({ hunger: 50, social: 30 }); setProps([{ kind: 'pizza', x: 392, y: 132 }]); setTimeout(() => npcSay(ctx.npc, '¡Comed, que estáis muy delgados!', { force: true }), 400); return 'Comisteis la tortilla de Mari Cruz'; }, keep: 20000 },
+        { label: '🏠 Enseñarle la casa', run: async (ctx) => { await goTo(300, 320, A(ctx)); gainSkill('charisma', 30); needs({ social: 25 }); setTimeout(() => npcSay(ctx.npc, '¡Qué bonito lo tenéis todo!', { force: true }), 400); return 'Le enseñasteis la casa a Mari Cruz'; }, keep: 12000 }
+      ],
+      end: (ctx) => { setProps([]); sendAway(ctx.npc); }
+    },
+    momIt: {
+      emoji: '🍝', title: '¡Ha venido Giuliana!',
+      text: () => 'La madre de Matteo ha subido de Chieti con una lasaña recién hecha.',
+      when: () => hour() >= 11 && hour() < 22,
+      start: (ctx) => { const def = FAMILY.chieti[0]; ctx.npc = visitor(def.id, def.name, def.lines, def.voice); setTimeout(() => npcSay(ctx.npc, pickOne(def.greet), { force: true }), 2600); },
+      choices: [
+        { label: '🍝 Comer la lasaña', run: async (ctx) => { await goTo(392, 140, A(ctx)); needs({ hunger: 55, social: 25 }); setProps([{ kind: 'pizza', x: 392, y: 132 }]); setTimeout(() => npcSay(ctx.npc, 'Mangiate, mangiate!', { force: true }), 400); return 'Lasaña de Giuliana para todos'; }, keep: 20000 },
+        { label: '☕ Un café y a charlar', run: async (ctx) => { await goTo(300, 320, A(ctx)); gainSkill('charisma', 25); needs({ social: 30, fun: 10 }); setTimeout(() => npcSay(ctx.npc, 'Che bella coppia che siete!', { force: true }), 400); return 'Café y charla con Giuliana'; }, keep: 12000 }
+      ],
+      end: (ctx) => { setProps([]); sendAway(ctx.npc); }
     },
     letter: {
       emoji: '💌', title: 'Carta de la familia',
       text: () => pickOne(['Mari Cruz pregunta cuándo vais a la casa de campo.', 'Giuliana dice que en Chieti os esperan para comer.']),
       choices: [
         { label: '✈️ ¡Vamos de viaje!', run: (ctx) => { const dest = /Chieti/.test(ctx.text) ? 'chieti' : 'spain'; queueOrRun({ type: 'social', value: dest, emoji: '✈️' }); return dest === 'chieti' ? 'Os fuisteis a Chieti' : 'Os fuisteis a la casa de campo'; } },
-        { label: '📱 Llamar por teléfono', run: () => { queueOrRun({ type: 'act', value: 'phone', emoji: '📱' }); needs({ social: 25 }); return 'Llamaste a la familia'; } }
+        { label: '📱 Llamar por teléfono', run: (ctx) => { queueOrRun({ type: 'act', value: 'phone', emoji: '📱' }); needs({ social: 25 }); return 'Llamaste a la familia'; } }
       ]
     }
   };
@@ -266,21 +291,26 @@
     house.appendChild(el);
     simTune([784, 988], 90, 'triangle');
   }
-  function startEvent(id) {
+  // remote: llega del otro móvil, con el mismo texto. Quien lo empieza lo comparte.
+  function startEvent(id, { remote = false, text = '' } = {}) {
     const def = EVENTS[id];
     if (!def || event.active || curScene() !== 'house') return false;
-    const ctx = { id, text: def.text() };
+    const ctx = { id, text: text || def.text(), remote };
     event.active = ctx;
+    if (!remote && live.partnerOnline) liveSend('event', { id, text: ctx.text });
     try { def.start?.(ctx); } catch (error) { console.warn('[Umbral] Suceso:', error); }
     eventCard(id, ctx);
-    // Si nadie elige en un minuto y medio, se resuelve solo con la última opción.
-    ctx.timer = setTimeout(() => choose(def.choices.length - 1, { auto: true }), 90000);
+    // Si nadie elige en un minuto y medio, se resuelve solo con la última opción (lo decide
+    // el móvil que lo empezó, y se lo cuenta al otro).
+    if (!remote) ctx.timer = setTimeout(() => choose(def.choices.length - 1, { auto: true }), 90000);
     return true;
   }
-  async function choose(index, { auto = false } = {}) {
+  async function choose(index, { auto = false, remote = false } = {}) {
     const ctx = event.active;
     if (!ctx || ctx.chosen) return;
     ctx.chosen = true;
+    ctx.remoteChoice = remote;
+    if (!remote) liveSend('event-choice', { id: ctx.id, index, auto });
     clearTimeout(ctx.timer);
     const def = EVENTS[ctx.id];
     const choice = def.choices[index];
@@ -289,7 +319,7 @@
     try { result = (await choice.run(ctx)) || ''; } catch (error) { console.warn('[Umbral] Suceso:', error); }
     if (!auto) stat('events');
     if (result) diary(def.emoji, result);
-    if (result && !auto) setTimeout(() => showToast(`${def.emoji} ${result}`), 400);
+    if (result && !auto) setTimeout(() => showToast(remote ? `${def.emoji} ${partnerName()} eligió: ${result}` : `${def.emoji} ${result}`), 400);
     const keep = typeof choice.keep === 'number' ? choice.keep : 4000;
     setTimeout(() => finish(ctx), keep);
   }
@@ -342,5 +372,11 @@
     if (choice) choose(Number(choice.dataset.eventChoice));
   });
 
-  window.simsLife = { stat, diary, tick, onClose, goalsCard, bestTitle, checkAspirations, startEvent, EVENTS, ASPIRATIONS };
+  // Lo que llega del otro móvil (sims.js lo pasa desde onLive).
+  function onRemote(msg) {
+    if (msg.type === 'event') startEvent(msg.id, { remote: true, text: String(msg.text || '').slice(0, 200) });
+    if (msg.type === 'event-choice' && event.active?.id === msg.id) choose(Number(msg.index) || 0, { auto: Boolean(msg.auto), remote: true });
+  }
+
+  window.simsLife = { onRemote, stat, diary, tick, onClose, goalsCard, bestTitle, checkAspirations, startEvent, EVENTS, ASPIRATIONS };
 })();
