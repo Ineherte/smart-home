@@ -1150,6 +1150,7 @@ function enterScene(id) {
 async function doTrip(dest, { incoming = false, at = new Date().toISOString() } = {}) {
   const trip = TRIPS[dest];
   if (!trip || curScene() === dest) return;
+  wantProgress({ trip: true });
   const both = [sims[meKey()], sims[partnerKeyOf()]];
   const tokens = both.map((sim) => ++sim.token);
   both.forEach((sim) => { sim.busy = true; sim.doing = `trip-${dest}`; sim.progress = null; stopSim(sim); });
@@ -2373,19 +2374,132 @@ function renderSimsNeeds() {
     <div class="sims-moodlets">${moodlets(person).map(([emoji, text]) => `<span title="${escapeHtml(text)}">${emoji} <em>${escapeHtml(text)}</em></span>`).join('')}</div>
     ${simsState.needsOf === 'me' ? (() => {
       const life = getLife();
-      return `<div class="sims-rel"><small>Con ${escapeHtml(partner)}</small><div><span>🤝</span><i><b style="width:${life.rel.friend}%"></b></i><span>💗</span><i class="is-romance"><b style="width:${life.rel.romance}%"></b></i></div></div>
+      return `${avatarRows[me] ? wantsMarkup() : ''}<div class="sims-rel"><small>Con ${escapeHtml(partner)}</small><div><span>🤝</span><i><b style="width:${life.rel.friend}%"></b></i><span>💗</span><i class="is-romance"><b style="width:${life.rel.romance}%"></b></i></div></div>
       <details class="sims-skills"><summary>🌟 Habilidades · §${Math.round(life.coins)}</summary><div>${Object.entries(SKILLS).map(([id, [emoji, name]]) => { const xp = life.skills[id] || 0; const lv = skillLevel(xp); const next = 14 * (lv + 1) ** 2; const prev = 14 * lv ** 2; return `<p><span>${emoji} ${name}</span><b>${lv}</b><i><b style="width:${lv >= 10 ? 100 : Math.round(((xp - prev) / (next - prev)) * 100)}%"></b></i></p>`; }).join('')}</div></details>`;
     })() : ''}`;
   if (skillsOpen) panel.querySelector('.sims-skills')?.setAttribute('open', '');
 }
 
 // Monedas por usar la app de verdad: tareas, recetas, riego, fotos y planes.
-const LIFE_REWARDS = { task: 20, cook: 15, water: 10, moment: 15, plan: 10 };
+const LIFE_REWARDS = { task: 20, cook: 15, water: 10, moment: 15, plan: 10, upkeep: 15 };
 window.addEventListener('umbral:life', (event) => {
   const amount = LIFE_REWARDS[event.detail?.kind];
   if (!amount || !myAvatarPerson()) return;
   addCoins(amount, simsState.open ? sims[meKey()] : null);
+  wantProgress({ life: event.detail.kind });
 });
+
+// ---------- Deseos de hoy (como los deseos de los Sims) ----------
+// Cada día, cada uno tiene tres deseos: dos dentro de la casa y uno de la vida real. Cumplirlos
+// da monedas; con los tres, premio extra. Se guardan en look.wants junto con lo demás.
+const WANTS = {
+  cook: ['🍳', 'Cocinar algo rico', { act: ['cook'] }, 25],
+  dance: ['💃', 'Bailar un rato', { act: ['dance'] }, 20],
+  yoga: ['🧘', 'Hacer yoga', { act: ['yoga'] }, 20],
+  read: ['📚', 'Leer un rato', { act: ['readsofa', 'readbed', 'read', 'beanread'] }, 20],
+  bath: ['🛁', 'Darse un baño relajante', { act: ['bath'] }, 20],
+  puzzle: ['🧩', 'Avanzar el puzzle', { act: ['puzzle'] }, 25],
+  sing: ['🎤', 'Cantar a pleno pulmón', { act: ['sing'] }, 20],
+  tv: ['📺', 'Ver la tele en el sofá', { act: ['tv'] }, 15],
+  kiss: ['💋', 'Dar un beso a {p}', { social: ['kiss', 'makeout'] }, 25],
+  hug: ['🤗', 'Abrazar a {p}', { social: ['hug', 'cuddle'] }, 20],
+  laugh: ['🎉', 'Pasarlo bien con {p}', { cat: ['fun'] }, 25],
+  compliment: ['💬', 'Decirle algo bonito a {p}', { social: ['compliment', 'chat'] }, 15],
+  trip: ['✈️', 'Salir de excursión juntos', { trip: true }, 40],
+  game: ['🕹️', 'Echar una partida en la sala de juegos', { game: true }, 25],
+  photo: ['📸', 'Haceros una foto en casa', { photo: true }, 20],
+  task: ['✅', 'Hacer una tarea de verdad', { life: ['task'] }, 40, true],
+  water: ['🪴', 'Regar una planta de verdad', { life: ['water'] }, 30, true],
+  moment: ['📷', 'Subir una foto a Nosotros', { life: ['moment'] }, 35, true],
+  upkeep: ['🛠️', 'Cuidar la casa en Casa al día', { life: ['upkeep'] }, 35, true],
+  recipe: ['🥘', 'Cocinar algo del menú', { life: ['cook'] }, 30, true],
+  plan: ['🍿', 'Apuntar o cumplir un plan juntos', { life: ['plan'] }, 25, true]
+};
+const WANTS_BONUS = 50;
+const wantDay = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+// Elección estable para el día y la persona (no cambia al recargar).
+function wantPick(seedText, list, count) {
+  let seed = [...seedText].reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  return list.map((id) => [rand(), id]).sort((a, b) => a[0] - b[0]).slice(0, count).map(([, id]) => id);
+}
+function todaysWants() {
+  const life = getLife();
+  const day = wantDay();
+  if (life.wants?.day !== day) {
+    const person = myAvatarPerson() || 'yo';
+    const ids = Object.keys(WANTS);
+    life.wants = { day, done: [], list: [...wantPick(`${day}|${person}|casa`, ids.filter((id) => !WANTS[id][4]), 2), ...wantPick(`${day}|${person}|vida`, ids.filter((id) => WANTS[id][4]), 1)] };
+  }
+  return life.wants;
+}
+const wantText = (id) => WANTS[id][1].replace('{p}', otherPerson(myAvatarPerson()) || 'tu pareja');
+function wantMatches(id, event) {
+  const rule = WANTS[id][2];
+  if (rule.act && event.act) return rule.act.includes(event.act);
+  if (rule.social || rule.cat) return Boolean(rule.social?.includes(event.social) || rule.cat?.includes(event.cat));
+  if (rule.life && event.life) return rule.life.includes(event.life);
+  return Boolean((rule.trip && event.trip) || (rule.game && event.game) || (rule.photo && event.photo));
+}
+function wantProgress(event) {
+  if (!myAvatarPerson() || !avatarRows[myAvatarPerson()]) return;
+  const wants = todaysWants();
+  const hit = wants.list.find((id) => !wants.done.includes(id) && wantMatches(id, event));
+  if (!hit) return;
+  wants.done.push(hit);
+  const me = simsState.open ? sims[meKey()] : null;
+  const [emoji, , , coins] = WANTS[hit];
+  addCoins(coins, me);
+  pushEvent('want');
+  if (me) {
+    simBubble(me, `⭐ ¡Deseo cumplido! ${emoji}`, { secs: 3 });
+    world()?.emit('sparkle', me.x, me.headY + 6, { count: 14, spread: 24, vy: -18 });
+    simTune([659, 880, 1175], 110, 'triangle');
+  } else {
+    showToast(`⭐ Deseo cumplido en vuestra casa: ${wantText(hit)} (+§${coins})`);
+  }
+  if (wants.done.length === wants.list.length) {
+    setTimeout(() => {
+      addCoins(WANTS_BONUS, me);
+      showToast(`🌟 ¡Día redondo! Los tres deseos cumplidos (+§${WANTS_BONUS})`);
+      if (me) simTune([523, 659, 784, 1047, 1319], 120, 'triangle');
+    }, me ? 1400 : 2600);
+  }
+  saveLife();
+  if (simsState.open) renderSimsNeeds();
+}
+// Tocar un deseo te pone en marcha: lo de casa entra en la cola; lo real abre su sección.
+function startWant(id) {
+  const rule = WANTS[id]?.[2];
+  if (!rule) return;
+  const [emoji] = WANTS[id];
+  if (rule.act) {
+    const act = rule.act.find((action) => SIM_ACTIONS[action]);
+    if (act) return queueOrRun({ type: 'act', value: act, emoji });
+  }
+  if (rule.social) return queueOrRun({ type: 'social', value: rule.social[0], emoji });
+  if (rule.cat) return queueOrRun({ type: 'social', value: 'tickle', emoji });
+  if (rule.trip) return curScene() === 'house' ? queueOrRun({ type: 'social', value: 'turin', emoji }) : showToast('¡Ya estáis de excursión! 🧳');
+  if (rule.game) return gamesCard();
+  if (rule.photo) return takeSimPhoto();
+  if (rule.life) {
+    const go = { task: () => openPending({ filter: 'all' }), water: () => showView('plantas'), moment: () => { showView('nosotros'); setUsView?.('photos'); }, upkeep: () => { showView('personal'); setTimeout(() => document.querySelector('#upkeepSection')?.scrollIntoView({ behavior: 'smooth' }), 80); }, cook: () => showView('menu'), plan: () => { showView('nosotros'); setUsView?.('plans'); } }[rule.life[0]];
+    closeSims();
+    setTimeout(() => { try { go?.(); } catch (error) { console.warn('[Umbral] Deseo:', error); } }, 120);
+  }
+}
+function wantsMarkup() {
+  const wants = todaysWants();
+  const done = wants.done.length;
+  return `<div class="sims-wants">
+    <p class="sims-wants-head"><span>⭐ Deseos de hoy</span><b>${done}/${wants.list.length}${done === wants.list.length ? ' · ¡día redondo!' : ''}</b></p>
+    <div class="sims-wants-list">${wants.list.map((id) => {
+      const [emoji, , , coins, real] = WANTS[id];
+      const isDone = wants.done.includes(id);
+      return `<button type="button" class="sims-want${isDone ? ' is-done' : ''}${real ? ' is-real' : ''}" data-want="${id}" ${isDone ? 'disabled' : ''}><span class="sims-want-emoji">${emoji}</span><span class="sims-want-copy"><em>${escapeHtml(wantText(id))}</em>${real ? '<small>En la vida real</small>' : ''}</span><b>${isDone ? '✓' : `§${coins}`}</b></button>`;
+    }).join('')}</div>
+  </div>`;
+}
 
 // ---------- Abrir, cerrar, gestos cuando están quietos y libre albedrío ----------
 const timeOfDay = (hour) => (hour < 7 || hour >= 21 ? 'night' : hour < 9 || hour >= 19 ? 'dusk' : 'day');
@@ -2606,7 +2720,9 @@ async function openSims() {
   // La ropa de dormir, de abrigo y de verano se carga ya, para cambiarse sin esperas.
   ['pajamas', 'cold', 'hot'].forEach((outfit) => ['ines', 'matteo'].forEach((key) => simsWorld.loadSheet(`${key}-${outfit}`)));
   setTimeout(() => {
-    simBubble(sims[meKey()], simlish(meKey()), { secs: 2 });
+    // Al entrar, tu muñeco piensa en uno de sus deseos pendientes (o saluda en simlish).
+    const pending = avatarRows[myAvatarPerson()] ? todaysWants().list.find((id) => !todaysWants().done.includes(id)) : null;
+    simBubble(sims[meKey()], pending ? `💭 ${WANTS[pending][0]} ${wantText(pending)}` : simlish(meKey()), { secs: pending ? 3.5 : 2 });
     replayPartnerActivity();
   }, 600);
 }
@@ -2633,6 +2749,8 @@ function updateZoom() {
   const button = document.querySelector('#simsZoom');
   button.setAttribute('aria-pressed', String(simsState.zoom));
   button.setAttribute('aria-label', simsState.zoom ? 'Ver toda la casa' : 'Seguir de cerca a tu muñeco');
+  button.innerHTML = `<i data-lucide="${simsState.zoom ? 'zoom-out' : 'zoom-in'}"></i>`;
+  lucide.createIcons();
   if (world()) world().state.zoom = simsState.zoom;
 }
 
@@ -2643,7 +2761,9 @@ function updateZoom() {
 const simLookOf = (person) => avatarRows[person]?.look || {};
 function saveSimLook(changes) {
   const person = myAvatarPerson();
-  return saveAvatar({ look: { ...simLookOf(person), ...changes } }).catch((error) => console.warn('[Umbral] Guardar en el juego:', error));
+  // Siempre con la foto de la vida en el juego (monedas, habilidades, relación, deseos),
+  // para que no se pierda al guardar otra cosa ni al cerrar la casa.
+  return saveAvatar({ look: { ...simLookOf(person), ...lifeSnapshot(), ...changes } }).catch((error) => console.warn('[Umbral] Guardar en el juego:', error));
 }
 
 // ---------- Armario: ropa, pijama y disfraces cuando queráis ----------
@@ -2785,6 +2905,7 @@ const SCENE_NAMES = { house: 'en casa', turin: 'en Turín', chieti: 'en Chieti',
 async function takeSimPhoto({ remote = false } = {}) {
   const w = world();
   if (!w) return;
+  if (!remote) wantProgress({ photo: true });
   const flash = document.createElement('div');
   flash.className = 'sims-flash';
   simsHouse.appendChild(flash);
@@ -3163,7 +3284,8 @@ function getLife() {
     simsState.life = {
       coins: Number.isFinite(look.coins) ? look.coins : 300,
       skills: { ...(look.skills || {}) },
-      rel: { friend: 80, romance: 85, ...(look.rel || {}) }
+      rel: { friend: 80, romance: 85, ...(look.rel || {}) },
+      wants: look.wants?.day ? { ...look.wants, done: [...(look.wants.done || [])], list: [...(look.wants.list || [])] } : null
     };
     // La relación se enfría un poco si pasan días sin interactuar (como en los Sims).
     const days = look.rel?.at ? Math.floor((Date.now() - Date.parse(look.rel.at)) / 86400000) : 0;
@@ -3177,6 +3299,7 @@ function lifeSnapshot() {
   if (simsState.life) {
     const life = simsState.life;
     Object.assign(snap, { coins: Math.round(life.coins), skills: life.skills, rel: { ...life.rel, at: life.rel.at || new Date().toISOString() } });
+    if (life.wants?.day) snap.wants = life.wants;
   }
   if (simsState.decorAt) snap.decor = { ...simsWorld.getDecor(), at: simsState.decorAt };
   const pick = simsState.outfitPick?.[meKey()];
@@ -3228,6 +3351,7 @@ function relChange(kind) {
   life.rel.friend = Math.max(0, Math.min(100, life.rel.friend + df));
   life.rel.romance = Math.max(0, Math.min(100, life.rel.romance + dr));
   life.rel.at = new Date().toISOString();
+  wantProgress({ social: kind, cat: social.cat });
   pushEvent(social.cat === 'angry' && kind !== 'apologize' ? 'fight' : social.cat === 'romance' || social.cat === 'intimate' ? 'love' : 'social');
   saveLife();
 }
@@ -3264,6 +3388,7 @@ function moodlets(person = myAvatarPerson()) {
   if (isMe && recent('fight', 3600000)) list.push(['😤', 'Molesto']);
   if (isMe && recent('levelup', 3600000)) list.push(['🌟', 'Ha mejorado en algo']);
   if (isMe && recent('purchase', 2 * 3600000)) list.push(['🛍️', 'Estrena mueble']);
+  if (isMe && recent('want', 3 * 3600000)) list.push(['⭐', 'Deseo cumplido']);
   if (curScene() !== 'house') list.push(['🧳', 'De viaje']);
   if (new Date().getHours() >= 23 || new Date().getHours() < 6) list.push(['🌙', 'Es tarde']);
   return list.slice(0, 5);
@@ -3299,6 +3424,7 @@ function lifeAfterAction(id) {
   if (!action) return;
   const coins = id === 'work' ? 40 : Math.max(1, Math.round((action.secs || 2) / 2));
   addCoins(coins);
+  wantProgress({ act: id });
   const skill = ACTION_SKILL[id];
   if (skill) gainSkill(skill, Math.round((action.secs || 4) * 1.5));
 }
@@ -3344,6 +3470,7 @@ function gamesCard() {
 }
 function playGame(id) {
   simsHouse.querySelector('.sims-card')?.remove();
+  wantProgress({ game: true });
   if (id === 'shark') return startSharkGame();
   if (id === 'sudoku') return startSudoku();
   if (id === 'binairo') return startBinairo();
@@ -3679,7 +3806,8 @@ function startCrossword() {
 }
 
 // ---------- El mapa de vuestros viajes (el mismo que en Nosotros) ----------
-const travelPlaces = () => (typeof places !== 'undefined' && Array.isArray(places) ? places : []);
+// Solo los sitios visitados: los pendientes (kind = 'wish') se quedan en Nosotros.
+const travelPlaces = () => (typeof places !== 'undefined' && Array.isArray(places) ? places.filter((place) => place.kind !== 'wish') : []);
 function syncPlaces() {
   if (world()) world().state.places = travelPlaces();
 }
@@ -3730,6 +3858,8 @@ async function setSimsFull(on) {
   button.setAttribute('aria-pressed', String(on));
   button.setAttribute('aria-label', on ? 'Salir de pantalla completa' : 'Pantalla completa');
   button.title = button.getAttribute('aria-label');
+  button.innerHTML = `<i data-lucide="${on ? 'minimize' : 'maximize'}"></i>`;
+  lucide.createIcons();
   hidePie();
   world()?.endPan();
   if (on) {
@@ -3762,7 +3892,8 @@ document.addEventListener('visibilitychange', async () => {
 function updateSoundButton() {
   const button = document.querySelector('#simsSound');
   button.setAttribute('aria-pressed', String(simsState.sound));
-  button.textContent = simsState.sound ? '🔊' : '🔇';
+  button.innerHTML = `<i data-lucide="${simsState.sound ? 'volume-2' : 'volume-x'}"></i>`;
+  lucide.createIcons();
   button.setAttribute('aria-label', simsState.sound ? 'Quitar el sonido' : 'Poner el sonido');
 }
 
@@ -3930,6 +4061,8 @@ document.querySelector('#simsNeeds').addEventListener('click', (event) => {
     simsState.needsMini = !simsState.needsMini;
     return event.currentTarget.classList.toggle('is-mini', simsState.needsMini);
   }
+  const want = event.target.closest('[data-want]');
+  if (want) return startWant(want.dataset.want);
   const who = event.target.closest('[data-needs-who]');
   if (!who) return;
   simsState.needsOf = who.dataset.needsWho;

@@ -43,6 +43,8 @@
     });
     const meals = [day.lunch ? `Comida: ${day.lunch}` : '', day.dinner ? `Cena: ${day.dinner}` : ''].filter(Boolean);
     list.push({ id: 'menu', icon: 'chef-hat', label: 'Hoy se come', value: meals.length ? (day.dinner || day.lunch) : 'Sin planificar', detail: meals.length ? meals.join(' · ') : 'Planifica el menú en Cocina', tone: meals.length ? 'ok' : 'info', wide: true });
+    const upkeep = typeof window.upkeepDueItems === 'function' ? window.upkeepDueItems() : [];
+    if (upkeep.length) list.push({ id: 'upkeep', icon: 'wrench', label: 'Casa al día', value: plural(upkeep.length, 'cosa', 'cosas'), detail: upkeep.slice(0, 2).map((item) => item.title).join(', '), tone: 'warn', chip: upkeep.length === 1 ? upkeep[0].title : plural(upkeep.length, 'cosa de mantenimiento', 'cosas de mantenimiento') });
     const events = day.events || 0;
     if (events) list.push({ id: 'agenda', icon: 'calendar-days', label: 'Agenda', value: plural(events, 'evento', 'eventos'), detail: 'Hoy', tone: 'info' });
     if (day.countdown) list.push({ id: 'dates', icon: 'calendar-heart', label: 'Lo próximo', value: day.countdown, detail: 'Fechas de Nosotros', tone: 'info', wide: true });
@@ -77,6 +79,7 @@
       finance: () => openFinance(),
       menu: () => showView('menu'),
       agenda: () => openCalendar(),
+      upkeep: () => { showView('personal'); setTimeout(() => document.querySelector('#upkeepSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); },
       dates: () => { showView('nosotros'); if (typeof setUsView === 'function') setUsView('dates'); }
     }[row.dataset.hs];
     try { go?.(); } catch (error) { console.warn('[Umbral] Resumen:', error); }

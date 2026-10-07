@@ -225,6 +225,15 @@ svg.spin { animation: spin .6s linear; }
 .greeting-date::first-letter { text-transform: uppercase; }
 .greeting h1 { margin-top: 4px; font-size: clamp(30px, 8.4vw, 40px); font-weight: 600; line-height: 1.08; letter-spacing: -.045em; }
 .accent-dot { color: var(--coral); }
+.space-heading { display: none; }
+.space-heading h1 { margin-top: 2px; font-size: 32px; font-weight: 600; line-height: 1.08; letter-spacing: -.045em; }
+.space-heading p { margin-top: 4px; color: var(--muted); font-size: 14.5px; }
+@media (max-width: 999px) {
+  body[data-space]:not([data-space="home"]) .greeting { padding-bottom: 18px; }
+  body[data-space]:not([data-space="home"]) .greeting > h1,
+  body[data-space]:not([data-space="home"]) .greeting-summary { display: none; }
+  body[data-space]:not([data-space="home"]) .space-heading { display: block; animation: view-in .3s ease both; }
+}
 
 .views { display: grid; gap: 20px; }
 .view { display: grid; gap: 20px; align-content: start; min-width: 0; }
@@ -329,7 +338,7 @@ svg.spin { animation: spin .6s linear; }
   transition: transform .2s ease, box-shadow .2s ease;
 }
 .tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.tile-icon { display: grid; width: 40px; height: 40px; place-items: center; margin-bottom: auto; border-radius: 13px; }
+.tile-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 13px; }
 .tile-icon svg.lucide { width: 20px; height: 20px; }
 .tile-label { margin-top: 16px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
 .tile-value { margin-top: 2px; font-size: 20px; font-weight: 600; line-height: 1.15; letter-spacing: -.03em; }
@@ -657,6 +666,56 @@ svg.spin { animation: spin .6s linear; }
 .done-group summary svg.lucide { width: 16px; height: 16px; }
 .done-group summary span { padding: 1px 7px; border-radius: var(--radius-pill); background: var(--neutral-soft); letter-spacing: 0; }
 .done-group[open] summary { margin-bottom: 4px; }
+
+/* ---------- Vida: Casa al día (mantenimiento) ---------- */
+.upkeep-summary { margin: -6px 0 14px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.upkeep-summary.is-due { color: var(--coral-ink); font-weight: 600; }
+.upkeep-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.upkeep-item { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); transition: border-color .2s ease, background .2s ease; }
+.upkeep-item.is-due { border-color: color-mix(in srgb, var(--coral) 45%, var(--line)); background: color-mix(in srgb, var(--coral-soft) 55%, var(--surface)); }
+.upkeep-item.is-open { background: var(--surface); box-shadow: var(--shadow-sm); }
+.upkeep-main { display: flex; align-items: center; gap: 8px; padding: 10px 10px 12px 12px; }
+.upkeep-open { display: flex; flex: 1; align-items: center; gap: 12px; min-width: 0; color: var(--ink); text-align: left; }
+.upkeep-icon { display: grid; flex-shrink: 0; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: var(--green-soft); color: var(--accent); }
+.upkeep-icon svg.lucide { width: 19px; height: 19px; }
+.upkeep-item.is-soon .upkeep-icon { background: var(--amber-soft); color: var(--amber-ink); }
+.upkeep-item.is-due .upkeep-icon { background: var(--coral-soft); color: var(--coral-ink); }
+.upkeep-copy { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.upkeep-copy strong { font-size: 15px; font-weight: 600; line-height: 1.25; }
+.upkeep-copy small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.upkeep-due { color: var(--accent); font-weight: 700; }
+.upkeep-item.is-soon .upkeep-due { color: var(--amber-ink); }
+.upkeep-item.is-due .upkeep-due { color: var(--coral-ink); }
+.upkeep-item.is-new .upkeep-due { color: var(--blue-ink); font-weight: 600; }
+.upkeep-item.is-new .upkeep-icon { background: var(--blue-soft); color: var(--blue-ink); }
+.upkeep-item.is-new .upkeep-track b { width: 0 !important; }
+.upkeep-done { display: grid; flex-shrink: 0; width: 38px; height: 38px; place-items: center; border: 1.5px solid var(--line-strong); border-radius: 50%; background: var(--surface); color: var(--muted); transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease; }
+.upkeep-done svg.lucide { width: 18px; height: 18px; stroke-width: 2.6; }
+.upkeep-done:hover, .upkeep-item.is-due .upkeep-done { border-color: var(--green); color: var(--accent); }
+.upkeep-done:active { transform: scale(.9); background: var(--green); color: var(--lime); }
+.upkeep-track { position: absolute; right: 0; bottom: 0; left: 0; height: 3px; background: var(--track); }
+.upkeep-track b { display: block; height: 100%; border-radius: 0 3px 3px 0; background: var(--green); transition: width .5s ease; }
+.upkeep-item.is-soon .upkeep-track b { background: var(--amber); }
+.upkeep-item.is-due .upkeep-track b { background: var(--coral); }
+.upkeep-item.is-celebrating { animation: upkeep-pop .6s ease; }
+@keyframes upkeep-pop { 30% { transform: scale(1.02); border-color: var(--green); } }
+.upkeep-edit, .upkeep-form { display: grid; gap: 10px; padding: 0 12px 14px; }
+.upkeep-form { margin-bottom: 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); }
+.upkeep-form-row, .upkeep-edit { grid-template-columns: 1fr 1fr; }
+.upkeep-form label, .upkeep-edit label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.upkeep-form input, .upkeep-form select, .upkeep-edit input, .upkeep-edit select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: 14.5px; }
+.upkeep-form > input { min-height: 46px; }
+.upkeep-form-row { display: grid; gap: 10px; }
+.upkeep-edit-actions { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 10px; }
+.upkeep-presets { margin-top: 16px; }
+.upkeep-presets .suggestions-label { display: flex; align-items: center; gap: 6px; }
+.upkeep-presets .suggestions-label svg.lucide { width: 14px; height: 14px; }
+.upkeep-preset-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.upkeep-preset { display: inline-flex; align-items: center; gap: 6px; text-align: left; padding: 8px 12px; border: 1px dashed var(--line-strong); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; transition: border-color .15s ease, background .15s ease; }
+.upkeep-preset small { color: var(--muted); font-weight: 500; white-space: nowrap; }
+.upkeep-preset svg.lucide { width: 15px; height: 15px; color: var(--accent); }
+.upkeep-preset:hover { border-style: solid; border-color: var(--green); background: var(--green-soft); }
+.upkeep-section .notes-local-warning { margin-top: 12px; }
 
 /* ---------- Plantas ---------- */
 
@@ -1678,7 +1737,7 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .rate-stars button.is-on svg.lucide { fill: #f2b13b; }
 .muted-text { color: var(--muted); font-size: 13px; }
 .plan-link { display: inline-flex; margin-bottom: 14px; }
-.summary-countdown { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; padding: 2px 10px; border-radius: var(--radius-pill); background: #ffe4e1; color: #a8414f; font-size: .85em; font-weight: 700; white-space: nowrap; }
+.summary-countdown { display: flex; width: fit-content; align-items: center; gap: 6px; margin-top: 8px; padding: 2px 10px; border-radius: var(--radius-pill); background: #ffe4e1; color: #a8414f; font-size: .85em; font-weight: 700; white-space: nowrap; }
 
 
 :root[data-theme="dark"] .us-hero { background: linear-gradient(140deg, #3a2226, #4a2a2c 55%, #3b2a22); color: #ffe4dc; }
@@ -2680,6 +2739,29 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .sims-modal.is-full .sims-moodlets em, .sims-modal.is-full .sims-rel, .sims-modal.is-full .sims-skills { display: none; }
 .sims-modal.is-full .sims-moodlets { gap: 2px; margin-top: 4px; }
 .sims-modal.is-full .sims-moodlets span { padding: 0 3px; background: none; font-size: 12px; }
+/* Deseos de hoy: tres objetivos con premio (en pantalla completa, solo los emojis). */
+.sims-wants { margin-top: 12px; padding: 10px; border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); border-radius: var(--radius-md); background: linear-gradient(160deg, var(--amber-soft), transparent 80%); }
+.sims-wants-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 12.5px; font-weight: 700; }
+.sims-wants-head b { color: var(--amber-ink); font-size: 12px; }
+.sims-wants-list { display: grid; gap: 6px; }
+.sims-want { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-align: left; transition: transform .15s ease, border-color .15s ease; }
+.sims-want:not(:disabled):hover { border-color: var(--amber); transform: translateY(-1px); }
+.sims-want:not(:disabled):active { transform: scale(.98); }
+.sims-want-emoji { display: grid; flex-shrink: 0; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: var(--amber-soft); font-size: 17px; }
+.sims-want.is-real .sims-want-emoji { background: var(--green-soft); }
+.sims-want-copy { display: grid; flex: 1; min-width: 0; }
+.sims-want-copy em { font-size: 13.5px; font-style: normal; font-weight: 600; line-height: 1.25; }
+.sims-want-copy small { color: var(--accent); font-size: 11.5px; font-weight: 600; }
+.sims-want > b { flex-shrink: 0; padding: 3px 8px; border-radius: 999px; background: var(--track); color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+.sims-want.is-done { opacity: .62; }
+.sims-want.is-done em { text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.sims-want.is-done > b { background: #3fbf6a; color: #fff; }
+.sims-modal.is-full .sims-wants { margin-top: 4px; padding: 0; border: 0; background: none; }
+.sims-modal.is-full .sims-wants-head { display: none; }
+.sims-modal.is-full .sims-wants-list { grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.sims-modal.is-full .sims-want { justify-content: center; padding: 2px; border: 1px solid rgba(43, 31, 29, .25); border-radius: 6px; background: rgba(255, 255, 255, .6); }
+.sims-modal.is-full .sims-want-copy, .sims-modal.is-full .sims-want > b { display: none; }
+.sims-modal.is-full .sims-want-emoji { width: auto; height: 20px; background: none; font-size: 13px; }
 .sims-card.is-shop .sims-card-paper, .sims-card.is-games .sims-card-paper { width: min(360px, 100%); transform: none; }
 .sims-shop { display: grid; gap: 6px; }
 .sims-shop-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 6px 8px; border: 2px solid #2b1f1d; border-radius: 6px; background: #fff; }
@@ -2774,6 +2856,20 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 
 /* ---------- Nosotros: mapa de sitios ---------- */
 .us-map-stats { margin: -4px 0 10px; color: var(--muted); font-size: 13px; }
+.us-map-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: -2px 0 12px; }
+.us-map-kpis span { display: grid; gap: 1px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); color: var(--muted); font-size: 12px; font-weight: 600; }
+.us-map-kpis b { color: var(--ink); font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; }
+.us-map-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 10px 2px 0; color: var(--muted); font-size: 12px; font-weight: 500; }
+.us-pin.is-wish span { border-style: dashed; background: #f2b632; opacity: .92; }
+.us-wishes { margin-top: 18px; padding: 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); background: linear-gradient(160deg, var(--amber-soft), transparent 70%); }
+.us-wishes-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.us-wishes-head h3 { font-size: 18px; font-weight: 600; letter-spacing: -.03em; }
+.us-wishes ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.us-wish { display: flex; align-items: center; gap: 6px; }
+.us-wish .us-place { border: 1px solid var(--line); }
+.us-wish-done { display: inline-flex; flex-shrink: 0; align-items: center; gap: 4px; padding: 7px 11px; border-radius: var(--radius-pill); background: var(--green); color: var(--lime); font-size: 12.5px; font-weight: 700; }
+.us-wish-done svg.lucide { width: 14px; height: 14px; }
+.us-wishes-empty { color: var(--muted); font-size: 13.5px; line-height: 1.45; }
 .us-map { height: 340px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #dfe9ee; z-index: 0; }
 .us-pin { display: grid; place-items: center; }
 .us-pin span { display: grid; width: 30px; height: 30px; place-items: center; border: 2px solid #fff; border-radius: 50% 50% 50% 4px; background: #e0607a; box-shadow: 0 3px 8px rgba(0, 0, 0, .3); font-size: 14px; transform: rotate(-45deg); }
@@ -2787,7 +2883,9 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .us-place { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; border-radius: var(--radius-md); background: var(--surface); color: var(--ink); text-align: left; }
 .us-place b { font-weight: 600; }
 .us-place small { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.us-place-remove { width: 30px; height: 30px; border-radius: 50%; color: var(--muted); font-size: 12px; }
+.us-place-remove { display: grid; flex-shrink: 0; width: 30px; height: 30px; place-items: center; border-radius: 50%; color: var(--muted); font-size: 12px; }
+.us-place-remove svg.lucide { width: 15px; height: 15px; }
+.us-place-remove:hover { background: var(--coral-soft); color: var(--coral-ink); }
 .place-results { display: grid; gap: 6px; }
 .sims-card.is-map .sims-card-paper { width: min(360px, 100%); transform: rotate(-.5deg); }
 .sims-travelmap { display: block; width: 100%; height: auto; border: 2px solid #2b1f1d; border-radius: 4px; image-rendering: pixelated; }

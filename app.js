@@ -1827,8 +1827,21 @@ document.querySelector('.casa-tabs').addEventListener('click', (event) => {
 });
 setCasaTab((() => { try { return localStorage.getItem('umbral-casa-tab'); } catch { return null; } })() || 'pendientes');
 
+// En el móvil, el saludo grande solo sale en Hoy; las demás secciones llevan su título.
+const spaceHeadings = {
+  casa: ['Casa', 'Pendientes, cocina, plantas y luces'],
+  nosotros: ['Nosotros', 'Vuestras fotos, fechas, planes y viajes'],
+  personal: ['Vida', 'Tu agenda, el cuidado de la casa y las noticias']
+};
 function setWorkspace(view) {
   if (view === 'nosotros' && typeof renderUs === 'function') renderUs();
+  if (view === 'personal' && typeof renderUpkeep === 'function') renderUpkeep();
+  document.body.dataset.space = view;
+  const [title, subtitle] = spaceHeadings[view] || [];
+  if (title) {
+    document.querySelector('#spaceTitle').textContent = title;
+    document.querySelector('#spaceSubtitle').textContent = subtitle;
+  }
   document.querySelectorAll('[data-space]').forEach((section) => {
     section.classList.toggle('is-hidden', section.dataset.space !== view);
   });

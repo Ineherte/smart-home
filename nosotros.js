@@ -228,8 +228,10 @@ const placesStore = createHouseholdStore({ table: 'places', localKey: 'umbral-pl
 const PLACE_KINDS = {
   home: { label: 'Casa', emoji: '🏠' },
   family: { label: 'Familia', emoji: '👪' },
-  trip: { label: 'Viaje', emoji: '❤️' }
+  trip: { label: 'Viaje', emoji: '❤️' },
+  wish: { label: 'Queremos ir', emoji: '⭐' }
 };
+const isWish = (place) => place.kind === 'wish';
 const STARTER_PLACES = [
   ['Turín', 'Italia', 45.0703, 7.6869, 'home', 'Donde vivimos'],
   ['Chieti', 'Italia', 42.3510, 14.1675, 'family', 'La familia de Matteo'],
@@ -276,17 +278,30 @@ async function loadPlaces() {
 const saveFallbackPlaces = () => { try { localStorage.setItem('umbral-places-fallback', JSON.stringify(places)); } catch {} };
 
 function renderMap() {
-  const countries = [...new Set(places.map((place) => place.country).filter(Boolean))];
-  const byCountry = countries.map((country) => [country, places.filter((place) => place.country === country)]);
-  const others = places.filter((place) => !place.country);
+  const visited = places.filter((place) => !isWish(place));
+  const wishes = places.filter(isWish);
+  const countries = [...new Set(visited.map((place) => place.country).filter(Boolean))];
+  const byCountry = countries.map((country) => [country, visited.filter((place) => place.country === country)]);
+  const others = visited.filter((place) => !place.country);
   if (others.length) byCountry.push(['Otros', others]);
+  const trips = visited.filter((place) => place.kind === 'trip').length;
   setTimeout(mountMap, 0);
+  const placeRow = (place) => `<li><button type="button" class="us-place" data-fly-place="${escapeHtml(place.id)}"><span>${PLACE_KINDS[place.kind]?.emoji || '📍'}</span><b>${escapeHtml(place.name)}</b>${place.note ? `<small>${escapeHtml(place.note)}</small>` : ''}</button><button type="button" class="us-place-remove" data-remove-place="${escapeHtml(place.id)}" aria-label="Quitar ${escapeHtml(place.name)}"><i data-lucide="x"></i></button></li>`;
   return `<section class="panel us-map-panel">
-    <div class="section-heading"><div><p class="eyebrow">Nuestro mapa</p><h2>${places.length} sitios juntos</h2></div><button type="button" class="pill-button" data-add-place><i data-lucide="map-pin-plus"></i> Añadir</button></div>
-    <p class="us-map-stats">${countries.length} ${countries.length === 1 ? 'país' : 'países'} · ${places.filter((place) => place.kind === 'trip').length} viajes · también lo veis en el corcho de vuestra casa del modo Sims 🗺️</p>
-    <div class="us-map" id="usMap" role="img" aria-label="Mapa de los sitios en los que habéis estado"></div>
+    <div class="section-heading"><div><p class="eyebrow">Nuestro mapa</p><h2>${visited.length} sitios juntos</h2></div><button type="button" class="pill-button" data-add-place><i data-lucide="map-pin-plus"></i> Añadir</button></div>
+    <div class="us-map-kpis">
+      <span><b>${countries.length}</b>${countries.length === 1 ? 'país' : 'países'}</span>
+      <span><b>${trips}</b>${trips === 1 ? 'viaje' : 'viajes'}</span>
+      <span><b>${wishes.length}</b>por visitar</span>
+    </div>
+    <div class="us-map" id="usMap" role="img" aria-label="Mapa de los sitios en los que habéis estado y los que queréis visitar"></div>
+    <p class="us-map-legend"><span>🏠 Casa</span><span>👪 Familia</span><span>❤️ Viajes</span><span>⭐ Queremos ir</span></p>
     ${placesShared ? '' : '<p class="notes-local-warning"><i data-lucide="info"></i> Para que el mapa se comparta entre los dos, ejecutad supabase/sql/places.sql en Supabase.</p>'}
-    <div class="us-places">${byCountry.map(([country, list]) => `<h3>${escapeHtml(country)} <small>${list.length}</small></h3><ul>${list.map((place) => `<li><button type="button" class="us-place" data-fly-place="${escapeHtml(place.id)}"><span>${PLACE_KINDS[place.kind]?.emoji || '📍'}</span><b>${escapeHtml(place.name)}</b>${place.note ? `<small>${escapeHtml(place.note)}</small>` : ''}</button><button type="button" class="us-place-remove" data-remove-place="${escapeHtml(place.id)}" aria-label="Quitar ${escapeHtml(place.name)}">✕</button></li>`).join('')}</ul>`).join('')}</div>
+    <div class="us-wishes">
+      <div class="us-wishes-head"><div><p class="eyebrow">Próximas aventuras</p><h3>Queremos ir</h3></div><button type="button" class="pill-button is-quiet" data-add-place="wish"><i data-lucide="sparkles"></i> Soñar</button></div>
+      ${wishes.length ? `<ul>${wishes.map((place) => `<li class="us-wish"><button type="button" class="us-place" data-fly-place="${escapeHtml(place.id)}"><span>⭐</span><b>${escapeHtml(place.name)}</b>${place.country ? `<small>${escapeHtml(place.country)}</small>` : ''}</button><button type="button" class="us-wish-done" data-visit-place="${escapeHtml(place.id)}"><i data-lucide="check"></i> Ya fuimos</button><button type="button" class="us-place-remove" data-remove-place="${escapeHtml(place.id)}" aria-label="Quitar ${escapeHtml(place.name)}"><i data-lucide="x"></i></button></li>`).join('')}</ul>` : '<p class="us-wishes-empty">Apuntad aquí los sitios que os apetece conocer. Cuando vayáis, tocad «Ya fuimos» y pasará a vuestro mapa.</p>'}
+    </div>
+    <div class="us-places">${byCountry.map(([country, list]) => `<h3>${escapeHtml(country)} <small>${list.length}</small></h3><ul>${list.map(placeRow).join('')}</ul>`).join('')}</div>
   </section>`;
 }
 // Leaflet se carga solo al abrir el mapa (con el mapa base de OpenStreetMap).
@@ -330,11 +345,12 @@ async function mountMap() {
     el.innerHTML = `<p class="empty-note">${escapeHtml(error.message || 'No se pudo cargar el mapa')}</p>`;
   }
 }
-function openPlaceAdder() {
+function openPlaceAdder(kind = 'trip') {
+  const initialKind = PLACE_KINDS[kind] ? kind : 'trip';
   showUsSheet(`
-    <div class="plant-add-heading"><p class="eyebrow muted">Nuestro mapa</p><h2 id="usSheetTitle">¿Dónde habéis estado?</h2></div>
+    <div class="plant-add-heading"><p class="eyebrow muted">Nuestro mapa</p><h2 id="usSheetTitle">${kind === 'wish' ? '¿A dónde queréis ir?' : '¿Dónde habéis estado?'}</h2></div>
     <form class="quick-add" data-place-search><div class="quick-add-row"><input name="q" type="search" maxlength="80" placeholder="Busca una ciudad o un pueblo" aria-label="Buscar sitio" autocomplete="off" /><button type="submit" aria-label="Buscar"><i data-lucide="search"></i></button></div></form>
-    <fieldset class="plant-field"><legend>Tipo</legend><div class="choice-row">${Object.entries(PLACE_KINDS).map(([id, kind]) => `<label class="option-toggle"><input type="radio" name="placeKind" value="${id}" ${id === 'trip' ? 'checked' : ''} /><span>${kind.emoji} ${kind.label}</span></label>`).join('')}</div></fieldset>
+    <fieldset class="plant-field"><legend>Tipo</legend><div class="choice-row">${Object.entries(PLACE_KINDS).map(([id, placeKind]) => `<label class="option-toggle"><input type="radio" name="placeKind" value="${id}" ${id === initialKind ? 'checked' : ''} /><span>${placeKind.emoji} ${placeKind.label}</span></label>`).join('')}</div></fieldset>
     <div class="place-results" data-place-results><p class="empty-note">Escribe el nombre y toca buscar.</p></div>`, { kind: 'place-add' });
 }
 async function searchPlaces(query) {
@@ -360,11 +376,30 @@ async function addPlace(result) {
     else { places.push({ ...row, id: createLocalId() }); saveFallbackPlaces(); }
     closeUsSheet();
     setUsView('map');
-    showToast(`📍 ${result.name} añadido a vuestro mapa`);
+    const wish = kind === 'wish';
+    showToast(wish ? `⭐ ${result.name}, a la lista de sitios por visitar` : `📍 ${result.name} añadido a vuestro mapa`);
     window.dispatchEvent(new CustomEvent('umbral:places', { detail: { places } }));
-    notifyHousehold(`${currentUser} añadió ${result.name} al mapa 📍`, 'Mirad vuestro mapa en Nosotros', { open: 'nosotros', tag: 'places' });
+    notifyHousehold(wish ? `${currentUser} quiere ir a ${result.name} ⭐` : `${currentUser} añadió ${result.name} al mapa 📍`, 'Mirad vuestro mapa en Nosotros', { open: 'nosotros', tag: 'places' });
   } catch (error) {
     showSupabaseError('No se pudo añadir el sitio', error);
+  }
+}
+// Un sitio pendiente que ya habéis visitado pasa a ser un viaje (con la fecha de hoy).
+async function visitPlace(id) {
+  const place = places.find((entry) => entry.id === id);
+  if (!place) return;
+  const changes = { kind: 'trip', visited_on: new Date().toISOString().slice(0, 10) };
+  try {
+    if (placesShared) await placesStore.update(id, changes);
+    Object.assign(place, changes);
+    if (!placesShared) saveFallbackPlaces();
+    renderUs();
+    showToast(`❤️ ${place.name}, ¡a vuestro mapa!`);
+    window.dispatchEvent(new CustomEvent('umbral:places', { detail: { places } }));
+    window.dispatchEvent(new CustomEvent('umbral:life', { detail: { kind: 'plan' } }));
+    notifyHousehold(`¡${place.name} ya está en vuestro mapa! ❤️`, `${currentUser} lo ha marcado como visitado`, { open: 'nosotros', tag: 'places' });
+  } catch (error) {
+    showSupabaseError('No se pudo marcar como visitado', error);
   }
 }
 async function removePlace(id) {
@@ -585,7 +620,10 @@ document.querySelector('#usView').addEventListener('click', async (event) => {
   const moment = target.closest('[data-open-moment]');
   if (moment) return openMoment(moment.dataset.openMoment);
   if (target.closest('[data-new-date]')) return openDateEditor();
-  if (target.closest('[data-add-place]')) return openPlaceAdder();
+  const addPlaceButton = target.closest('[data-add-place]');
+  if (addPlaceButton) return openPlaceAdder(addPlaceButton.dataset.addPlace || 'trip');
+  const visit = target.closest('[data-visit-place]');
+  if (visit) return visitPlace(visit.dataset.visitPlace);
   const removeP = target.closest('[data-remove-place]');
   if (removeP) return removePlace(removeP.dataset.removePlace);
   const fly = target.closest('[data-fly-place]');

@@ -1,5 +1,5 @@
 -- Mapa de Nosotros: los sitios en los que habéis estado juntos (también salen en el corcho
--- del modo Sims). Los dos pueden añadir y quitar sitios.
+-- del modo Sims) y los que queréis visitar (kind = 'wish'). Los dos pueden añadir y quitar sitios.
 -- Ejecutar después de life.sql. Es idempotente.
 
 create table if not exists public.places (
@@ -9,13 +9,16 @@ create table if not exists public.places (
   country text check (char_length(country) <= 60),
   lat double precision not null check (lat between -90 and 90),
   lon double precision not null check (lon between -180 and 180),
-  kind text not null default 'trip' check (kind in ('home', 'family', 'trip')),
+  kind text not null default 'trip' check (kind in ('home', 'family', 'trip', 'wish')),
   note text check (char_length(note) <= 200),
   visited_on date,
   added_by text,
   created_by uuid references auth.users(id) default auth.uid(),
   created_at timestamptz not null default now()
 );
+-- Versiones anteriores solo aceptaban home, family y trip: se amplía para los sitios pendientes.
+alter table public.places drop constraint if exists places_kind_check;
+alter table public.places add constraint places_kind_check check (kind in ('home', 'family', 'trip', 'wish'));
 create index if not exists places_household_idx on public.places (household_id);
 
 alter table public.places enable row level security;

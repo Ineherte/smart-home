@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=48" />
+    <link rel="stylesheet" href="styles.css?v=49" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -33,6 +33,7 @@
         <p class="greeting-date" id="todayLabel">Hoy</p>
         <h1><span id="greetingWord">Hola</span>, <span id="userName">Ines</span><span class="accent-dot">.</span></h1>
         <p class="greeting-summary" id="daySummary">Preparando tu día…</p>
+        <div class="space-heading" id="spaceHeading" aria-live="polite"><h1 id="spaceTitle">Casa</h1><p id="spaceSubtitle"></p></div>
       </section>
 
       <div class="views">
@@ -252,6 +253,15 @@
               <div id="agendaList"><p class="empty-note">Cargando agenda…</p></div>
             </section>
 
+            <section class="panel upkeep-section" id="upkeepSection" aria-labelledby="upkeepTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Mantenimiento</p><h2 id="upkeepTitle">Casa al día</h2></div>
+                <button class="pill-button" type="button" id="upkeepAddButton" aria-expanded="false"><i data-lucide="plus"></i> Añadir</button>
+              </div>
+              <p class="upkeep-summary" id="upkeepSummary"></p>
+              <div id="upkeepBody"><p class="empty-note">Cargando…</p></div>
+            </section>
+
             <section class="panel news-section" aria-labelledby="news-title">
               <div class="section-heading">
                 <div><p class="eyebrow">La mirada del día</p><h2 id="news-title">Noticias</h2></div>
@@ -467,7 +477,7 @@
     </div>
     <div class="sims-modal" id="simsModal" role="dialog" aria-modal="true" aria-labelledby="simsTitle">
       <div class="sims-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-full" type="button" id="simsFull" aria-pressed="false" aria-label="Pantalla completa" title="Pantalla completa">⛶</button><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa">🔍</button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido">🔊</button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
+        <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-full" type="button" id="simsFull" aria-pressed="false" aria-label="Pantalla completa" title="Pantalla completa"><i data-lucide="maximize"></i></button><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa"><i data-lucide="zoom-in"></i></button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido" title="Sonido"><i data-lucide="volume-2"></i></button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
         <div class="sims-house" id="simsHouse"></div>
         <div class="sims-needs" id="simsNeeds"></div>
         <button type="button" class="sims-tip" id="simsTip"></button>
@@ -492,13 +502,14 @@
     <script src="personal.js?v=2"></script>
     <script src="media.js?v=1"></script>
     <script src="kitchen.js?v=4"></script>
-    <script src="nosotros.js?v=7"></script>
+    <script src="nosotros.js?v=8"></script>
+    <script src="upkeep.js?v=1"></script>
     <script src="avatars.js?v=7"></script>
     <script src="sims-world.js?v=10"></script>
     <script src="sims-places.js?v=2"></script>
     <script src="garden.js?v=2"></script>
-    <script src="sims.js?v=11"></script>
-    <script src="app.js?v=46"></script>
-    <script src="summary.js?v=2"></script>
+    <script src="sims.js?v=12"></script>
+    <script src="app.js?v=47"></script>
+    <script src="summary.js?v=3"></script>
   </body>
 </html>

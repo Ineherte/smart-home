@@ -7,6 +7,13 @@ window.umbralMobile = {
     }
     if ('vibrate' in navigator) navigator.vibrate([180, 80, 180]);
   },
+  // Un toque corto al marcar algo como hecho (en el navegador, si el móvil lo permite).
+  async tap() {
+    try {
+      if (window.Capacitor?.Plugins?.Haptics) return await window.Capacitor.Plugins.Haptics.impact({ style: 'light' });
+      if ('vibrate' in navigator) navigator.vibrate(12);
+    } catch {}
+  },
   async notify(title, body) {
     const notifications = window.Capacitor?.Plugins?.LocalNotifications;
     if (!notifications) return false;
