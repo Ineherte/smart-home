@@ -285,6 +285,7 @@ function renderAttention(nextState = {}) {
   section?.classList.toggle('has-items', items.length > 0);
   list.innerHTML = items.length ? items.map((item) => `<button type="button" class="attention-item is-${item.tone}" data-attention-action="${item.action}"><span class="attention-item-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></span><i data-lucide="chevron-right"></i></button>`).join('') : '<div class="attention-empty"><i data-lucide="sparkles"></i><span>No hay nada urgente. La casa está tranquila.</span></div>';
   updateHomeStatusMessage(items.length);
+  window.renderHouseSummary?.();
   lucide.createIcons();
 }
 
@@ -327,6 +328,7 @@ function updateDaySummary(partial) {
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}` : parts[0];
   const meals = [lunch ? `de comer <b>${escapeHtml(lunch)}</b>` : '', dinner ? `de cena <b>${escapeHtml(dinner)}</b>` : ''].filter(Boolean).join(' y ');
   summary.innerHTML = `${parts.length ? `Hoy tienes ${list}.` : 'Hoy no tienes nada pendiente. Disfrutad del día.'}${meals ? ` Hay ${meals}.` : ''}${countdown ? `<span class="summary-countdown">${escapeHtml(countdown)}</span>` : ''}`;
+  window.renderHouseSummary?.();
 }
 
 // Contadores de Casa: la pestaña muestra su número y la navegación avisa de lo que corre prisa.

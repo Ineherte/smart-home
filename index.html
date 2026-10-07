@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=46" />
+    <link rel="stylesheet" href="styles.css?v=47" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -44,8 +44,8 @@
             <button type="button" class="quick-action is-expense" data-action="quick-expense"><span><i data-lucide="receipt-euro"></i></span>Gasto</button>
           </div>
 
-          <div class="shark-tank" id="sharkTank" role="img" aria-label="El tiburón de la casa"></div>
-          <section class="attention-section" aria-labelledby="home-title">
+          <section class="house-summary" id="houseSummary" aria-label="Estado de la casa"></section>
+          <section class="attention-section" aria-labelledby="home-title" hidden>
             <div class="section-heading">
               <span class="attention-mark" aria-hidden="true"><i data-lucide="house-heart"></i></span>
               <div>
@@ -498,7 +498,7 @@
     <script src="sims-places.js?v=2"></script>
     <script src="garden.js?v=2"></script>
     <script src="sims.js?v=11"></script>
-    <script src="shark.js?v=1"></script>
-    <script src="app.js?v=45"></script>
+    <script src="app.js?v=46"></script>
+    <script src="summary.js?v=1"></script>
   </body>
 </html>

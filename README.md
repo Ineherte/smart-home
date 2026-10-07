@@ -70,7 +70,7 @@ Estas funciones:
 - `www/`: copia generada con `npm run build:www` para Capacitor. No se versiona; no la edites.
 - `sims-world.js`, `sims-places.js` y `sims.js`: el modo Sims (el piso en pixel art; Turín, Chieti y la casa de campo en España; y la lógica del juego, conectada con la compra, las tareas, la agenda, las plantas y el tiempo, sincronizada en directo entre los dos móviles con Supabase Realtime y jugable a pantalla completa en horizontal). Dentro del juego: monedas, habilidades, relación y estados de ánimo como en los Sims, cola de acciones, tienda de muebles (guitarra, puf, caballete, telescopio, acuario y recreativa), sala de juegos (Tiburón hambriento, Sudoku, Binairo y crucigrama), mapa de vuestros viajes en el salón, chat en directo, armario con disfraces, decoración de la casa con temáticas, fotos que se guardan en Nosotros, el minijuego Tiburón hambriento y un ciclo de día y noche con la hora real. La ropa elegida, la decoración y los récords se guardan en el campo `look` de cada muñeco, sin tablas nuevas.
 - `garden.js`: la casa con jardín de la pantalla de inicio, en el mismo pixel art y con los mismos muñecos.
-- `shark.js`: el tiburón de Inicio, que nada en su pecera y cuyo ánimo refleja cómo está la casa (urgentes, tareas, plantas, compra, celebraciones y la noche).
+- `summary.js`: el estado de la casa en Inicio, un resumen de los puntos abiertos (tareas, notas urgentes, plantas, compra, cuentas) y de lo de hoy (comidas, agenda y lo próximo).
 - `assets/sims/`: los muñecos LPC de Ines y Matteo (con su ropa de dormir, de abrigo y de verano), sus familias, el JSON para el generador y los créditos obligatorios.
 - `supabase/sql/`: esquemas y migraciones SQL.
 - `supabase/functions/`: Edge Functions.
