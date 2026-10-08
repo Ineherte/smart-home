@@ -2843,7 +2843,14 @@ function saveSimLook(changes) {
   const person = myAvatarPerson();
   // Siempre con la foto de la vida en el juego (monedas, habilidades, relación, deseos),
   // para que no se pierda al guardar otra cosa ni al cerrar la casa.
-  return saveAvatar({ look: { ...simLookOf(person), ...lifeSnapshot(), ...changes } }).catch((error) => console.warn('[Umbral] Guardar en el juego:', error));
+  const look = { ...simLookOf(person), ...lifeSnapshot(), ...changes };
+  return saveAvatar({ look }).catch((error) => {
+    // Si la base aún tiene el límite antiguo de tamaño (avatars.sql sin volver a ejecutar),
+    // se guarda lo esencial: diario y recuerdos más cortos, para no perder monedas ni progreso.
+    if (!/avatars_look_check|look/i.test(error?.message || '')) return console.warn('[Umbral] Guardar en el juego:', error);
+    const slim = { ...look, diary: (look.diary || []).slice(0, 4), memories: (look.memories || []).slice(0, 4) };
+    return saveAvatar({ look: slim }).catch((again) => console.warn('[Umbral] Guardar en el juego:', again));
+  });
 }
 
 // ---------- Armario: ropa, pijama y disfraces cuando queráis ----------

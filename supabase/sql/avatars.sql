@@ -34,6 +34,10 @@ alter table public.avatars drop constraint if exists avatars_place_check;
 alter table public.avatars add constraint avatars_place_check check (place is null or char_length(place) <= 20);
 alter table public.avatars drop constraint if exists avatars_activity_check;
 alter table public.avatars add constraint avatars_activity_check check (activity is null or char_length(activity) <= 30);
+-- look guarda también la vida en el juego (monedas, habilidades, deseos, aspiraciones, diario,
+-- personalidad, trabajo y recuerdos): el límite pasa de 4 KB a 16 KB.
+alter table public.avatars drop constraint if exists avatars_look_check;
+alter table public.avatars add constraint avatars_look_check check (pg_column_size(look) < 16000);
 alter table public.avatars drop constraint if exists avatars_needs_check;
 alter table public.avatars add constraint avatars_needs_check check (pg_column_size(needs) < 1000);
 alter table public.avatars drop constraint if exists avatars_poke_check;

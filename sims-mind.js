@@ -160,7 +160,7 @@
     const list = mind().memories;
     if (list.some((memory) => memory.text === text && Date.now() - memory.at < 86400000)) return;
     list.unshift({ at: Date.now(), emoji, text: String(text).slice(0, 80), line: String(line || '').slice(0, 110) });
-    mind().memories = list.slice(0, 24);
+    mind().memories = list.slice(0, 14);
     saveLife();
   }
   // De vez en cuando, si estáis cerca y sin hacer nada, uno le recuerda algo al otro.

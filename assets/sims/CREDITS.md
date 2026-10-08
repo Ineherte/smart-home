@@ -9,6 +9,11 @@ importar en el generador (Import from Clipboard) para cambiarles la ropa o el pe
 La casa en pixel art (sims-world.js) está dibujada a mano en código para esta app, salvo los
 suelos.
 
+## Retratos del widget (assets/widget)
+
+ines.png, matteo.png, ines-head.png y matteo-head.png son recortes ampliados de los mismos
+muñecos LPC (ines.png y matteo.png), con sus mismas licencias y autores.
+
 ## Suelos de la casa (house-floors.png)
 
 house-floors.png es un recorte de 11 baldosas de

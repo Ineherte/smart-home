@@ -36,7 +36,7 @@
     if (!ready()) return;
     const life = lifeData();
     life.diary.unshift({ at: Date.now(), emoji, text: String(text).slice(0, 90) });
-    life.diary = life.diary.slice(0, 30);
+    life.diary = life.diary.slice(0, 20);
     saveLife();
   }
 
