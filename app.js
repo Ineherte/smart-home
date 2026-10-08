@@ -321,7 +321,7 @@ function updateDaySummary(partial) {
   const { tasks, shopping, events, plants, lunch, dinner, countdown } = daySummaryState;
   if ([tasks, shopping, events, plants, lunch, dinner, countdown].every((value) => value === null)) return;
   const parts = [];
-  if (tasks) parts.push(`<b>${tasks} tarea${tasks === 1 ? '' : 's'}</b>`);
+  if (tasks) parts.push(`<b>${tasks} ${tasks === 1 ? 'cosa' : 'cosas'}</b> por hacer`);
   if (events) parts.push(`<b>${events} evento${events === 1 ? '' : 's'}</b>`);
   if (shopping) parts.push(`<b>${shopping} ${shopping === 1 ? 'cosa' : 'cosas'}</b> en la compra`);
   if (plants) parts.push(`<b>${plants} ${plants === 1 ? 'planta' : 'plantas'}</b> que regar`);
@@ -685,11 +685,14 @@ async function connectNotes() {
   renderCalendarData();
   loadLightStates();
   document.dispatchEvent(new CustomEvent('umbral:ready'));
+  // Las notas se guardan solas mientras se escribe: solo se avisa cuando tu pareja crea una.
+  let notesReload = 0;
   supabaseClient.channel('notes-live').on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload) => {
-    if (payload.eventType === 'UPDATE' && payload.new.completed && payload.new.owner_id !== authUserId && payload.new.scope === 'shared') {
-      showToast(`${otherPerson(currentUser)} ha completado: ${payload.new.content}`);
+    if (payload.eventType === 'INSERT' && payload.new.owner_id !== authUserId && payload.new.scope === 'shared') {
+      showToast(`📝 ${otherPerson(currentUser)} ha creado la nota «${payload.new.content}»`);
     }
-    renderNotes();
+    clearTimeout(notesReload);
+    notesReload = setTimeout(renderNotes, 600);
   }).subscribe();
   supabaseClient.channel('drawing-live').on('postgres_changes', { event: '*', schema: 'public', table: 'household_drawings', filter: `household_id=eq.${householdId}` }, (payload) => {
     if (payload.new?.updated_by !== authUserId) {

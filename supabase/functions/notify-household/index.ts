@@ -190,7 +190,8 @@ async function sendMorningBrief(admin: Admin, vapid: Vapid) {
   let sent = 0;
   for (const [householdId, devices] of byHousehold) {
     const [tasks, events, meals, plants, dates] = await Promise.all([
-      rows<{ title: string; assignee: string; due_date: string }>(admin.from('household_tasks').select('title, assignee, due_date').eq('household_id', householdId).eq('active', true).lte('due_date', today)),
+      // Rutinas que tocan y lo de una vez cuyo plazo vence en 3 días o menos (sale cada mañana hasta hacerlo).
+      rows<{ title: string; assignee: string; due_date: string; recurrence: string }>(admin.from('household_tasks').select('title, assignee, due_date, recurrence').eq('household_id', householdId).eq('active', true).lte('due_date', addDaysIso(today, 3)).order('due_date')),
       rows<{ title: string; event_time: string | null; scope: string; owner_id: string }>(admin.from('events').select('title, event_time, scope, owner_id').eq('household_id', householdId).eq('event_date', today).order('event_time', { ascending: true })),
       rows<{ slot: string; title: string }>(admin.from('meal_plan').select('slot, title').eq('household_id', householdId).eq('day', today)),
       rows<{ name: string }>(admin.from('plants').select('name').eq('household_id', householdId).eq('active', true).lte('next_water_on', today)),
@@ -209,7 +210,10 @@ async function sendMorningBrief(admin: Admin, vapid: Vapid) {
       if (myEvents.length) lines.push(`📅 ${myEvents.slice(0, 3).map((event) => (event.event_time ? `${event.event_time.slice(0, 5)} ${event.title}` : event.title)).join(' · ')}`);
       if (myTasks.length) {
         const late = myTasks.filter((task) => task.due_date < today).length;
-        lines.push(`✅ ${myTasks.length === 1 ? myTasks[0].title : `${myTasks.length} tareas`}${late ? ` (${late} atrasada${late > 1 ? 's' : ''})` : ''}`);
+        const first = myTasks[0];
+        const left = Math.round((Date.parse(`${first.due_date}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86400000);
+        const when = first.recurrence !== 'none' ? '' : left < 0 ? ' (plazo pasado)' : left === 0 ? ' (hoy)' : left === 1 ? ' (mañana)' : ` (quedan ${left} días)`;
+        lines.push(`✅ ${myTasks.length === 1 ? `${first.title}${when}` : `${myTasks.length} cosas por hacer · ${first.title}${when}`}${late && myTasks.length > 1 ? ` · ${late} con plazo pasado` : ''}`);
       }
       if (lunch || dinner) lines.push(`🍽️ ${[lunch && `Comida: ${lunch}`, dinner && `Cena: ${dinner}`].filter(Boolean).join(' · ')}`);
       if (plants.length) lines.push(`🌱 Regar ${listText(plants.map((plant) => plant.name))}`);
@@ -253,6 +257,12 @@ async function sendDailyPhoto(admin: Admin, vapid: Vapid) {
   if (!pending.length) return { households: 0, sent: 0 };
   const result = await deliver(admin, pending, message, vapid);
   return { households: households.length - done.size, ...result };
+}
+
+function addDaysIso(iso: string, days: number) {
+  const date = new Date(`${iso}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function json(value: unknown, status = 200) {

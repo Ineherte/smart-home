@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=53" />
+    <link rel="stylesheet" href="styles.css?v=54" />
     <script src="https://unpkg.com/lucide@1.49.0"></script>
   </head>
   <body>
@@ -98,8 +98,8 @@
             <article class="tile tile-notes notes-card" data-action="notes" tabindex="0" role="button" aria-label="Abrir notas">
               <span class="tile-icon"><i data-lucide="notebook-pen"></i></span>
               <span class="tile-label">Notas</span>
-              <strong class="tile-value" id="notesCount">0 notas</strong>
-              <small class="tile-detail" id="notesPreview">Nada pendiente</small>
+              <strong class="tile-value" id="notesCount">Sin notas</strong>
+              <small class="tile-detail" id="notesPreview">Apuntes, listas e ideas</small>
             </article>
             <button class="tile tile-lights" type="button" data-action="lights">
               <span class="tile-icon"><i data-lucide="lightbulb"></i></span>
@@ -125,7 +125,11 @@
           </div>
 
           <div class="casa-panel" data-casa-panel="pendientes" id="tasksView" role="tabpanel">
-            <section class="todo-hero" aria-labelledby="todoHeroTitle">
+            <div class="pending-switch" role="group" aria-label="Por hacer o notas">
+              <button type="button" data-pending-pane="todo" aria-pressed="true"><i data-lucide="circle-check-big"></i><span><b>Por hacer</b><small>Tareas y rutinas</small></span></button>
+              <button type="button" data-pending-pane="notes" aria-pressed="false"><i data-lucide="notebook-pen"></i><span><b>Notas</b><small>Apuntes y listas</small></span></button>
+            </div>
+            <section class="todo-hero" data-pane="todo" aria-labelledby="todoHeroTitle">
               <div class="todo-hero-top">
                 <div class="todo-ring" id="todoRing"></div>
                 <div class="todo-hero-copy"><p class="eyebrow">Tu día en casa</p><h2 id="todoHeroTitle">Cargando…</h2><p id="todoHeroDetail"></p></div>
@@ -135,26 +139,32 @@
               <div class="week-strip" id="weekStrip" aria-label="Carga de los próximos 7 días"></div>
             </section>
 
-            <form class="quick-add" id="pendingForm" autocomplete="off">
+            <form class="quick-add" id="pendingForm" data-pane="todo" autocomplete="off">
               <div class="quick-add-row">
-                <input name="title" type="text" maxlength="160" placeholder="Añade algo: «basura mañana @matteo cada semana»" aria-label="Añadir una tarea o nota" enterkeyhint="done" />
+                <input name="title" type="text" maxlength="160" placeholder="Pagar la luz en 5 días #papeles" aria-label="Apuntar algo por hacer" enterkeyhint="done" />
                 <button type="submit" aria-label="Añadir"><i data-lucide="arrow-up"></i></button>
               </div>
               <div class="quick-preview" id="quickPreview"></div>
             </form>
 
-            <div class="todo-toolbar">
+            <div class="todo-lists" id="todoLists" data-pane="todo" role="group" aria-label="Listas"></div>
+
+            <div class="todo-toolbar" data-pane="todo">
               <div class="segmented is-wide todo-views" role="group" aria-label="Cómo verlo">
-                <button type="button" data-todo-view="today" aria-pressed="true"><i data-lucide="sun"></i>Hoy</button>
+                <button type="button" data-todo-view="list" aria-pressed="true"><i data-lucide="list-checks"></i>Lista</button>
                 <button type="button" data-todo-view="week" aria-pressed="false"><i data-lucide="calendar-range"></i>Semana</button>
                 <button type="button" data-todo-view="people" aria-pressed="false"><i data-lucide="users"></i>Personas</button>
-                <button type="button" data-todo-view="notes" aria-pressed="false"><i data-lucide="sticky-note"></i>Notas</button>
               </div>
               <label class="mine-toggle"><input type="checkbox" id="onlyMine" /><span><i data-lucide="user-round"></i>Solo lo mío</span></label>
             </div>
 
-            <div class="todo-view" id="pendingList"></div>
-            <section class="money-card todo-insights" id="todoInsights" hidden></section>
+            <div class="todo-view" id="pendingList" data-pane="todo"></div>
+            <section class="money-card todo-insights" id="todoInsights" data-pane="todo" hidden></section>
+
+            <div class="notes-pane" id="notesPane" data-pane="notes" hidden>
+              <label class="notes-search"><i data-lucide="search"></i><input id="notesSearch" type="search" placeholder="Buscar en las notas" aria-label="Buscar en las notas" /></label>
+              <div id="notesBoard"></div>
+            </div>
           </div>
 
           <div class="casa-panel" data-casa-panel="cocina" id="kitchenView" role="tabpanel" hidden>
@@ -369,6 +379,12 @@
         <div class="plant-sheet-body" id="itemSheetBody"></div>
       </div>
     </div>
+    <div class="plant-sheet note-sheet" id="noteSheet" role="dialog" aria-modal="true" aria-labelledby="noteSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-note aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="noteSheetBody"></div>
+      </div>
+    </div>
     <div class="plant-sheet money-sheet" id="moneySheet" role="dialog" aria-modal="true" aria-labelledby="moneySheetTitle">
       <div class="plant-sheet-panel">
         <button class="icon-button small plant-sheet-close" type="button" data-close-money aria-label="Cerrar"><i data-lucide="x"></i></button>
@@ -494,8 +510,9 @@
     <script src="store.js?v=1"></script>
     <script src="push.js?v=1"></script>
     <script src="shopping.js?v=4"></script>
-    <script src="tasks.js?v=5"></script>
-    <script src="pending.js?v=3"></script>
+    <script src="tasks.js?v=6"></script>
+    <script src="notes.js?v=1"></script>
+    <script src="pending.js?v=4"></script>
     <script src="plants.js?v=5"></script>
     <script src="money.js?v=3"></script>
     <script src="bank-import.js?v=1"></script>
@@ -508,12 +525,12 @@
     <script src="sims-world.js?v=14"></script>
     <script src="sims-places.js?v=2"></script>
     <script src="garden.js?v=2"></script>
-    <script src="sims.js?v=17"></script>
+    <script src="sims.js?v=18"></script>
     <script src="sims-life.js?v=6"></script>
     <script src="sims-build.js?v=1"></script>
     <script src="sims-music.js?v=1"></script>
     <script src="sims-mind.js?v=3"></script>
-    <script src="app.js?v=47"></script>
-    <script src="summary.js?v=3"></script>
+    <script src="app.js?v=48"></script>
+    <script src="summary.js?v=4"></script>
   </body>
 </html>

@@ -1568,7 +1568,9 @@ const pendingShopping = () => (typeof shoppingItems !== 'undefined' && Array.isA
 const dueTasks = () => {
   if (typeof householdTasks === 'undefined' || !Array.isArray(householdTasks)) return [];
   const limit = typeof addDaysToISO === 'function' ? addDaysToISO(todayISO(), 2) : todayISO();
-  return householdTasks.filter((task) => task.active !== false && (!task.due_date || task.due_date <= limit)).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
+  // Lo de una vez está pendiente hasta hacerlo (con o sin plazo); las rutinas, cuando tocan.
+  const pending = (task) => (typeof window.isPendingNow === 'function' ? window.isPendingNow(task) : !task.due_date || task.due_date <= limit);
+  return householdTasks.filter((task) => task.active !== false && (pending(task) || (task.due_date && task.due_date <= limit))).sort((a, b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
 };
 const eventsOn = (iso) => (typeof cachedEvents !== 'undefined' && Array.isArray(cachedEvents) ? cachedEvents.filter((event) => String(event.event_date || '').slice(0, 10) === iso).sort((a, b) => (a.event_time || '').localeCompare(b.event_time || '')) : []);
 
@@ -1584,8 +1586,8 @@ function shoppingCard() {
 function tasksCard() {
   const tasks = dueTasks();
   const today = todayISO();
-  showSimsCard('is-board', `<h3>📌 Tareas pendientes</h3>
-    <ul>${tasks.length ? tasks.slice(0, 8).map((task) => `<li><span>${escapeHtml(task.title)}<small>${task.due_date ? (task.due_date < today ? 'Atrasada' : task.due_date === today ? 'Hoy' : escapeHtml(typeof dueLabel === 'function' ? dueLabel(task.due_date) : task.due_date)) : ''}${task.assignee && task.assignee !== 'both' ? ` · ${escapeHtml(task.assignee)}` : ''}</small></span><button type="button" data-task-done="${escapeHtml(task.id)}">Hecho ✓</button></li>`).join('') : '<li class="is-empty">¡Nada pendiente! A descansar 🛋️</li>'}</ul>
+  showSimsCard('is-board', `<h3>📌 Por hacer</h3>
+    <ul>${tasks.length ? tasks.slice(0, 8).map((task) => `<li><span>${escapeHtml(task.title)}<small>${typeof deadlineLabel === 'function' && task.recurrence === 'none' ? escapeHtml(deadlineLabel(task)) : task.due_date ? (task.due_date < today ? 'Atrasada' : task.due_date === today ? 'Hoy' : escapeHtml(typeof dueLabel === 'function' ? dueLabel(task.due_date) : task.due_date)) : ''}${task.assignee && task.assignee !== 'both' ? ` · ${escapeHtml(task.assignee)}` : ''}</small></span><button type="button" data-task-done="${escapeHtml(task.id)}">Hecho ✓</button></li>`).join('') : '<li class="is-empty">¡Nada pendiente! A descansar 🛋️</li>'}</ul>
     <button type="button" class="sims-card-link" data-card-open="tareas">Abrir las tareas en la app</button>`);
 }
 function agendaCard() {
@@ -1671,7 +1673,7 @@ async function plantAction(index, kind, { remote = false } = {}) {
 function refreshAppData() {
   const w = world();
   if (!w) return;
-  w.state.data = { shopping: pendingShopping().length, tasks: dueTasks().filter((task) => !task.due_date || task.due_date <= todayISO()).length, events: eventsOn(todayISO()).length, day: new Date().getDate() };
+  w.state.data = { shopping: pendingShopping().length, tasks: dueTasks().filter((task) => (typeof window.isPendingNow === 'function' ? window.isPendingNow(task) : task.due_date <= todayISO())).length, events: eventsOn(todayISO()).length, day: new Date().getDate() };
   w.state.plants = mapPlants();
 }
 

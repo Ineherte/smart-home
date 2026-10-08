@@ -49,7 +49,8 @@ Deno.serve(async (request) => {
       try { const { data, error } = await query; return error || data == null ? fallback : data; } catch { return fallback; }
     };
     const [tasks, shopping, meals, events, iphoneEvents, plants, care, dates, avatars] = await Promise.all([
-      safe(db.from('household_tasks').select('title, assignee, due_date').eq('household_id', householdId).eq('active', true).lte('due_date', today).order('due_date'), [] as { title: string; assignee: string; due_date: string }[]),
+      // Lo de una vez está pendiente hasta hacerlo (con o sin plazo); las rutinas, cuando tocan.
+      safe(db.from('household_tasks').select('title, assignee, due_date, recurrence').eq('household_id', householdId).eq('active', true).or(`recurrence.eq.none,due_date.lte.${today}`).order('due_date'), [] as { title: string; assignee: string; due_date: string; recurrence: string }[]),
       safe(db.from('shopping_items').select('name, quantity, status').eq('household_id', householdId).in('status', ['pending', 'in_cart']).order('created_at', { ascending: false }), [] as { name: string; quantity: string; status: string }[]),
       safe(db.from('meal_plan').select('slot, title').eq('household_id', householdId).eq('day', today), [] as { slot: string; title: string }[]),
       safe(db.from('events').select('title, event_date, event_time, scope, owner_id').eq('household_id', householdId).gte('event_date', today).lte('event_date', week).order('event_date').order('event_time'), [] as { title: string; event_date: string; event_time: string; scope: string; owner_id: string }[]),
@@ -102,7 +103,7 @@ Deno.serve(async (request) => {
       owner,
       partner,
       today,
-      tasks: { count: tasks.length, overdue: tasks.filter((task) => task.due_date < today).length, mine: tasks.filter((task) => task.assignee === owner || task.assignee === 'both').length, list: tasks.slice(0, 4).map((task) => ({ title: task.title, who: task.assignee, late: task.due_date < today })) },
+      tasks: { count: tasks.length, overdue: tasks.filter((task) => task.due_date < today).length, mine: tasks.filter((task) => task.assignee === owner || task.assignee === 'both').length, list: tasks.slice(0, 4).map((task) => ({ title: task.title, who: task.assignee, late: task.due_date < today, days: task.recurrence === 'none' && task.due_date < '2090-01-01' ? daysBetween(today, task.due_date) : null })) },
       shopping: { count: shopping.filter((item) => item.status === 'pending').length, inCart: shopping.filter((item) => item.status === 'in_cart').length, list: shopping.filter((item) => item.status === 'pending').slice(0, 6).map((item) => item.quantity ? `${item.name} (${item.quantity})` : item.name) },
       meals: { lunch: meals.find((meal) => meal.slot === 'lunch')?.title || null, dinner: meals.find((meal) => meal.slot === 'dinner')?.title || null },
       agenda: upcoming.slice(0, 5),

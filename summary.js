@@ -13,10 +13,10 @@
     const overdue = att.overdueTasks || 0;
     list.push({
       id: 'tasks', icon: 'list-checks', label: 'Tareas',
-      value: overdue ? plural(overdue, 'atrasada', 'atrasadas') : tasks ? plural(tasks, 'para hoy', 'para hoy') : 'Al día',
-      detail: overdue && tasks ? `y ${plural(tasks, 'para hoy', 'para hoy')}` : overdue ? 'Toca ponerse al día' : tasks ? 'Pendientes de hoy' : 'Nada pendiente hoy',
+      value: overdue ? plural(overdue, 'con plazo pasado', 'con plazo pasado') : tasks ? plural(tasks, 'por hacer', 'por hacer') : 'Al día',
+      detail: overdue && tasks ? `y ${plural(tasks, 'por hacer', 'por hacer')}` : overdue ? 'Toca ponerse al día' : tasks ? 'En Casa · Por hacer' : 'Nada pendiente',
       tone: overdue ? 'warn' : tasks ? 'open' : 'ok',
-      chip: overdue ? plural(overdue, 'tarea atrasada', 'tareas atrasadas') : plural(tasks, 'tarea hoy', 'tareas hoy')
+      chip: overdue ? plural(overdue, 'plazo pasado', 'plazos pasados') : plural(tasks, 'cosa por hacer', 'cosas por hacer')
     });
     const urgent = att.urgentCount || 0;
     if (urgent) list.push({ id: 'notes', icon: 'siren', label: 'Notas urgentes', value: plural(urgent, 'urgente', 'urgentes'), detail: 'Revisar en Pendientes', tone: 'alert', chip: plural(urgent, 'nota urgente', 'notas urgentes') });

@@ -1,6 +1,10 @@
-// Tareas de casa: datos y acciones. Pueden ser puntuales o repetirse, son de una persona,
-// de los dos o por turnos (al completarla le toca a la otra), y tienen prioridad, detalles
-// y duración estimada. Guarda quién hizo qué para el reparto. La interfaz está en pending.js.
+// Por hacer: datos y acciones. Hay dos clases de tareas:
+// - Las de una vez («pagar la luz en 5 días»): están en la lista todos los días desde que se
+//   apuntan hasta que se hacen, con la cuenta atrás de su plazo (o sin plazo). Al hacerlas, se van.
+// - Las rutinas (se repiten: «basura cada semana»): solo salen cuando toca, y al hacerlas
+//   vuelven a la siguiente fecha (y, si van por turnos, le tocan a la otra persona).
+// Pueden ir en listas (Casa, Papeles, Recados…), ser de una persona, de los dos o por turnos,
+// y tener prioridad, detalles y duración. La interfaz está en pending.js.
 const tasksStore = createHouseholdStore({ table: 'household_tasks', localKey: 'umbral-tasks' });
 const completionsStore = createHouseholdStore({ table: 'task_completions', localKey: 'umbral-task-completions' });
 
@@ -11,6 +15,11 @@ const PRIORITIES = {
   low: { label: 'Sin prisa', short: 'Sin prisa', icon: 'coffee', rank: 2 }
 };
 const DURATIONS = [5, 15, 30, 60, 120];
+// Sin plazo: se guarda con una fecha muy lejana (no hace falta tocar la tabla para ello).
+const NO_DEADLINE = '2099-12-31';
+const DEFAULT_LISTS = ['Casa', 'Papeles', 'Recados'];
+const LIST_ICONS = [[/casa|hogar|limpi/, 'house'], [/papel|factura|banco|gestion|tramite/, 'receipt-text'], [/recado|compra|tienda/, 'shopping-bag'], [/trabajo|curro|oficina/, 'briefcase'], [/viaje|vacacion/, 'plane'], [/regalo|cumple/, 'gift'], [/salud|medic|doctor/, 'heart-pulse'], [/coche/, 'car']];
+const listIcon = (name) => LIST_ICONS.find(([pattern]) => pattern.test(normalizeText(name || '')))?.[1] || 'list';
 
 const TASK_ICONS = [
   [/basura|reciclaj|contenedor|spazzatura|rifiuti/, 'trash-2'],
@@ -47,6 +56,34 @@ const isoToDate = (iso) => new Date(`${iso}T12:00:00`);
 const daysBetween = (fromISO, toISO) => Math.round((isoToDate(toISO) - isoToDate(fromISO)) / 86400000);
 const todayISO = () => dateToISO(new Date());
 const taskPriority = (task) => (PRIORITIES[task.priority] ? task.priority : 'normal');
+const isRoutine = (task) => task.recurrence && task.recurrence !== 'none';
+const hasDeadline = (task) => Boolean(task.due_date) && task.due_date < '2090-01-01';
+// Lo que está pendiente hoy: lo de una vez (siempre, hasta hacerlo) y las rutinas que tocan.
+const isPendingNow = (task) => !isRoutine(task) || task.due_date <= todayISO();
+const isOverdue = (task) => hasDeadline(task) && task.due_date < todayISO();
+window.isPendingNow = isPendingNow;
+// Días que quedan del plazo (negativo si ya pasó; null si no tiene).
+const daysLeft = (task) => (hasDeadline(task) ? daysBetween(todayISO(), task.due_date) : null);
+function deadlineLabel(task) {
+  const left = daysLeft(task);
+  if (left === null) return 'Sin plazo';
+  if (left < -1) return `Venció hace ${-left} días`;
+  if (left === -1) return 'Venció ayer';
+  if (left === 0) return 'Hoy';
+  if (left === 1) return 'Mañana';
+  if (left < 7) return `Quedan ${left} días`;
+  return `Hasta el ${new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(isoToDate(task.due_date))}`;
+}
+// Qué parte del plazo ha pasado ya (de cuando se apuntó a la fecha límite), para la barrita.
+function deadlineProgress(task) {
+  if (!hasDeadline(task)) return null;
+  const start = String(task.created_at || '').slice(0, 10) || todayISO();
+  const total = Math.max(1, daysBetween(start, task.due_date));
+  return Math.min(1, Math.max(0, daysBetween(start, todayISO()) / total));
+}
+const deadlineTone = (task) => { const left = daysLeft(task); return left === null ? 'is-none' : left < 0 ? 'is-late' : left <= 1 ? 'is-soon' : left <= 3 ? 'is-near' : 'is-ok'; };
+// Las listas que existen: las de siempre más las que tengan tareas.
+const taskLists = () => [...new Set([...DEFAULT_LISTS, ...householdTasks.map((task) => task.list).filter(Boolean)])];
 
 function addDaysToISO(iso, days) {
   const date = isoToDate(iso);
@@ -121,31 +158,36 @@ async function loadTasks() {
   renderTasks();
 }
 
-const V2_FIELDS = ['priority', 'details', 'minutes'];
-const isMissingColumn = (error) => /column|schema cache/i.test(error?.message || '') && V2_FIELDS.some((field) => (error.message || '').includes(field));
-const stripV2 = (row) => Object.fromEntries(Object.entries(row).filter(([key]) => !V2_FIELDS.includes(key)));
+// Campos que llegaron después (v2: prioridad, detalles y duración; v3: lista). Si la base aún
+// no los tiene, se guarda sin ellos y se avisa una vez.
+const V2_FIELDS = ['priority', 'details', 'minutes', 'list'];
+const missingTaskFields = new Set();
+const missingField = (error) => (/column|schema cache/i.test(error?.message || '') ? V2_FIELDS.find((field) => (error.message || '').includes(`'${field}'`) || (error.message || '').includes(`"${field}"`) || (error.message || '').includes(` ${field} `)) : null);
+const stripV2 = (row) => Object.fromEntries(Object.entries(row).filter(([key]) => !missingTaskFields.has(key)));
 
-// Guarda probando primero con los campos nuevos; si la base aún no los tiene, sin ellos.
 async function saveWithFallback(save, row) {
-  if (!tasksV2Available) return save(stripV2(row));
-  try {
-    return await save(row);
-  } catch (error) {
-    if (!isMissingColumn(error)) throw error;
-    tasksV2Available = false;
-    showToast('Falta ejecutar tasks-notes-v2.sql en Supabase: prioridad y duración no se guardarán');
-    return save(stripV2(row));
+  for (let attempt = 0; attempt < V2_FIELDS.length + 1; attempt += 1) {
+    try {
+      return await save(stripV2(row));
+    } catch (error) {
+      const field = missingField(error);
+      if (!field || missingTaskFields.has(field)) throw error;
+      missingTaskFields.add(field);
+      tasksV2Available = false;
+      showToast(field === 'list' ? 'Falta ejecutar tasks-notes-v3.sql en Supabase: las listas no se guardarán' : 'Falta ejecutar tasks-notes-v2.sql en Supabase: prioridad y duración no se guardarán');
+    }
   }
+  return save(stripV2(row));
 }
 
 // Resumen en Inicio y centro de atención; la lista la pinta pending.js.
 function renderTasks() {
   const today = todayISO();
   const overdue = householdTasks.filter((task) => task.due_date < today);
-  const mineNow = householdTasks.filter((task) => isMine(task) && task.due_date <= today);
+  const mineNow = householdTasks.filter((task) => isMine(task) && isPendingNow(task)).sort((first, second) => first.due_date.localeCompare(second.due_date));
   const nextMine = householdTasks.filter(isMine).sort((first, second) => first.due_date.localeCompare(second.due_date))[0];
-  document.querySelector('#tasksTileValue').textContent = mineNow.length ? `${mineNow.length} para hoy` : householdTasks.length ? 'Al día' : 'Sin tareas';
-  document.querySelector('#tasksTileDetail').textContent = mineNow[0] ? `${mineNow[0].assignee === currentUser ? 'Te toca' : 'Toca'}: ${mineNow[0].title}` : nextMine ? `Próxima: ${nextMine.title} (${dueLabel(nextMine.due_date).toLowerCase()})` : 'Toca para organizar la casa';
+  document.querySelector('#tasksTileValue').textContent = mineNow.length ? `${mineNow.length} por hacer` : householdTasks.length ? 'Al día' : 'Nada pendiente';
+  document.querySelector('#tasksTileDetail').textContent = mineNow[0] ? `${mineNow[0].title}${hasDeadline(mineNow[0]) ? ` · ${deadlineLabel(mineNow[0]).toLowerCase()}` : ''}` : nextMine ? `Próxima: ${nextMine.title} (${dueLabel(nextMine.due_date).toLowerCase()})` : 'Toca para apuntar algo';
   renderAttention({ overdueTasks: overdue.length });
   updateDaySummary({ tasks: mineNow.length });
   renderPending();
@@ -180,12 +222,14 @@ async function completeTask(id) {
   renderTasks();
 }
 
-function taskRowValues({ title, recurrence = 'none', dueDate, assignee = 'both', priority = 'normal', minutes = null, details = '' }) {
+function taskRowValues({ title, recurrence = 'none', dueDate, assignee = 'both', priority = 'normal', minutes = null, details = '', list = null }) {
   const rotate = assignee === 'rotate';
   return {
     title: title.trim().slice(0, 80),
     recurrence,
-    due_date: dueDate || todayISO(),
+    // Lo de una vez sin fecha va sin plazo; una rutina sin fecha empieza hoy.
+    due_date: dueDate || (recurrence === 'none' ? NO_DEADLINE : todayISO()),
+    list: String(list || '').trim().slice(0, 30) || null,
     assignee: rotate ? (householdPeople.includes(currentUser) ? currentUser : householdPeople[0]) : assignee,
     rotate,
     priority: PRIORITIES[priority] ? priority : 'normal',
@@ -200,7 +244,7 @@ async function createTask(values) {
     const [task] = await saveWithFallback((data) => tasksStore.insert(data), row);
     householdTasks.push(task);
     renderTasks();
-    showToast(`Tarea añadida: ${task.title}`);
+    showToast(`Apuntado: ${task.title}${hasDeadline(task) && !isRoutine(task) ? ` · ${deadlineLabel(task).toLowerCase()}` : ''}`);
     notifyHousehold(`${currentUser} añadió una tarea`, `${task.title}${task.assignee !== currentUser && task.assignee !== 'both' ? ' · te toca a ti' : ''}${task.priority === 'high' ? ' · importante' : ''}`, { open: 'pendientes', tag: 'tasks' });
     return task;
   } catch (error) {
@@ -217,7 +261,7 @@ async function updateTask(id, values) {
   if (changes.rotate && task.rotate) changes.assignee = task.assignee;
   try {
     await saveWithFallback((data) => tasksStore.update(id, data), changes);
-    Object.assign(task, tasksV2Available ? changes : stripV2(changes));
+    Object.assign(task, stripV2(changes));
     renderTasks();
     showToast('Tarea actualizada');
     return true;
@@ -234,7 +278,7 @@ async function snoozeTask(id, dueDate = addDaysToISO(todayISO(), 1)) {
     await tasksStore.update(id, { due_date: dueDate });
     task.due_date = dueDate;
     renderTasks();
-    showToast(`«${task.title}» pasa a ${dueLabel(dueDate).toLowerCase()}`);
+    showToast(dueDate === NO_DEADLINE ? `«${task.title}» queda sin plazo` : `«${task.title}» pasa a ${dueLabel(dueDate).toLowerCase()}`);
   } catch (error) {
     showSupabaseError('No se pudo posponer la tarea', error);
   }
