@@ -1,8 +1,8 @@
-const CACHE_NAME = 'umbral-shell-v78';
+const CACHE_NAME = 'umbral-shell-v79';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=57',
+  './styles.css?v=58',
   './scene.js?v=12',
   './store.js?v=1',
   './push.js?v=1',
@@ -19,10 +19,10 @@ const APP_SHELL = [
   './nosotros.js?v=8',
   './upkeep.js?v=1',
   './avatars.js?v=7',
-  './sims-world.js?v=14',
+  './sims-world.js?v=15',
   './sims-places.js?v=2',
   './garden.js?v=3',
-  './sims.js?v=19',
+  './sims.js?v=20',
   './sims-life.js?v=6',
   './sims-build.js?v=1',
   './sims-music.js?v=1',

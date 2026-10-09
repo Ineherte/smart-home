@@ -38,7 +38,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=57" />
+    <link rel="stylesheet" href="styles.css?v=58" />
+    <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }</script>
     <script src="vendor/lucide-1.49.0.js"></script>
   </head>
   <body>
@@ -518,7 +519,7 @@
     </div>
     <div class="sims-modal" id="simsModal" role="dialog" aria-modal="true" aria-labelledby="simsTitle">
       <div class="sims-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-full" type="button" id="simsFull" aria-pressed="false" aria-label="Pantalla completa" title="Pantalla completa"><i data-lucide="maximize"></i></button><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa"><i data-lucide="zoom-in"></i></button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido" title="Sonido"><i data-lucide="volume-2"></i></button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
+        <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-full" type="button" id="simsFull" aria-pressed="false" aria-label="Pantalla completa" title="Pantalla completa"><i data-lucide="maximize"></i></button><button class="icon-button small sims-3d" type="button" id="sims3d" aria-pressed="true" aria-label="Ver la casa en 2D" title="3D"><i data-lucide="box"></i></button><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa"><i data-lucide="zoom-in"></i></button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido" title="Sonido"><i data-lucide="volume-2"></i></button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
         <div class="sims-house" id="simsHouse"></div>
         <div class="sims-needs" id="simsNeeds"></div>
         <button type="button" class="sims-tip" id="simsTip"></button>
@@ -546,10 +547,10 @@
     <script src="nosotros.js?v=8"></script>
     <script src="upkeep.js?v=1"></script>
     <script src="avatars.js?v=7"></script>
-    <script src="sims-world.js?v=14"></script>
+    <script src="sims-world.js?v=15"></script>
     <script src="sims-places.js?v=2"></script>
     <script src="garden.js?v=3"></script>
-    <script src="sims.js?v=19"></script>
+    <script src="sims.js?v=20"></script>
     <script src="sims-life.js?v=6"></script>
     <script src="sims-build.js?v=1"></script>
     <script src="sims-music.js?v=1"></script>
