@@ -50,6 +50,7 @@ Estas funciones:
    - `supabase functions deploy sync-iphone-calendar` (necesita `SYNC_TOKEN` e `IPHONE_OWNER_IDS`, un JSON como `{"Ines":"<user_id>","Matteo":"<user_id>"}` con los id de Authentication → Users)
    - `supabase functions deploy tuya-lights` (necesita `TUYA_ACCESS_ID`, `TUYA_ACCESS_SECRET` y, opcionalmente, `TUYA_DEVICE_IDS` con los IDs permitidos separados por comas)
    - `supabase functions deploy wallet-ingest --no-verify-jwt` (pagos de Apple Pay desde un Atajo del iPhone → gastos personales). Usa los mismos `SYNC_TOKEN` e `IPHONE_OWNER_IDS` que `sync-iphone-calendar`. Los pasos del Atajo están en la app: Cuentas → Mis gastos → Apple Pay.
+   - `supabase functions deploy quick-add --no-verify-jwt` (Siri y Atajos: «Oye Siri, añadir a la compra»). Usa `SYNC_TOKEN` e `IPHONE_OWNER_IDS`. Cómo crear los atajos: `supabase/functions/quick-add/LEEME.md`.
    - `supabase functions deploy widget-summary --no-verify-jwt` (el resumen para el widget del iPhone). Usa `IPHONE_OWNER_IDS` y un `WIDGET_TOKEN` propio (si no hay, vale `SYNC_TOKEN`). Los pasos para instalar el widget con Scriptable están en `assets/widget/LEEME.md`.
    - `supabase functions deploy notify-household --no-verify-jwt` (avisos push; la función comprueba la sesión por su cuenta). Necesita `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` (`mailto:tu@correo`). Genera las claves una vez con `npx web-push generate-vapid-keys` y guárdalas con `supabase secrets set`. Cada teléfono activa los avisos en Cuenta → Avisos en este teléfono; en iPhone solo funciona con Umbral instalada en la pantalla de inicio (iOS 16.4 o posterior). Para el recordatorio diario de riego necesita también `CRON_SECRET`.
 
@@ -85,6 +86,9 @@ Estas funciones:
 - `assets/widget/`: el widget del iPhone (Scriptable): `Umbral.scriptable.js` es lo que se pega en la app, `umbral-widget.js` el dibujo que se descarga solo, los retratos de los muñecos y `LEEME.md` con los pasos.
 - `supabase/sql/`: esquemas y migraciones SQL.
 - `supabase/functions/`: Edge Functions.
+- `ios/`: la app de iPhone (Capacitor, sin Mac: la compila GitHub y la sube a TestFlight). Pasos en `ios/LEEME.md`.
+- `native.js`: lo que solo hace la app nativa (avisos de plazos con botones, enlaces umbral://, barra de estado).
+- `vendor/`: librerías incluidas (iconos Lucide y Supabase) para funcionar sin conexión.
 - `android/`: proyecto nativo de Capacitor.
 
 ## Ejecutar la app

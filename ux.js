@@ -68,6 +68,17 @@
     }
   });
 
+  // ---------- Número en el icono de la app ----------
+  // Lo que corre prisa: lo tuyo con el plazo pasado, de hoy o de mañana, y las rutinas que tocan.
+  // El iPhone lo enseña en Umbral instalada desde Safari (con los avisos activados).
+  function updateBadge() {
+    if (!('setAppBadge' in navigator) || typeof householdTasks === 'undefined') return;
+    const urgent = householdTasks.filter((task) => isMine(task) && isPendingNow(task) && (isRoutine(task) || (hasDeadline(task) && daysLeft(task) <= 1))).length;
+    (urgent ? navigator.setAppBadge(urgent) : navigator.clearAppBadge()).catch(() => {});
+  }
+  window.addEventListener('umbral:tasks', updateBadge);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) updateBadge(); });
+
   // ---------- Pestañas: memoria del desplazamiento y dirección ----------
   const ORDER = ['home', 'casa', 'nosotros', 'personal'];
   const scrollMemory = {};

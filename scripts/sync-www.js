@@ -39,5 +39,7 @@ function copyDir(from, to) {
   }
 }
 copyDir(path.join(root, 'assets'), path.join(wwwDir, 'assets'));
+// Librerías incluidas en el proyecto (iconos y Supabase), para que la app funcione sin conexión.
+copyDir(path.join(root, 'vendor'), path.join(wwwDir, 'vendor'));
 
 console.log(`sync-www: ${copied} archivo(s) copiados de la raíz a www/`);

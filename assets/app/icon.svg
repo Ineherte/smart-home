@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2d7259"/>
+      <stop offset="1" stop-color="#112e25"/>
+    </linearGradient>
+    <linearGradient id="door" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff4c9"/>
+      <stop offset="1" stop-color="#f4c56a"/>
+    </linearGradient>
+    <linearGradient id="spill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe9a8" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="halo" cx=".5" cy=".55" r=".5">
+      <stop offset="0" stop-color="#ffe7a3" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#ffe7a3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="560" r="360" fill="url(#halo)"/>
+  <path d="M362 792 L662 792 L800 940 L224 940 Z" fill="url(#spill)"/>
+  <path d="M332 792 V468 A180 180 0 0 1 692 468 V792 Z" fill="#0d241d" opacity=".35"/>
+  <path d="M362 792 V474 A150 150 0 0 1 662 474 V792 Z" fill="url(#door)"/>
+  <rect x="236" y="784" width="552" height="30" rx="15" fill="#dff486"/>
+  <path d="M736 236 C744 290 758 304 812 312 C758 320 744 334 736 388 C728 334 714 320 660 312 C714 304 728 290 736 236 Z" fill="#dff486"/>
+  <path d="M296 330 C300 352 306 358 328 362 C306 366 300 372 296 394 C292 372 286 366 264 362 C286 358 292 352 296 330 Z" fill="#dff486" opacity=".8"/>
+</svg>

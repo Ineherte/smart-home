@@ -2,11 +2,20 @@
   "appId": "com.umbral.home",
   "appName": "Umbral",
   "webDir": "www",
-  "bundledWebRuntime": false,
   "plugins": {
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon_config_sample",
-      "iconColor": "#275b49"
+      "iconColor": "#1f5a48"
+    },
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DEFAULT"
     }
+  },
+  "backgroundColor": "#f5f4ef",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f5f4ef",
+    "preferredContentMode": "mobile"
   }
 }

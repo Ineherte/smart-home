@@ -1,13 +1,13 @@
-const CACHE_NAME = 'umbral-shell-v77';
+const CACHE_NAME = 'umbral-shell-v78';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=56',
+  './styles.css?v=57',
   './scene.js?v=12',
   './store.js?v=1',
   './push.js?v=1',
   './shopping.js?v=4',
-  './tasks.js?v=7',
+  './tasks.js?v=8',
   './notes.js?v=2',
   './pending.js?v=4',
   './plants.js?v=5',
@@ -34,12 +34,18 @@ const APP_SHELL = [
   './assets/sims/house-floors.png?v=1',
   './app.js?v=50',
   './summary.js?v=4',
-  './ux.js?v=1',
+  './ux.js?v=2',
+  './native.js?v=1',
   './smart-lights-config.js',
   './supabase-config.js',
   './mobile-bridge.js',
+  './vendor/lucide-1.49.0.js',
+  './vendor/supabase-2.117.3.js',
   './manifest.webmanifest',
-  './icon.svg'
+  './icon.svg',
+  './assets/app/icon.svg',
+  './assets/app/icon-180.png',
+  './assets/app/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -74,10 +80,12 @@ self.addEventListener('push', (event) => {
   } catch {
     message = { body: event.data ? event.data.text() : '' };
   }
+  // Si el aviso trae el número de cosas pendientes, se pone en el icono de la app.
+  if (Number.isFinite(Number(message.badge)) && self.navigator.setAppBadge) self.navigator.setAppBadge(Number(message.badge)).catch(() => {});
   event.waitUntil(self.registration.showNotification(message.title || 'Umbral', {
     body: message.body || '',
-    icon: './icon.svg',
-    badge: './icon.svg',
+    icon: './assets/app/icon-180.png',
+    badge: './assets/app/icon-180.png',
     tag: message.tag,
     renotify: Boolean(message.tag),
     data: { url: message.url || './' }

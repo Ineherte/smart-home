@@ -191,6 +191,8 @@ function renderTasks() {
   renderAttention({ overdueTasks: overdue.length });
   updateDaySummary({ tasks: mineNow.length });
   renderPending();
+  // La app de iPhone (native.js) reprograma los avisos de plazos.
+  window.dispatchEvent(new CustomEvent('umbral:tasks'));
 }
 
 async function completeTask(id) {

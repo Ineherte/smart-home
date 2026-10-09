@@ -1,0 +1,68 @@
+# App de iPhone (guardada para el futuro): compila Umbral en un Mac de GitHub cuando se lanza a mano.
+# - Siempre: compila para el simulador (sin firmar) y así se sabe que la app sigue funcionando.
+# - Si están las claves de App Store Connect: firma, archiva y sube la versión a TestFlight.
+#   Secretos del repositorio (Settings → Secrets and variables → Actions):
+#     APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 (el contenido del .p8) y APPLE_TEAM_ID.
+name: App de iPhone
+
+# Solo se lanza a mano (Actions → App de iPhone → Run workflow): no se gasta nada si no se usa.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      HAS_SIGNING: ${{ secrets.APPSTORE_KEY_ID != '' && secrets.APPSTORE_ISSUER_ID != '' && secrets.APPSTORE_KEY_P8 != '' && secrets.APPLE_TEAM_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Preparar la web dentro de la app
+        run: |
+          npm ci
+          npm run build:www
+          npx cap sync ios
+
+      - name: Compilar para el simulador (comprobación)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+
+      - name: Clave de App Store Connect
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          mkdir -p ~/private_keys
+          printf '%s' "${{ secrets.APPSTORE_KEY_P8 }}" > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
+
+      - name: Archivar y subir a TestFlight
+        if: env.HAS_SIGNING == 'true'
+        env:
+          KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          AUTH="-allowProvisioningUpdates -authenticationKeyPath $HOME/private_keys/AuthKey_$KEY_ID.p8 -authenticationKeyID $KEY_ID -authenticationKeyIssuerID $ISSUER_ID"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/Umbral.xcarchive \
+            DEVELOPMENT_TEAM=$TEAM_ID CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} MARKETING_VERSION=1.0 \
+            $AUTH archive | tail -40
+          /usr/libexec/PlistBuddy -c "Add :teamID string $TEAM_ID" ios/App/ci/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath build/Umbral.xcarchive \
+            -exportOptionsPlist ios/App/ci/ExportOptions.plist -exportPath build/export \
+            $AUTH | tail -40
+
+      - name: Sin claves de Apple todavía
+        if: env.HAS_SIGNING != 'true'
+        run: echo "La app compila. Para subirla a TestFlight, añade los secretos APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_KEY_P8 y APPLE_TEAM_ID."
