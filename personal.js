@@ -160,7 +160,8 @@ function openPersonalPane() {
 // ---------- Cálculos ----------
 
 const includeShare = () => document.querySelector('#personalIncludeShare')?.checked;
-const householdShare = (month) => monthFinanceEntries(financeCache, month).reduce((sum, entry) => sum + Number(entry.amount || 0), 0) / 2;
+// Tu parte de lo de casa ese mes, con el reparto de cada gasto (a medias, solo tuyo…).
+const householdShare = (month) => monthFinanceEntries(financeCache, month).reduce((sum, entry) => sum + Number(entry.amount || 0) * shareOf(entry, financeMe()), 0);
 const monthEntries = (month) => personalExpenses.filter((entry) => expenseMonth(entry) === month);
 const monthSpend = (month) => monthEntries(month).reduce((sum, entry) => sum + spendValue(entry), 0) + (includeShare() ? householdShare(month) : 0);
 const monthIncome = (month) => monthEntries(month).filter((entry) => !entry.excluded && isIncome(entry)).reduce((sum, entry) => sum + Number(entry.amount), 0);

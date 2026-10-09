@@ -3195,3 +3195,21 @@ html[data-modal="open"], html[data-modal="open"] body { overflow: hidden; oversc
 /* Barras de necesidades y relación: se llenan suavemente. */
 .sims-need-track span, .sims-aspire-bar b, .sims-rel i b { transition: width .7s cubic-bezier(.2, .8, .2, 1); }
 @media (prefers-reduced-motion: reduce) { .sims-house.is-entering .sims-canvas, .sims-pie.is-list .sims-pie-option, .sims-card .sims-card-paper { animation: none; } }
+
+/* ---------- Cuentas: para quién es cada gasto ---------- */
+.split-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.split-option { position: relative; }
+.split-option input { position: absolute; opacity: 0; pointer-events: none; }
+.split-option span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); color: var(--ink-soft); font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s ease, border-color .15s ease, color .15s ease, transform .12s ease; }
+.split-option span svg.lucide { width: 16px; height: 16px; }
+.split-option input:checked + span { border-color: var(--green); background: var(--green-soft); color: var(--accent); box-shadow: inset 0 0 0 1px var(--green); }
+.split-option input:focus-visible + span { box-shadow: var(--focus-ring); }
+.split-option span:active { transform: scale(.97); }
+.split-custom { display: grid; gap: 6px; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-soft); }
+.split-custom[hidden] { display: none; }
+.split-custom label { display: grid; gap: 6px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.split-custom input[type="range"] { width: 100%; accent-color: var(--green); }
+.split-custom output { color: var(--ink); font-size: 14px; font-weight: 700; }
+.split-preview { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--amber-soft); color: var(--ink); font-size: 14px; line-height: 1.35; }
+.split-preview svg.lucide { width: 17px; height: 17px; flex-shrink: 0; color: var(--amber-ink); }
+.split-tag { display: inline-block; white-space: nowrap; padding: 1px 7px; border-radius: 999px; background: var(--lilac-soft); color: var(--lilac-ink); font-size: 11.5px; font-style: normal; font-weight: 700; }

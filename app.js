@@ -1249,8 +1249,8 @@ let houseCategoryFilter = null;
 function houseMovements(data) {
   const query = normalizeText(document.querySelector('#financeSearch')?.value || '');
   const rows = [
-    ...data.expenses.map((entry) => ({ kind: 'expense', id: entry.id, date: entry.expense_date, title: entry.description, category: financeCategory(entry.category, entry.description), amount: entry.amount, payer: entry.paid_by || 'Ines', source: entry.source })),
-    ...data.bills.map((entry) => ({ kind: 'bill', id: entry.id, date: entry.due_date || String(entry.created_at || '').slice(0, 10) || dateToISO(new Date()), title: entry.description && entry.description !== entry.provider ? `${entry.provider} · ${entry.description}` : entry.provider, category: entry.provider, amount: entry.amount, payer: entry.paid_by || 'Ines', source: entry.source, pending: entry.status !== 'paid' }))
+    ...data.expenses.map((entry) => ({ kind: 'expense', id: entry.id, date: entry.expense_date, title: entry.description, category: financeCategory(entry.category, entry.description), amount: entry.amount, payer: entry.paid_by || 'Ines', source: entry.source, share_ines: entry.share_ines })),
+    ...data.bills.map((entry) => ({ kind: 'bill', id: entry.id, date: entry.due_date || String(entry.created_at || '').slice(0, 10) || dateToISO(new Date()), title: entry.description && entry.description !== entry.provider ? `${entry.provider} · ${entry.description}` : entry.provider, category: entry.provider, amount: entry.amount, payer: entry.paid_by || 'Ines', source: entry.source, pending: entry.status !== 'paid', share_ines: entry.share_ines }))
   ];
   return rows
     .filter((row) => (query ? normalizeText(`${row.title} ${row.category}`).includes(query) : String(row.date || '').slice(0, 7) === financeMonth))
@@ -1260,17 +1260,41 @@ function houseMovements(data) {
 
 function houseMoveRow(row) {
   const badge = row.source === 'tricount' || row.source === 'email' ? ` <em class="finance-item-source">${financeSourceLabel(row.source)}</em>` : '';
+  const split = shareInes(row) !== 0.5 ? splitLabel(row) : '';
   const meta = [row.kind === 'bill' ? 'Factura' : row.category, row.date ? financeDate(row.date) : '', `pagó ${row.payer}`].filter(Boolean).join(' · ');
   return `<button type="button" class="move-row" data-house-open="${row.kind}|${escapeHtml(row.id)}">
     <span class="pcat-icon${row.kind === 'bill' ? ' is-bill' : ''}"><i data-lucide="${row.kind === 'bill' ? 'file-text' : 'receipt'}"></i></span>
-    <span class="move-copy"><strong>${escapeHtml(row.title)}${badge}</strong><small>${escapeHtml(meta)}${row.pending ? ' · <em class="is-pending">por pagar</em>' : ''}</small></span>
+    <span class="move-copy"><strong>${escapeHtml(row.title)}${badge}</strong><small>${escapeHtml(meta)}${split ? ` · <em class="split-tag">${escapeHtml(split)}</em>` : ''}${row.pending ? ' · <em class="is-pending">por pagar</em>' : ''}</small></span>
     <b>${row.amount ? financeMoney(row.amount) : '—'}</b>
   </button>`;
 }
 
+// Reparto de cada gasto: share_ines es la parte de Ines en % (el resto, de Matteo). Sin dato,
+// a medias. 100 = solo de Ines, 0 = solo de Matteo.
+const shareInes = (entry) => {
+  const value = Number(entry?.share_ines);
+  return entry?.share_ines == null || !Number.isFinite(value) ? 0.5 : Math.min(100, Math.max(0, value)) / 100;
+};
+const shareOf = (entry, person) => (person === 'Matteo' ? 1 - shareInes(entry) : shareInes(entry));
+const financeMe = () => (householdPeople.includes(currentUser) ? currentUser : 'Ines');
+function splitLabel(entry) {
+  const ines = Math.round(shareInes(entry) * 100);
+  if (ines === 50) return 'a medias';
+  if (ines === 100) return 'solo de Ines';
+  if (ines === 0) return 'solo de Matteo';
+  return `${ines} % Ines · ${100 - ines} % Matteo`;
+}
+
 function calculateFinanceSettlement(entries, settlements = []) {
   const total = entries.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
-  const fairShare = total / 2;
+  // Lo que le toca pagar a cada uno según el reparto de cada gasto.
+  const owed = { Ines: 0, Matteo: 0 };
+  entries.forEach((entry) => {
+    const amount = Number(entry.amount || 0);
+    owed.Ines += amount * shareOf(entry, 'Ines');
+    owed.Matteo += amount * shareOf(entry, 'Matteo');
+  });
+  const fairShare = owed[financeMe()];
   const paid = { Ines: 0, Matteo: 0 };
   entries.forEach((entry) => { paid[entry.payer] = (paid[entry.payer] || 0) + Number(entry.amount || 0); });
   settlements.forEach((payment) => {
@@ -1278,11 +1302,11 @@ function calculateFinanceSettlement(entries, settlements = []) {
     paid[payment.from] = (paid[payment.from] || 0) + amount;
     paid[payment.to] = (paid[payment.to] || 0) - amount;
   });
-  const balance = { Ines: paid.Ines - fairShare, Matteo: paid.Matteo - fairShare };
+  const balance = { Ines: paid.Ines - owed.Ines, Matteo: paid.Matteo - owed.Matteo };
   const creditor = balance.Ines >= 0 ? 'Ines' : 'Matteo';
   const debtor = creditor === 'Ines' ? 'Matteo' : 'Ines';
   const paymentsTotal = settlements.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-  return { total, fairShare, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor, paymentsTotal };
+  return { total, fairShare, owed, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor, paymentsTotal };
 }
 
 function renderFinancePayerChart(settlement) {
@@ -1294,7 +1318,7 @@ function renderFixedCosts(fixedCosts) {
   const active = fixedCosts.filter((cost) => cost.active !== false);
   document.querySelector('#fixedCostTotal').textContent = active.length ? `${financeMoney(active.reduce((sum, cost) => sum + Number(cost.amount || 0), 0))} al mes` : '';
   document.querySelector('#fixedCostList').innerHTML = active.length
-    ? active.map((cost) => `<button type="button" class="move-row" data-house-open="fixed|${escapeHtml(cost.id)}"><span class="pcat-icon"><i data-lucide="repeat-2"></i></span><span class="move-copy"><strong>${escapeHtml(cost.description)}</strong><small>${escapeHtml(cost.category || 'Otros')} · pagó ${escapeHtml(cost.paid_by || 'Ines')}</small></span><b>${financeMoney(cost.amount)}</b></button>`).join('')
+    ? active.map((cost) => `<button type="button" class="move-row" data-house-open="fixed|${escapeHtml(cost.id)}"><span class="pcat-icon"><i data-lucide="repeat-2"></i></span><span class="move-copy"><strong>${escapeHtml(cost.description)}</strong><small>${escapeHtml(cost.category || 'Otros')} · pagó ${escapeHtml(cost.paid_by || 'Ines')}${shareInes(cost) !== 0.5 ? ` · ${escapeHtml(splitLabel(cost))}` : ''}</small></span><b>${financeMoney(cost.amount)}</b></button>`).join('')
     : '<p class="empty-note">El alquiler, internet… Añádelos una vez con «Añadir gasto → Cada mes» y contarán solos todos los meses.</p>';
 }
 
@@ -1319,12 +1343,12 @@ function renderFinance(data) {
   document.querySelector('#financeBreakdownMonth').textContent = `en ${monthName}`;
   document.querySelector('#financePayerMonth').textContent = `en ${monthName}`;
   document.querySelector('#financeTotal').textContent = financeMoney(monthTotal);
-  document.querySelector('#financeBalance').textContent = financeMoney(monthTotal / 2);
+  document.querySelector('#financeBalance').textContent = financeMoney(monthEntries.reduce((sum, entry) => sum + Number(entry.amount || 0) * shareOf(entry, financeMe()), 0));
   renderAttention({ pendingBills: data.bills.filter((bill) => bill.status !== 'paid').length, settlementAmount: settlement.amount });
   renderFinanceTile(settlement, data.bills.filter((bill) => bill.status !== 'paid').length);
   document.querySelector('#settlementPaymentTotal').textContent = settlement.paymentsTotal ? `${financeMoney(settlement.paymentsTotal)} ya saldados` : '';
   renderFixedCosts(data.fixedCosts || []);
-  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${reset ? 'Desde la última puesta a cero' : 'Sumando todos los meses'}, a medias.</span>`;
+  document.querySelector('#financeSettlement').innerHTML = settlement.amount < 0.01 ? '<i data-lucide="check-circle-2"></i><span><strong>Casa al día.</strong><br />No queda ninguna compensación pendiente.</span>' : `<i data-lucide="arrow-right-left"></i><span><strong>${escapeHtml(settlement.debtor)} debe ${financeMoney(settlement.amount)} a ${escapeHtml(settlement.creditor)}.</strong><br />${reset ? 'Desde la última puesta a cero' : 'Sumando todos los meses'}, con el reparto de cada gasto.</span>`;
   renderResetNote();
   renderHouseholdCharts(data, monthEntries);
   renderFinancePayerChart(calculateFinanceSettlement(monthEntries));
@@ -1353,7 +1377,7 @@ function renderFinanceTile(settlement, pendingBills) {
 }
 
 async function refreshFinance() {
-  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeInCloud() ? 'Sincronizado entre los dos' : 'Guardado en este teléfono'} · todo a medias`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
+  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeInCloud() ? 'Sincronizado entre los dos' : 'Guardado en este teléfono'} · cada gasto con su reparto`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
 }
 
 function openFinance() {
@@ -1375,8 +1399,17 @@ const optionList = (list, selected) => list.map((item) => `<option ${item === se
 
 function houseFormFields(kind, entry = {}) {
   const payer = entry.paid_by || (householdPeople.includes(currentUser) ? currentUser : 'Ines');
-  const payerPicker = `<fieldset class="plant-field"><legend>Pagó</legend><div class="segmented is-wide">${householdPeople.map((person) => `<label class="segmented-option"><input type="radio" name="paidBy" value="${person}" ${person === payer ? 'checked' : ''} /><span>${person}</span></label>`).join('')}</div></fieldset>`;
+  let payerPicker = `<fieldset class="plant-field"><legend>Pagó</legend><div class="segmented is-wide">${householdPeople.map((person) => `<label class="segmented-option"><input type="radio" name="paidBy" value="${person}" ${person === payer ? 'checked' : ''} /><span>${person}</span></label>`).join('')}</div></fieldset>`;
   const amount = `<label class="plant-field"><span>Importe (€)</span><input name="amount" type="number" inputmode="decimal" min="0.01" step="0.01" required value="${entry.amount ?? ''}" /></label>`;
+  const ines = Math.round(shareInes(entry) * 100);
+  const mode = ines === 50 ? 'half' : ines === 100 ? 'Ines' : ines === 0 ? 'Matteo' : 'custom';
+  // Para quién es el gasto: a medias, solo de uno o con otro reparto. Debajo, cómo queda.
+  payerPicker = `${payerPicker}
+    <fieldset class="plant-field split-field"><legend>Para quién</legend>
+      <div class="split-options">${[['half', 'A medias', 'users'], ['Ines', 'Solo Ines', 'user-round'], ['Matteo', 'Solo Matteo', 'user-round'], ['custom', 'Otro reparto', 'sliders-horizontal']].map(([value, label, icon]) => `<label class="split-option"><input type="radio" name="splitMode" value="${value}" ${value === mode ? 'checked' : ''} /><span><i data-lucide="${icon}"></i>${label}</span></label>`).join('')}</div>
+      <div class="split-custom" ${mode === 'custom' ? '' : 'hidden'}><label><span>Parte de Ines</span><input name="shareInes" type="range" min="0" max="100" step="5" value="${mode === 'custom' ? ines : 70}" /></label><output data-split-pct>${mode === 'custom' ? ines : 70} % Ines · ${100 - (mode === 'custom' ? ines : 70)} % Matteo</output></div>
+      <p class="split-preview" data-split-preview></p>
+    </fieldset>`;
   if (kind === 'bill') {
     return `<label class="plant-field"><span>Proveedor</span><select name="provider">${optionList(BILL_PROVIDERS, entry.provider || 'Otro')}</select></label>
       <label class="plant-field"><span>Concepto</span><input name="description" type="text" maxlength="160" required placeholder="Luz de septiembre" value="${escapeHtml(entry.description || '')}" /></label>
@@ -1402,13 +1435,14 @@ function openHouseEntry(kind = 'expense', id = null) {
   if (id && !entry) return;
   financeEditing = entry ? { kind, id } : null;
   showMoneySheet(`
-    <div class="plant-add-heading"><p class="eyebrow muted">Gastos de la casa · a medias</p><h2 id="moneySheetTitle">${entry ? escapeHtml(entry.description || entry.provider) : 'Nuevo gasto'}</h2></div>
+    <div class="plant-add-heading"><p class="eyebrow muted">Gastos de la casa</p><h2 id="moneySheetTitle">${entry ? escapeHtml(entry.description || entry.provider) : 'Nuevo gasto'}</h2></div>
     ${entry ? '' : `<div class="segmented is-wide" role="group" aria-label="Tipo de gasto">${Object.entries(HOUSE_KINDS).map(([key, info]) => `<button type="button" data-house-kind="${key}" aria-pressed="${key === kind}">${info.label}</button>`).join('')}</div>`}
     <p class="recurring-intro" data-house-hint><i data-lucide="info"></i><span>${HOUSE_KINDS[kind].hint}</span></p>
     <form class="item-editor" data-house-form="${kind}">
       <div data-house-fields>${houseFormFields(kind, entry || {})}</div>
       <div class="plant-form-actions"><button type="submit" class="primary-button"><i data-lucide="check"></i> ${entry ? 'Guardar cambios' : 'Guardar'}</button>${entry ? '<button type="button" class="link-button is-danger" data-house-delete>Eliminar</button>' : ''}</div>
     </form>`, { kind: 'house', entryKind: kind, id });
+  updateSplitPreview(document.querySelector('#moneySheet [data-house-form]'));
   if (!entry) setTimeout(() => document.querySelector('#moneySheet [name="description"]')?.focus(), 300);
 }
 
@@ -1417,16 +1451,44 @@ function setHouseKind(kind) {
   if (!form) return;
   form.dataset.houseForm = kind;
   const kept = { description: form.description?.value, amount: form.amount?.value };
-  form.querySelector('[data-house-fields]').innerHTML = houseFormFields(kind, { description: kept.description, amount: kept.amount || undefined, paid_by: form.querySelector('[name="paidBy"]:checked')?.value });
+  form.querySelector('[data-house-fields]').innerHTML = houseFormFields(kind, { description: kept.description, amount: kept.amount || undefined, paid_by: form.querySelector('[name="paidBy"]:checked')?.value, share_ines: formShareInes(form) });
+  updateSplitPreview(form);
   document.querySelector('#moneySheet [data-house-hint] span').textContent = HOUSE_KINDS[kind].hint;
   document.querySelectorAll('#moneySheet [data-house-kind]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.houseKind === kind)));
+  lucide.createIcons();
+}
+
+// La parte de Ines (en %) según lo elegido en «Para quién».
+function formShareInes(form) {
+  const mode = form.querySelector('[name="splitMode"]:checked')?.value || 'half';
+  if (mode === 'Ines') return 100;
+  if (mode === 'Matteo') return 0;
+  if (mode === 'custom') return Number(form.querySelector('[name="shareInes"]')?.value ?? 50);
+  return 50;
+}
+// Frase en vivo: quién paga y quién debe cuánto con este gasto.
+function updateSplitPreview(form) {
+  const preview = form?.querySelector('[data-split-preview]');
+  if (!preview) return;
+  const ines = formShareInes(form);
+  const custom = form.querySelector('.split-custom');
+  if (custom) custom.hidden = form.querySelector('[name="splitMode"]:checked')?.value !== 'custom';
+  const pct = form.querySelector('[data-split-pct]');
+  if (pct) pct.textContent = `${ines} % Ines · ${100 - ines} % Matteo`;
+  const amount = Number(form.querySelector('[name="amount"]')?.value) || 0;
+  const payer = form.querySelector('[name="paidBy"]:checked')?.value || 'Ines';
+  const other = payer === 'Ines' ? 'Matteo' : 'Ines';
+  const otherPart = amount * (other === 'Ines' ? ines : 100 - ines) / 100;
+  preview.innerHTML = !amount ? '<i data-lucide="info"></i>Pon el importe y aquí verás cómo queda.'
+    : otherPart < 0.005 ? `<i data-lucide="check"></i>Es todo de ${payer}: nadie le debe nada por esto.`
+      : `<i data-lucide="arrow-right-left"></i><b>${other}</b> le debe <b>${financeMoney(otherPart)}</b> a ${payer} por esto.`;
   lucide.createIcons();
 }
 
 async function saveHouseEntry(form) {
   const kind = form.dataset.houseForm;
   const values = new FormData(form);
-  const base = { description: String(values.get('description') || '').trim(), amount: Math.round(Number(values.get('amount')) * 100) / 100, paid_by: values.get('paidBy') || 'Ines' };
+  const base = { description: String(values.get('description') || '').trim(), amount: Math.round(Number(values.get('amount')) * 100) / 100, paid_by: values.get('paidBy') || 'Ines', share_ines: formShareInes(form) };
   if (!base.description || !(base.amount > 0)) return showToast('Pon un concepto y un importe');
   const record = kind === 'bill'
     ? { ...base, provider: values.get('provider'), due_date: values.get('date') || null, source: 'manual', status: values.has('paid') ? 'paid' : 'pending' }
@@ -1441,7 +1503,8 @@ async function saveHouseEntry(form) {
     await saveFinanceEntity(kind, record);
     if (editingBillId) await setBillStatus(editingBillId, record.status);
     closeMoneySheet();
-    showToast(kind === 'fixed' ? 'Gasto fijo guardado: contará cada mes' : kind === 'bill' ? 'Factura guardada' : 'Gasto guardado');
+    const split = splitLabel(record);
+    showToast(`${kind === 'fixed' ? 'Gasto fijo guardado: contará cada mes' : kind === 'bill' ? 'Factura guardada' : 'Gasto guardado'}${split !== 'a medias' ? ` · ${split}` : ''}`);
   } catch (error) {
     button.disabled = false;
     reportAppError(error);
@@ -1484,9 +1547,15 @@ async function saveFinanceEntity(kind, values, { notify = true } = {}) {
   const { source, status, settled, ...changes } = values;
   if (financeInCloud()) {
     const table = financeTables[kind];
-    const { error } = editingId
-      ? await supabaseClient.from(table).update(changes).eq('id', editingId)
-      : await supabaseClient.from(table).insert({ ...values, household_id: householdId, created_by: authUserId });
+    const write = (row, full) => (editingId ? supabaseClient.from(table).update(row).eq('id', editingId) : supabaseClient.from(table).insert({ ...full, household_id: householdId, created_by: authUserId }));
+    let { error } = await write(changes, values);
+    // Sin finance-split.sql aún: se guarda a medias y se avisa.
+    if (error && /share_ines/.test(error.message || '')) {
+      const { share_ines: dropped, ...rest } = changes;
+      const { share_ines: droppedFull, ...restFull } = values;
+      ({ error } = await write(rest, restFull));
+      if (!error && Number(dropped ?? droppedFull) !== 50) showToast('Falta ejecutar finance-split.sql en Supabase: este gasto se ha guardado a medias');
+    }
     if (error) throw error;
     if (!editingId && notify) notifyHousehold(...financeNotices[kind](values), { open: 'finance' });
   } else {
@@ -1680,6 +1749,16 @@ moneySheet.addEventListener('click', async (event) => {
     closeMoneySheet();
   }
 });
+// «Para quién»: la frase de cómo queda se actualiza al cambiar importe, quién pagó o reparto.
+moneySheet.addEventListener('input', (event) => {
+  const form = event.target.closest('[data-house-form]');
+  if (form && ['amount', 'paidBy', 'splitMode', 'shareInes'].includes(event.target.name)) updateSplitPreview(form);
+});
+moneySheet.addEventListener('change', (event) => {
+  const form = event.target.closest('[data-house-form]');
+  if (form && ['paidBy', 'splitMode'].includes(event.target.name)) updateSplitPreview(form);
+});
+
 moneySheet.addEventListener('submit', async (event) => {
   const form = event.target;
   if (form.dataset.houseForm) {
@@ -1729,11 +1808,11 @@ document.querySelector('#exportFinance').addEventListener('click', async () => {
   const entries = financeEntries(data);
   const settlement = calculateFinanceSettlement(entries, data.settlements);
   const workbook = XLSX.utils.book_new();
-  const expenseRows = data.expenses.map((expense) => ({ Fecha: expense.expense_date, Descripción: expense.description, Categoría: expense.category || 'Otros', Importe: Number(expense.amount || 0), 'Pagó': expense.paid_by || 'Ines', 'Parte de cada uno': Number(expense.amount || 0) / 2, Fuente: financeSourceLabel(expense.source) }));
-  const fixedRows = data.fixedCosts.map((fixed) => ({ Concepto: fixed.description, Categoría: fixed.category, 'Importe mensual': Number(fixed.amount || 0), 'Pagó': fixed.paid_by || 'Ines', Reparto: '50/50', Fuente: 'Fijo' }));
+  const expenseRows = data.expenses.map((expense) => ({ Fecha: expense.expense_date, Descripción: expense.description, Categoría: expense.category || 'Otros', Importe: Number(expense.amount || 0), 'Pagó': expense.paid_by || 'Ines', 'Parte de Ines': Number(expense.amount || 0) * shareOf(expense, 'Ines'), 'Parte de Matteo': Number(expense.amount || 0) * shareOf(expense, 'Matteo'), Fuente: financeSourceLabel(expense.source) }));
+  const fixedRows = data.fixedCosts.map((fixed) => ({ Concepto: fixed.description, Categoría: fixed.category, 'Importe mensual': Number(fixed.amount || 0), 'Pagó': fixed.paid_by || 'Ines', Reparto: splitLabel(fixed), Fuente: 'Fijo' }));
   const billRows = data.bills.map((bill) => ({ Proveedor: bill.provider, Periodo: bill.billing_period || '', Descripción: bill.description, 'Fecha de vencimiento': bill.due_date || '', Importe: Number(bill.amount || 0), 'Pagó': bill.paid_by || 'Ines', Estado: bill.status === 'paid' ? 'Pagada' : 'Pendiente', Fuente: financeSourceLabel(bill.source) }));
   const categoryRows = Object.entries(entries.reduce((result, entry) => { result[entry.category] = (result[entry.category] || 0) + Number(entry.amount || 0); return result; }, {})).map(([category, amount]) => ({ Categoría: category, Total: amount, Porcentaje: settlement.total ? amount / settlement.total : 0 }));
-  const settlementRows = [{ Persona: 'Ines', 'Total pagado': settlement.paid.Ines, 'Parte justa': settlement.fairShare, Balance: settlement.balance.Ines, 'Resultado': settlement.balance.Ines >= 0 ? `Recibe ${financeMoney(settlement.balance.Ines)}` : `Paga ${financeMoney(Math.abs(settlement.balance.Ines))}` }, { Persona: 'Matteo', 'Total pagado': settlement.paid.Matteo, 'Parte justa': settlement.fairShare, Balance: settlement.balance.Matteo, 'Resultado': settlement.balance.Matteo >= 0 ? `Recibe ${financeMoney(settlement.balance.Matteo)}` : `Paga ${financeMoney(Math.abs(settlement.balance.Matteo))}` }];
+  const settlementRows = [{ Persona: 'Ines', 'Total pagado': settlement.paid.Ines, 'Parte justa': settlement.owed.Ines, Balance: settlement.balance.Ines, 'Resultado': settlement.balance.Ines >= 0 ? `Recibe ${financeMoney(settlement.balance.Ines)}` : `Paga ${financeMoney(Math.abs(settlement.balance.Ines))}` }, { Persona: 'Matteo', 'Total pagado': settlement.paid.Matteo, 'Parte justa': settlement.owed.Matteo, Balance: settlement.balance.Matteo, 'Resultado': settlement.balance.Matteo >= 0 ? `Recibe ${financeMoney(settlement.balance.Matteo)}` : `Paga ${financeMoney(Math.abs(settlement.balance.Matteo))}` }];
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(expenseRows), 'Gastos');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(fixedRows), 'Gastos fijos');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(billRows), 'Facturas');
