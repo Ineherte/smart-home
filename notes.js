@@ -361,12 +361,19 @@ noteSheet?.addEventListener('click', async (event) => {
     return closeNoteSheet();
   }
   if (target.closest('[data-note-delete]')) {
-    if (!window.confirm(`¿Eliminar «${note.content || 'esta nota'}»?`)) return;
     try {
       clearTimeout(noteEditor.timer);
+      applyEditorState();
       noteEditor.dirty = false;
+      const copy = { ...note };
       await removeNote(note.id);
-      showToast('Nota eliminada');
+      showToast(`Nota eliminada: ${copy.content || 'sin título'}`, { action: 'Deshacer', onAction: async () => {
+        try {
+          await saveNote({ ...copy, id: `draft-${Date.now()}` });
+          renderNotesSummary();
+          renderNotesBoard();
+        } catch (error) { showSupabaseError('No se pudo recuperar la nota', error); }
+      } });
       renderNotesSummary();
       renderNotesBoard();
       closeNoteSheet();

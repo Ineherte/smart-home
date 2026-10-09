@@ -71,7 +71,7 @@ function deadlineLabel(task) {
   if (left === -1) return 'Venció ayer';
   if (left === 0) return 'Hoy';
   if (left === 1) return 'Mañana';
-  if (left < 7) return `Quedan ${left} días`;
+  if (left <= 14) return `Quedan ${left} días`;
   return `Hasta el ${new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(isoToDate(task.due_date))}`;
 }
 // Qué parte del plazo ha pasado ya (de cuando se apuntó a la fecha límite), para la barrita.
@@ -199,6 +199,8 @@ async function completeTask(id) {
   document.querySelectorAll(`[data-task-row="${CSS.escape(id)}"]`).forEach((row) => row.classList.add('is-completing'));
   await new Promise((resolve) => setTimeout(resolve, 380));
   const doneBy = householdPeople.includes(currentUser) ? currentUser : task.assignee;
+  const before = { ...task };
+  window.umbralMobile?.tap?.();
   try {
     const [completion] = await saveWithFallback((row) => completionsStore.insert(row), { task_id: task.id, title: task.title, done_by: doneBy, done_at: new Date().toISOString(), minutes: task.minutes || null });
     taskCompletions.unshift(completion);
@@ -206,20 +208,41 @@ async function completeTask(id) {
     if (task.recurrence === 'none') {
       await tasksStore.update(id, { active: false });
       householdTasks = householdTasks.filter((entry) => entry.id !== id);
-      showToast('¡Hecho! Una cosa menos.');
+      showToast(`✓ ${task.title}`, { action: 'Deshacer', onAction: () => undoComplete(before, completion) });
       notifyHousehold(`${doneBy} completó una tarea`, task.title, { open: 'pendientes', tag: 'tasks' });
     } else {
       const changes = { due_date: nextDueDate(task) };
       if (task.rotate) changes.assignee = otherPerson(task.assignee === 'both' ? doneBy : task.assignee);
       await tasksStore.update(id, changes);
       Object.assign(task, changes);
-      showToast(`¡Hecho! Próxima vez: ${dueLabel(task.due_date).toLowerCase()}${task.rotate ? ` · le toca a ${task.assignee === currentUser ? 'ti' : task.assignee}` : ''}`);
+      showToast(`✓ Hecho. Próxima vez: ${dueLabel(task.due_date).toLowerCase()}${task.rotate ? ` · le toca a ${task.assignee === currentUser ? 'ti' : task.assignee}` : ''}`, { action: 'Deshacer', onAction: () => undoComplete(before, completion) });
       notifyHousehold(`${doneBy} completó una tarea`, `${task.title}${task.rotate && task.assignee !== doneBy ? ' · la próxima vez te toca a ti' : ''}`, { open: 'pendientes', tag: 'tasks' });
     }
   } catch (error) {
     showSupabaseError('No se pudo completar la tarea', error);
   }
   renderTasks();
+}
+
+// Deshacer «hecho»: la tarea vuelve como estaba y se borra del historial.
+async function undoComplete(before, completion) {
+  try {
+    if (before.recurrence === 'none') {
+      await tasksStore.update(before.id, { active: true });
+      if (!householdTasks.some((entry) => entry.id === before.id)) householdTasks.push(before);
+    } else {
+      await tasksStore.update(before.id, { due_date: before.due_date, assignee: before.assignee });
+      Object.assign(householdTasks.find((entry) => entry.id === before.id) || {}, { due_date: before.due_date, assignee: before.assignee });
+    }
+    if (completion?.id) {
+      await completionsStore.remove(completion.id);
+      taskCompletions = taskCompletions.filter((entry) => entry.id !== completion.id);
+    }
+    renderTasks();
+    showToast(`«${before.title}» vuelve a la lista`);
+  } catch (error) {
+    showSupabaseError('No se pudo deshacer', error);
+  }
 }
 
 function taskRowValues({ title, recurrence = 'none', dueDate, assignee = 'both', priority = 'normal', minutes = null, details = '', list = null }) {
@@ -286,12 +309,18 @@ async function snoozeTask(id, dueDate = addDaysToISO(todayISO(), 1)) {
 
 async function deleteTask(id) {
   const task = householdTasks.find((entry) => entry.id === id);
-  if (!task || !window.confirm(`¿Eliminar «${task.title}»?`)) return false;
+  if (!task) return false;
   try {
     await tasksStore.update(id, { active: false });
     householdTasks = householdTasks.filter((entry) => entry.id !== id);
     renderTasks();
-    showToast('Tarea eliminada');
+    showToast(`Eliminada: ${task.title}`, { action: 'Deshacer', onAction: async () => {
+      try {
+        await tasksStore.update(id, { active: true });
+        householdTasks.push(task);
+        renderTasks();
+      } catch (error) { showSupabaseError('No se pudo recuperar', error); }
+    } });
     return true;
   } catch (error) {
     showSupabaseError('No se pudo eliminar la tarea', error);

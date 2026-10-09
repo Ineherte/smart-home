@@ -70,6 +70,20 @@ const smartLights = smartHomeConfig.devices.map((device) => ({
   code: device.code || 'switch_led'
 }));
 
+// El lector de Excel pesa casi 900 KB: solo se descarga al importar o exportar.
+let xlsxLoading = null;
+function loadXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  xlsxLoading ||= new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => { xlsxLoading = null; reject(new Error('No se pudo cargar el lector de Excel. Comprueba la conexión.')); };
+    document.head.appendChild(script);
+  });
+  return xlsxLoading;
+}
+
 function createLocalId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
   return `umbral-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -1694,8 +1708,9 @@ window.addEventListener('popstate', () => {
 document.querySelector('#financeImport').addEventListener('change', async (event) => {
   const input = event.currentTarget;
   const file = input.files[0];
-  if (!file || !window.XLSX) return;
+  if (!file) return;
   try {
+    await loadXlsx();
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
     const rows = withFileReferences(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(financeRowFromImport).filter(Boolean));
     if (!rows.length) throw new Error('No hay gastos reconocibles');
@@ -1709,6 +1724,7 @@ document.querySelector('#financeImport').addEventListener('change', async (event
 });
 
 document.querySelector('#exportFinance').addEventListener('click', async () => {
+  try { await loadXlsx(); } catch (error) { return showToast(error.message); }
   const data = await getFinanceData();
   const entries = financeEntries(data);
   const settlement = calculateFinanceSettlement(entries, data.settlements);
@@ -1733,12 +1749,28 @@ document.querySelector('#financeNextMonth').addEventListener('click', () => { fi
 document.querySelector('#closeFinance').addEventListener('click', () => history.back());
 document.querySelector('#openSettlementForm').addEventListener('click', openSettlement);
 
-function showToast(message) {
+// Aviso abajo. Con action/onAction lleva un botón (por ejemplo «Deshacer») y dura más.
+let toastHandler = null;
+function showToast(message, { action = '', onAction = null, duration } = {}) {
   toastMessage.textContent = message;
+  const button = toast.querySelector('.toast-action');
+  toastHandler = action && onAction ? onAction : null;
+  button.hidden = !toastHandler;
+  button.textContent = action;
+  toast.classList.toggle('has-action', Boolean(toastHandler));
+  toast.classList.remove('visible');
+  void toast.offsetWidth;
   toast.classList.add('visible');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('visible'), 2600);
+  toastTimer = setTimeout(() => { toast.classList.remove('visible'); toastHandler = null; }, duration || (toastHandler ? 5500 : 2600));
 }
+toast.querySelector('.toast-action').addEventListener('click', () => {
+  const handler = toastHandler;
+  toastHandler = null;
+  toast.classList.remove('visible');
+  clearTimeout(toastTimer);
+  handler?.();
+});
 
 document.querySelectorAll('[data-action]').forEach((action) => {
   action.addEventListener('click', (event) => {
@@ -1858,8 +1890,8 @@ function setWorkspace(view) {
 document.querySelectorAll('.nav-item').forEach((item) => {
   item.addEventListener('click', () => {
     if (item.dataset.viewTarget) {
+      // El desplazamiento de cada pestaña lo recuerda ux.js.
       setWorkspace(item.dataset.viewTarget);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
   });

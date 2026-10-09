@@ -1066,6 +1066,10 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 }
 .toast.visible { transform: translate(-50%, 0); opacity: 1; }
 .toast svg.lucide { width: 17px; height: 17px; color: var(--lime); }
+.toast.has-action { pointer-events: auto; }
+.toast-action { flex-shrink: 0; margin: -4px -6px -4px 6px; padding: 7px 12px; border-radius: 10px; background: rgba(223, 244, 134, .14); color: var(--lime); font-size: 14px; font-weight: 700; }
+.toast-action:active { transform: scale(.95); }
+.toast-action[hidden] { display: none; }
 
 /* ---------- Modales: estructura común ---------- */
 
@@ -3152,3 +3156,42 @@ fieldset.plant-field .segmented { margin: 4px 0 0; }
 .note-save-state { font-size: 12.5px; opacity: .6; }
 .note-editor .pill-button.is-quiet { background: rgba(0, 0, 0, .06); color: inherit; }
 .note-editor .link-button.is-danger { color: #b03a3a; }
+
+/* ---------- Fluidez general (ux.js) ---------- */
+/* Con una ficha abierta, el fondo no se desplaza. */
+html[data-modal="open"], html[data-modal="open"] body { overflow: hidden; overscroll-behavior: none; }
+/* Al arrastrar una ficha hacia abajo, el fondo se aclara con ella. */
+.plant-sheet.visible, .calendar-modal.visible, .weather-modal.visible, .finance-modal.visible, .account-modal.visible { opacity: var(--sheet-fade, 1); }
+/* Las pestañas entran desde el lado hacia el que vas. */
+.views[data-dir="forward"] .view:not(.is-hidden) { animation: view-forward .32s cubic-bezier(.2, .8, .2, 1) both; }
+.views[data-dir="back"] .view:not(.is-hidden) { animation: view-back .32s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes view-forward { from { opacity: 0; transform: translateX(22px); } }
+@keyframes view-back { from { opacity: 0; transform: translateX(-22px); } }
+@media (min-width: 1000px) { .views[data-dir] .view:not(.is-hidden) { animation: none; } }
+/* Respuesta al toque en todo lo que se pulsa. */
+:is(.list-chip, .note-new, .note-template, .paper-note, .todo-check, .hs-chip, .deadline-pill, .primary-button, .icon-button, .option-pill, .segmented button, .care-done, .upkeep-done, .upkeep-preset, .todo-stat, .week-day, .care-preset, .sims-want, .pending-switch button, .date-card, .us-place) { transition: transform .14s ease, background-color .2s ease, border-color .2s ease, opacity .2s ease; }
+:is(.list-chip, .note-new, .note-template, .paper-note, .hs-chip, .primary-button, .icon-button, .option-pill, .segmented button, .upkeep-done, .upkeep-preset, .todo-stat, .week-day, .sims-want, .date-card, .us-place):active { transform: scale(.96); }
+.todo-check:active { transform: scale(.86); }
+@media (hover: none) { * { -webkit-tap-highlight-color: transparent; } }
+@media (prefers-reduced-motion: reduce) { .views[data-dir] .view:not(.is-hidden) { animation: none; } }
+
+/* ---------- Modo Sims: animaciones más cuidadas ---------- */
+/* Abriendo: la casa aparece con un círculo que se abre desde el centro. */
+.sims-house.is-loading { min-height: 240px; }
+.sims-house.is-loading::after { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, #3a2d28, #1c1515); color: #fbf6dc; font: 15px var(--pixel-font); content: '🏡  Abriendo la casa…'; animation: sims-pulse 1.1s ease-in-out infinite; }
+@keyframes sims-pulse { 50% { color: rgba(251, 246, 220, .55); } }
+.sims-house.is-entering .sims-canvas { animation: sims-iris .8s cubic-bezier(.3, .8, .2, 1) both; }
+@keyframes sims-iris { from { clip-path: circle(0% at 50% 55%); filter: brightness(1.4); } to { clip-path: circle(80% at 50% 55%); filter: none; } }
+/* Menú de acciones: las opciones entran una tras otra. */
+.sims-pie.is-list .sims-pie-option { animation: sims-option-in .22s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: calc(var(--i, 0) * 28ms); }
+@keyframes sims-option-in { from { opacity: 0; transform: translateY(6px) scale(.92); } }
+/* Tarjetas: entran con un pequeño rebote, como un papel que cae en la mesa. */
+.sims-card .sims-card-paper { animation: sims-paper-in .32s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes sims-paper-in { from { opacity: 0; transform: translateY(14px) scale(.94) rotate(-2deg); } }
+/* Botones del juego: se hunden al pulsar. */
+.sims-toolbar button, .sims-event-choices button, .sims-card-link, .sims-want, .sims-goals-tabs button, .sims-traits button { transition: transform .1s ease, box-shadow .1s ease, background-color .2s ease; }
+.sims-toolbar button:active, .sims-card-link:active, .sims-goals-tabs button:active, .sims-traits button:active { transform: translateY(2px); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .12); }
+.sims-toolbar button:hover { transform: translateY(-1px); }
+/* Barras de necesidades y relación: se llenan suavemente. */
+.sims-need-track span, .sims-aspire-bar b, .sims-rel i b { transition: width .7s cubic-bezier(.2, .8, .2, 1); }
+@media (prefers-reduced-motion: reduce) { .sims-house.is-entering .sims-canvas, .sims-pie.is-list .sims-pie-option, .sims-card .sims-card-paper { animation: none; } }

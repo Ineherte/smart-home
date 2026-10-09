@@ -580,9 +580,12 @@
       drawWeather(t);
       drawNight();
     }
+    // 30 imágenes por segundo bastan para el pixel art (y gastan la mitad de batería). Con una
+    // ficha o el modo Sims encima, ni se pinta.
     function loop(t) {
       raf = requestAnimationFrame(loop);
-      if (paused || document.hidden) return;
+      if (paused || document.hidden || window.umbralModalOpen) { last = 0; return; }
+      if (last && t - last < 30) return;
       const dt = Math.min(0.05, (t - (last || t)) / 1000);
       last = t;
       render(t, dt);

@@ -2281,7 +2281,7 @@ function showPie(event, title, options, rect = null) {
   const y = event.clientY - box.top;
   const pie = document.createElement('div');
   pie.className = 'sims-pie';
-  pie.innerHTML = `<div class="sims-pie-title">${escapeHtml(title)}</div>${options.map(([id, label, emoji], index) => `<button type="button" class="sims-pie-option${id.startsWith('cat:') ? ' is-cat' : ''}" data-pie="${escapeHtml(id)}" style="--i:${index}"><span>${emoji}</span>${escapeHtml(label)}</button>`).join('')}`;
+  pie.innerHTML = `<div class="sims-pie-title">${escapeHtml(title)}</div>${options.map(([id, label, emoji], index) => `<button type="button" class="sims-pie-option${id.startsWith('cat:') ? ' is-cat' : ''}" style="--i:${index}" data-pie="${escapeHtml(id)}" style="--i:${index}"><span>${emoji}</span>${escapeHtml(label)}</button>`).join('')}`;
   simsHouse.appendChild(pie);
   // Lista ordenada junto al dedo (una columna, o dos si hay muchas opciones): nunca se solapan
   // y siempre caben dentro de la casa.
@@ -2765,12 +2765,22 @@ function simsTick() {
 async function openSims() {
   if (!window.simsWorld || !avatarCatalog()) return;
   if (!myAvatarPerson()) return showToast('Elige primero si eres Ines o Matteo');
+  // La casa se abre al momento (con «Abriendo…») y los muñecos llegan después.
+  simsModal.classList.add('visible');
+  simsHouse.classList.add('is-loading');
   try {
     await simsWorld.loadSprites();
   } catch (error) {
+    simsModal.classList.remove('visible');
+    simsHouse.classList.remove('is-loading');
     return showToast(error.message || 'No se pudo abrir la casa');
   }
-  simsModal.classList.add('visible');
+  simsHouse.classList.remove('is-loading');
+  // Apertura en círculo, como al entrar en un solar de los Sims.
+  simsHouse.classList.remove('is-entering');
+  void simsHouse.offsetWidth;
+  simsHouse.classList.add('is-entering');
+  setTimeout(() => simsHouse.classList.remove('is-entering'), 900);
   loadSimPicks();
   buildSims();
   loadDecor();

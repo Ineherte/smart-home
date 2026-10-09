@@ -626,7 +626,7 @@ function categorizeImported(item) {
 }
 
 async function readBankFile(file) {
-  if (!window.XLSX) throw new Error('No se pudo cargar el lector de Excel. Comprueba la conexión.');
+  await loadXlsx();
   // Los CSV como texto: si no, «02/09/2026» se leería como fecha americana.
   const workbook = /\.(csv|txt)$/i.test(file.name)
     ? XLSX.read(await file.text(), { type: 'string', raw: true })
