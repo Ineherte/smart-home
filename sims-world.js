@@ -3103,18 +3103,6 @@
 
   window.simsWorld = {
     W, H, ANIMS, OL, loadSprites, loadSheet, createWorld, findPath, nearestFree, free, lineFree, registerScene, PLANT_SLOTS,
-    // Para la casa en 3D (sims-3d.js): el dibujo del suelo y las paredes (con vuestras fotos), las
-    // habitaciones, las puertas, los muebles, las ventanas y las cosas de los sucesos.
-    house: {
-      ROOMS, DOORS, WINDOWS, objects: () => OBJECTS, decorOf: (key) => decorOf(key), owns: (id) => owns(id),
-      art(photos = []) {
-        const canvas = bakeBackground();
-        const c = canvas.getContext('2d');
-        PHOTO_SLOTS.slice(0, 8).forEach((slot, i) => drawSlot(c, slot, photos[i]));
-        return canvas;
-      },
-      drawEventProp
-    },
     portrait, DECOR, DEFAULT_DECOR, SHOP_ITEMS, MOVABLE, canPlace, objectInfo: (id) => OBJECT_BY_ID[id] && { hit: OBJECT_BY_ID[id].hit, block: OBJECT_BY_ID[id].block, offset: OBJECT_BY_ID[id].offset || { dx: 0, dy: 0 }, base: placeBase[id] || OBJECT_BY_ID[id] }, owns, drawTravelMap, getDecor: () => ({ ...decor }), setDecorValues, seasonalTheme, themeNow, dayPhase, mixHex,
     // Para el jardín de la pantalla de inicio (garden.js): mismos muñecos, perros y diamante.
     drawActor, drawPlumbob, drawMoodFx,

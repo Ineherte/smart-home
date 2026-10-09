@@ -2608,50 +2608,6 @@ function buildSims() {
   updateSceneTitle();
   refreshAppData();
   Object.values(sims).forEach((sim) => checkOutfit(sim, false));
-  attach3D(w);
-}
-
-// ---------- La casa en 3D (sims-3d.js) ----------
-// Se descarga solo al entrar (three.js y los muebles) y sustituye el dibujo de la casa; mientras
-// tanto, y si el móvil no tiene WebGL, se juega en 2D. El botón del cubo cambia entre las dos.
-const SIMS_3D_KEY = 'umbral-sims-3d';
-const webglOk = (() => { try { return Boolean(document.createElement('canvas').getContext('webgl2')); } catch { return false; } })();
-function wants3D() {
-  try { return webglOk && localStorage.getItem(SIMS_3D_KEY) !== '0'; } catch { return webglOk; }
-}
-async function attach3D(base) {
-  update3DButton();
-  if (!wants3D()) return;
-  simsHouse.classList.add('is-loading-3d');
-  try {
-    const mod = await import('./sims-3d.js?v=1');
-    const w3 = await mod.attach(simsHouse, base);
-    // Si mientras cargaba se salió o se volvió a montar la casa, se descarta.
-    if (simsState.world !== base) { w3.destroy(); return; }
-    simsState.world = w3;
-    w3.state.follow = base.state.follow;
-  } catch (error) {
-    console.warn('Casa 3D no disponible, se queda en 2D', error);
-  } finally {
-    simsHouse.classList.remove('is-loading-3d');
-  }
-}
-function update3DButton() {
-  const button = document.querySelector('#sims3d');
-  if (!button) return;
-  button.hidden = !webglOk;
-  const on = wants3D();
-  button.setAttribute('aria-pressed', String(on));
-  button.setAttribute('aria-label', on ? 'Ver la casa en 2D' : 'Ver la casa en 3D');
-}
-async function toggle3D() {
-  const on = !wants3D();
-  try { localStorage.setItem(SIMS_3D_KEY, on ? '1' : '0'); } catch {}
-  const w = world();
-  if (!w) return update3DButton();
-  if (w.is3D) w.set3D(on);
-  else if (on) await attach3D(w);
-  update3DButton();
 }
 
 function frame(t) {
@@ -4290,7 +4246,6 @@ document.querySelector('#simsSound').addEventListener('click', () => {
 });
 document.querySelector('#closeSims').addEventListener('click', closeSims);
 document.querySelector('#simsFull').addEventListener('click', () => setSimsFull(!simsState.full));
-document.querySelector('#sims3d')?.addEventListener('click', () => toggle3D());
 document.querySelector('#simsZoom').addEventListener('click', () => {
   hidePie();
   simsState.zoom = simsState.zoom > 1.05 ? 1 : ZOOM_CLOSE;

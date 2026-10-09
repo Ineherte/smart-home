@@ -14,12 +14,6 @@ suelos.
 ines.png, matteo.png, ines-head.png y matteo-head.png son recortes ampliados de los mismos
 muñecos LPC (ines.png y matteo.png), con sus mismas licencias y autores.
 
-## Muebles 3D (3d/)
-
-Los modelos `.glb` de la carpeta 3d son del [Furniture Kit](https://kenney.nl/assets/furniture-kit) de
-Kenney (www.kenney.nl), con licencia CC0 1.0 (dominio público; ver 3d/LICENSE-kenney.txt). En la app se
-recolorean y se encajan en el hueco de cada mueble de la casa.
-
 ## Suelos de la casa (house-floors.png)
 
 house-floors.png es un recorte de 11 baldosas de
