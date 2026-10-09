@@ -109,6 +109,85 @@
     for (let i = 0; i <= steps; i += 1) c.fillRect(Math.round(x0 + ((x1 - x0) * i) / steps), Math.round(y0 + ((y1 - y0) * i) / steps), 1, 1);
   };
 
+  // ---------- Pinceles del detalle (muebles más trabajados) ----------
+  // Ruido fijo: el mismo mueble siempre sale igual (vetas, puntadas…).
+  const hash = (a, b = 0) => {
+    let n = Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  };
+  // Caja de esquinas suaves con la luz arriba a la izquierda: contorno, tres tonos y un brillo.
+  function soft(c, x, y, w, h, color, { hi = 0.2, lo = -0.24, ol = OL, glint = true } = {}) {
+    R(c, x + 1, y, w - 2, h, ol);
+    R(c, x, y + 1, w, h - 2, ol);
+    R(c, x + 1, y + 1, w - 2, h - 2, color);
+    R(c, x + 2, y + 1, w - 4, 1, tone(color, hi));
+    R(c, x + 1, y + 2, 1, h - 4, tone(color, hi * 0.5));
+    R(c, x + 2, y + h - 2, w - 4, 1, tone(color, lo));
+    R(c, x + w - 2, y + 2, 1, h - 4, tone(color, lo * 0.6));
+    if (glint && w > 6 && h > 5) R(c, x + 2, y + 2, 2, 1, tone(color, hi * 1.6));
+  }
+  // Vetas de madera: trazos sueltos más oscuros (y alguno más claro) en filas.
+  function grain(c, x, y, w, h, base, seed = 0, step = 2) {
+    const dark = tone(base, -0.11);
+    const light = tone(base, 0.08);
+    for (let row = 0; row < h; row += step) {
+      let gx = Math.floor(hash(seed, row) * 4);
+      let k = 0;
+      while (gx < w) {
+        const len = 3 + Math.floor(hash(seed + row, k) * 9);
+        if (hash(row + seed * 3, k + 7) > 0.4) R(c, x + gx, y + row, Math.min(len, w - gx), 1, hash(k, row + seed) > 0.78 ? light : dark);
+        gx += len + 1 + Math.floor(hash(k + seed, row) * 4);
+        k += 1;
+      }
+    }
+  }
+  // Trama de tela: un punteado suave (con un patrón, que es una sola orden de dibujo).
+  const weaveTiles = new Map();
+  function weave(c, x, y, w, h, base, f = -0.07) {
+    const color = tone(base, f);
+    let tile = weaveTiles.get(color);
+    if (!tile) {
+      tile = document.createElement('canvas');
+      tile.width = 2;
+      tile.height = 2;
+      const tc = tile.getContext('2d');
+      tc.fillStyle = color;
+      tc.fillRect(0, 0, 1, 1);
+      weaveTiles.set(color, tile);
+    }
+    c.save();
+    c.fillStyle = c.createPattern(tile, 'repeat');
+    c.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    c.restore();
+  }
+  // Brillo de metal o cerámica: una línea clara con un punto más brillante.
+  function sheen(c, x, y, h, color = '#ffffff', alpha = 0.55) {
+    c.globalAlpha = alpha;
+    R(c, x, y, 1, h, color);
+    c.globalAlpha = Math.min(1, alpha + 0.3);
+    R(c, x, y + 1, 1, Math.max(1, Math.round(h / 4)), color);
+    c.globalAlpha = 1;
+  }
+  // Un libro de lomo (con sus bandas) para estanterías y mesas.
+  function spine(c, x, top, w, h, color, gilt) {
+    R(c, x, top, w, h, color);
+    R(c, x, top, 1, h, tone(color, 0.25));
+    if (w > 2) R(c, x + w - 1, top, 1, h, tone(color, -0.25));
+    R(c, x, top + 2, w, 1, gilt ? '#e3c87a' : tone(color, -0.3));
+    if (h > 7) R(c, x, top + h - 3, w, 1, gilt ? '#e3c87a' : tone(color, 0.3));
+  }
+
+  // Maceta: cuerpo con luz a la izquierda, borde grueso, tierra y una franja de adorno.
+  function pot(c, x, y, w, h, color, { band } = {}) {
+    soft(c, x, y, w, h, color, { hi: 0.22, lo: -0.26 });
+    R(c, x - 1, y - 1, w + 2, 3, OL);
+    R(c, x, y, w, 2, tone(color, 0.12));
+    R(c, x + 1, y, w - 2, 1, tone(color, 0.28));
+    R(c, x + 2, y + 3, 1, h - 6, tone(color, 0.3));
+    if (band) R(c, x + 1, y + Math.round(h / 2), w - 2, 1, band);
+    R(c, x + 1, y - 1, w - 2, 1, '#4a3226');
+  }
   // ---------- El piso ----------
   // Tres habitaciones arriba (dormitorio, baño y cocina) y el salón abajo. Cada pared del
   // fondo se ve de frente (48 px) y las demás, desde arriba (8 px).
@@ -994,10 +1073,15 @@
     R(c, 76, 132, 54, 24, OL);
     R(c, 77, 133, 52, 22, '#ebe1cd');
     for (let i = 80; i < 127; i += 8) R(c, i, 133, 3, 22, '#c97a52');
+    weave(c, 77, 133, 52, 22, '#ebe1cd', -0.06);
     R(c, 77, 133, 52, 1, '#f8f2e4');
+    for (let i = 77; i < 129; i += 2) { R(c, i, 130, 1, 2, '#ebe1cd'); R(c, i, 156, 1, 2, '#ebe1cd'); }
+    // Alfombrilla de baño de rizo.
     R(c, 240, 102, 36, 14, OL);
     R(c, 241, 103, 34, 12, '#8ec9c0');
+    weave(c, 241, 104, 34, 11, '#8ec9c0', 0.12);
     R(c, 241, 103, 34, 1, '#b8e2db');
+    R(c, 241, 114, 34, 1, '#6fa9a0');
     R(c, 380, 80, 84, 12, OL);
     R(c, 381, 81, 82, 10, '#b8674a');
     for (let i = 383; i < 462; i += 6) R(c, i, 83, 3, 6, '#efe3c8');
@@ -1040,9 +1124,35 @@
     R(c, 274, 25, 3, 3, '#f7f2e6');
     R(c, 275, 24, 1, 1, '#f2c230');
     // Muebles altos de la cocina, ristra de ajos y guindillas junto a la ventana.
-    box(c, 372, 10, 98, 18, '#7f9a7a');
-    for (let i = 372; i < 470; i += 24.5) R(c, i, 11, 1, 16, tone('#7f9a7a', -0.35));
-    for (let i = 372 + 10; i < 470; i += 24.5) R(c, i, 22, 4, 1, '#d9c38e');
+    const sage = '#7f9a7a';
+    soft(c, 372, 10, 98, 18, sage);
+    R(c, 371, 9, 100, 2, OL);
+    R(c, 372, 10, 98, 1, tone(sage, 0.25));
+    [[372, 22], [394, 30, 'hood'], [424, 23], [447, 23]].forEach(([dx, dw, kind]) => {
+      if (kind === 'hood') {
+        // Campana extractora de acero sobre los fogones.
+        R(c, dx, 10, dw, 19, OL);
+        R(c, dx + 1, 11, dw - 2, 17, '#b9c2c6');
+        R(c, dx + 9, 11, dw - 18, 6, '#c9d0d3');
+        R(c, dx + 2, 23, dw - 4, 4, '#9aa3a8');
+        R(c, dx + 2, 23, dw - 4, 1, '#dfe5e8');
+        R(c, dx + 3, 12, 1, 10, '#e8edef');
+        for (let i = dx + 5; i < dx + dw - 4; i += 3) R(c, i, 25, 2, 1, '#6a6f74');
+        R(c, dx + dw - 6, 24, 2, 1, '#3fd46a');
+        return;
+      }
+      R(c, dx + 2, 12, dw - 3, 13, tone(sage, -0.16));
+      R(c, dx + 3, 13, dw - 5, 11, tone(sage, 0.03));
+      R(c, dx + 3, 13, dw - 5, 1, tone(sage, 0.2));
+      R(c, dx + 3, 13, 1, 11, tone(sage, 0.1));
+      R(c, dx + Math.round(dw / 2) - 2, 22, 5, 1, '#c9a96a');
+      R(c, dx + Math.round(dw / 2) - 2, 22, 1, 1, '#f2dca8');
+      if (dx > 372) R(c, dx, 11, 1, 16, tone(sage, -0.42));
+    });
+    // Luz bajo los muebles altos sobre los azulejos.
+    c.globalAlpha = 0.35;
+    R(c, 373, 28, 96, 2, '#fff3c8');
+    c.globalAlpha = 1;
     R(c, 471, 12, 1, 4, '#8a7a6a');
     for (let i = 0; i < 4; i += 1) ovalBox(c, 471, 18 + i * 4, 2, 2, '#f4eedd');
     pixels(c, [[502, 13, 1, 4], [501, 17, 2, 3], [502, 20, 1, 3]], '#d6333f');
@@ -1138,66 +1248,129 @@
       pixels(c, [[x + 10, y - 48, 2, 1], [x + 4, y - 44, 6, 1]], '#3f5aa8');
     }
     // Maceta de barro.
-    box(c, x - 9, y - 12, 18, 13, '#c47a52');
-    R(c, x - 10, y - 13, 20, 3, OL);
-    R(c, x - 9, y - 12, 18, 2, '#d89068');
-    if (wet) R(c, x - 7, y - 11, 14, 1, '#5a3a2a');
+    pot(c, x - 9, y - 12, 18, 13, '#c47a52', { band: '#a8603e' });
+    if (wet) R(c, x - 7, y - 12, 14, 1, '#2a1a12');
   }
 
   function bookshelf(c) {
     const x = 298;
     const y = 188;
-    box(c, x, y, 58, 58, '#8a5a3a', { hi: 0.18 });
-    R(c, x + 3, y + 3, 52, 50, '#5a3a26');
-    const colors = ['#c0503e', '#3d6a9a', '#e3b86a', '#4c8a5a', '#efe6d4', '#7a62b3', '#d88a6a', '#2f4a5a', '#b8432f'];
+    const wood = '#8a5a3a';
+    soft(c, x, y, 58, 58, wood);
+    R(c, x + 1, y + 1, 56, 2, tone(wood, 0.22));
+    grain(c, x + 1, y + 54, 56, 3, wood, 31);
+    R(c, x + 3, y + 3, 52, 50, '#4a2f1f');
+    // Fondo con algo de sombra arriba de cada balda.
+    const colors = ['#c0503e', '#3d6a9a', '#e3b86a', '#4c8a5a', '#efe6d4', '#7a62b3', '#d88a6a', '#2f4a5a', '#b8432f', '#8fa98a', '#5a3a5a'];
     for (let shelf = 0; shelf < 4; shelf += 1) {
-      const sy = y + 4 + shelf * 12.5;
+      const sy = Math.round(y + 4 + shelf * 12.5);
+      R(c, x + 3, sy - 1, 52, 2, 'rgba(0,0,0,.28)');
       let bx = x + 4;
-      let i = shelf * 3;
-      while (bx < x + 52) {
-        const bw = 2 + ((i * 7) % 3);
-        const bh = 8 + ((i * 5) % 3);
-        if ((i + shelf) % 9 === 4) { bx += 5; i += 1; continue; }
-        const color = colors[i % colors.length];
-        R(c, bx, sy + 10 - bh, bw, bh, color);
-        R(c, bx, sy + 10 - bh, 1, bh, tone(color, 0.25));
-        bx += bw + ((i % 4) === 0 ? 1 : 0);
+      let i = shelf * 5;
+      while (bx < x + 53) {
+        const roll = hash(i, shelf);
+        const end = x + 54;
+        // Adornos entre los libros: una planta, un marco, un jarrón o libros tumbados.
+        if (roll > 0.86 && end - bx > 9) {
+          const kind = (i + shelf) % 4;
+          if (kind === 0) {
+            box(c, bx, sy + 6, 7, 4, '#c47a52', { hi: 0.2, lo: -0.2 });
+            pixels(c, [[bx + 1, sy + 3, 2, 3], [bx + 4, sy + 2, 2, 4], [bx + 2, sy + 1, 2, 2]], '#4c9a5a');
+            pixels(c, [[bx + 2, sy + 3, 1, 1], [bx + 5, sy + 2, 1, 1]], '#7cc47a');
+          } else if (kind === 1) {
+            soft(c, bx, sy + 3, 7, 7, '#e3b86a', { glint: false });
+            R(c, bx + 2, sy + 5, 3, 3, '#7aa6d6');
+            R(c, bx + 2, sy + 7, 3, 1, '#4c8a5a');
+          } else if (kind === 2) {
+            ovalBox(c, bx + 3, sy + 7, 2, 3, '#efe6d4');
+            R(c, bx + 2, sy + 2, 2, 2, '#efe6d4');
+            R(c, bx + 2, sy + 6, 1, 2, '#ffffff');
+          } else {
+            [['#3d6a9a', 0], ['#e3b86a', 1], ['#c0503e', 0]].forEach(([col, off], k) => {
+              R(c, bx + off, sy + 8 - k * 2, 8, 2, col);
+              R(c, bx + off, sy + 8 - k * 2, 8, 1, tone(col, 0.2));
+            });
+          }
+          bx += 10;
+          i += 1;
+          continue;
+        }
+        const bw = Math.min(2 + Math.floor(hash(i, 3) * 3), end - bx);
+        const bh = 7 + Math.floor(hash(i, 9) * 3);
+        if (bw < 2) break;
+        // Algún libro inclinado apoyado en el de al lado.
+        if (roll < 0.08 && end - bx > 5) {
+          const col = colors[i % colors.length];
+          for (let k = 0; k < bh; k += 1) R(c, bx + Math.round(k * 0.35), sy + 10 - k - 1, 2, 1, k === bh - 1 ? tone(col, 0.25) : col);
+          bx += 5;
+        } else {
+          spine(c, bx, sy + 10 - bh, bw, bh, colors[i % colors.length], hash(i, 5) > 0.7);
+          bx += bw + (hash(i, 11) > 0.75 ? 1 : 0);
+        }
         i += 1;
       }
-      R(c, x + 3, sy + 10, 52, 2, '#8a5a3a');
+      // La balda, con su canto iluminado.
+      R(c, x + 3, sy + 10, 52, 2, tone(wood, 0.12));
+      R(c, x + 3, sy + 10, 52, 1, tone(wood, 0.28));
       R(c, x + 3, sy + 12, 52, 1, OL);
     }
-    R(c, x, y + 56, 58, 3, 'rgba(0,0,0,.2)');
+    R(c, x, y + 58, 58, 2, 'rgba(0,0,0,.2)');
   }
 
   function drawSofa(c, s) {
     const x = 52;
     const y = 222;
-    const khaki = decorOf('sofa');
-    shadow(c, x + 52, y + 46, 54, 4, 0.25);
-    // Respaldo.
-    box(c, x + 6, y, 92, 18, tone(khaki, -0.08));
-    R(c, x + 8, y + 2, 88, 2, tone(khaki, 0.15));
-    // Asiento con dos cojines.
-    box(c, x + 8, y + 14, 88, 26, khaki);
+    const fab = decorOf('sofa');
+    const back = tone(fab, -0.1);
+    shadow(c, x + 52, y + 47, 56, 4, 0.28);
+    // Respaldo acolchado en dos piezas, con su costura.
+    soft(c, x + 6, y, 92, 19, back, { hi: 0.22 });
+    weave(c, x + 7, y + 3, 90, 13, back);
+    R(c, x + 8, y + 1, 88, 2, tone(fab, 0.1));
+    R(c, x + 51, y + 3, 1, 13, tone(fab, -0.32));
+    R(c, x + 52, y + 3, 1, 13, tone(fab, 0.02));
+    // Asiento con dos cojines algo hundidos y ribete.
+    soft(c, x + 8, y + 14, 88, 26, fab);
     [[x + 10, 41], [x + 52, 42]].forEach(([cx, cw]) => {
-      box(c, cx, y + 15, cw, 22, tone(khaki, 0.06), { hi: 0.2, lo: -0.18 });
-      R(c, cx + 3, y + 18, cw - 6, 1, tone(khaki, 0.22));
+      soft(c, cx, y + 15, cw, 22, tone(fab, 0.05), { hi: 0.24, lo: -0.2 });
+      weave(c, cx + 2, y + 18, cw - 4, 15, tone(fab, 0.05));
+      R(c, cx + 2, y + 17, cw - 4, 1, tone(fab, 0.26));
+      R(c, cx + 5, y + 23, cw - 10, 1, tone(fab, -0.06));
+      R(c, cx + 8, y + 24, cw - 16, 1, tone(fab, -0.03));
+      R(c, cx + 2, y + 33, cw - 4, 1, tone(fab, -0.14));
     });
-    // Brazos.
-    box(c, x, y + 8, 12, 36, tone(khaki, -0.12));
-    box(c, x + 92, y + 8, 12, 36, tone(khaki, -0.12));
-    R(c, x + 2, y + 10, 8, 2, tone(khaki, 0.1));
-    R(c, x + 94, y + 10, 8, 2, tone(khaki, 0.1));
-    // Faldón y patas.
+    // Brazos redondeados, con la tela que se recoge arriba.
+    [x, x + 92].forEach((ax) => {
+      soft(c, ax, y + 8, 12, 36, tone(fab, -0.12));
+      weave(c, ax + 2, y + 13, 8, 28, tone(fab, -0.12));
+      R(c, ax + 2, y + 9, 8, 3, tone(fab, 0.1));
+      R(c, ax + 2, y + 12, 8, 1, tone(fab, -0.24));
+    });
+    // Faldón y patas de madera torneadas.
     R(c, x + 8, y + 38, 88, 6, OL);
-    R(c, x + 9, y + 38, 86, 5, tone(khaki, -0.25));
-    R(c, x + 4, y + 44, 3, 2, '#3a2a20');
-    R(c, x + 97, y + 44, 3, 2, '#3a2a20');
-    // Cojín terracota y la manta.
+    R(c, x + 9, y + 38, 86, 5, tone(fab, -0.25));
+    R(c, x + 9, y + 38, 86, 1, tone(fab, -0.12));
+    [x + 3, x + 97].forEach((lx) => {
+      R(c, lx, y + 43, 4, 4, OL);
+      R(c, lx + 1, y + 43, 2, 3, '#8a5a3a');
+      R(c, lx + 1, y + 43, 1, 2, '#b07a4e');
+    });
+    // Cojines: terracota con botón y otro de rayas.
     const cushion = decor.sofa === 'terracotta' ? '#efe2c8' : '#c9714a';
-    box(c, x + 14, y + 6, 14, 12, cushion);
-    R(c, x + 17, y + 9, 8, 1, tone(cushion, 0.15));
+    soft(c, x + 13, y + 5, 15, 13, cushion, { hi: 0.26 });
+    R(c, x + 16, y + 8, 9, 1, tone(cushion, 0.18));
+    R(c, x + 20, y + 11, 2, 2, tone(cushion, -0.25));
+    pixels(c, [[x + 13, y + 5, 1, 1], [x + 27, y + 5, 1, 1], [x + 13, y + 17, 1, 1], [x + 27, y + 17, 1, 1]], OL);
+    soft(c, x + 29, y + 7, 13, 11, '#efe6d4', { glint: false });
+    for (let i = x + 31; i < x + 41; i += 3) R(c, i, y + 8, 1, 9, '#5a7a9a');
+    // Manta de punto caída sobre el brazo derecho, con flecos.
+    const knit = '#e6d8bb';
+    R(c, x + 90, y + 9, 11, 25, OL);
+    R(c, x + 91, y + 10, 9, 23, knit);
+    for (let py = y + 11; py < y + 33; py += 2) R(c, x + 92, py, 7, 1, tone(knit, -0.08));
+    R(c, x + 91, y + 10, 9, 1, tone(knit, 0.2));
+    R(c, x + 99, y + 11, 1, 21, tone(knit, -0.2));
+    for (let fx = x + 91; fx < x + 100; fx += 2) R(c, fx, y + 33, 1, 2, knit);
     // El tiburón de peluche, si nadie lo tiene en brazos.
     if (!s.props.shark) drawShark(c, x + 70, y + 22, 1);
   }
@@ -1217,68 +1390,142 @@
   }
 
   function drawTvBack(c, s, t) {
-    // Mueble bajo y la tele vista desde detrás (mira al sofá).
-    box(c, 68, 350, 76, 20, '#6a4a34');
-    R(c, 72, 356, 32, 10, '#4a3224');
-    R(c, 108, 356, 32, 10, '#4a3224');
-    R(c, 87, 360, 2, 2, '#c9a06a');
-    R(c, 123, 360, 2, 2, '#c9a06a');
-    R(c, 100, 346, 12, 5, OL);
-    box(c, 78, 326, 56, 22, '#2c2c32', { hi: 0.12, lo: -0.3 });
-    for (let i = 84; i < 128; i += 4) R(c, i, 331, 2, 1, '#45454d');
-    R(c, 104, 340, 4, 6, '#1a1a1e');
-    // Altavoz y una vela.
-    box(c, 136, 340, 8, 12, '#3a3a40');
-    box(c, 70, 343, 6, 8, '#f2e6cf');
+    const wood = '#6a4a34';
+    shadow(c, 106, 372, 40, 3, 0.28);
+    // Mueble bajo de listones (nórdico), con su tapa y patas.
+    R(c, 71, 368, 3, 4, OL);
+    R(c, 138, 368, 3, 4, OL);
+    soft(c, 68, 350, 76, 19, wood);
+    R(c, 69, 351, 74, 3, tone(wood, 0.18));
+    grain(c, 69, 351, 74, 3, tone(wood, 0.18), 5);
+    R(c, 69, 351, 74, 1, tone(wood, 0.32));
+    R(c, 69, 354, 74, 1, tone(wood, -0.38));
+    for (let px = 72; px < 141; px += 2) if (px < 104 || px > 108) R(c, px, 356, 1, 10, tone(wood, -0.26));
+    R(c, 105, 355, 2, 12, tone(wood, -0.45));
+    R(c, 70, 366, 72, 1, tone(wood, -0.35));
+    // La tele vista por detrás: carcasa, rejilla, soporte y cables.
+    R(c, 98, 345, 16, 6, OL);
+    R(c, 99, 346, 14, 4, '#3a3a42');
+    soft(c, 78, 326, 56, 22, '#2c2c34', { hi: 0.14, lo: -0.3 });
+    R(c, 80, 328, 52, 1, '#45454f');
+    for (let row = 0; row < 3; row += 1) for (let i = 86; i < 126; i += 3) R(c, i, 331 + row * 3, 2, 1, '#1d1d23');
+    soft(c, 98, 339, 16, 6, '#34343c', { glint: false });
+    R(c, 104, 345, 1, 6, '#141418');
+    R(c, 108, 345, 1, 6, '#141418');
+    // Altavoz, vela encendida y una plantita.
+    soft(c, 136, 337, 8, 15, '#3a3a40');
+    oval(c, 140, 342, 2, 2, '#1d1d22');
+    oval(c, 140, 348, 2, 2, '#1d1d22');
+    R(c, 139, 341, 1, 1, '#6a6a74');
+    soft(c, 70, 343, 7, 8, '#f2e6cf', { hi: 0.25 });
+    R(c, 73, 341, 1, 2, OL);
+    const flick = Math.floor(t / 160) % 3;
+    pixels(c, [[73, 339 - (flick === 1 ? 1 : 0), 1, 2]], '#f2c230');
+    pixels(c, [[73, 340, 1, 1]], '#fff3c0');
     if (s.props.tv || s.props.games) {
       const colors = ['#9fd3f0', '#f2c2a0', '#b0e0b0', '#e0b0f0'];
       c.globalAlpha = 0.85;
       R(c, 79, 325, 54, 1, colors[Math.floor(t / 700) % colors.length]);
+      c.globalAlpha = 0.25;
+      R(c, 82, 322, 48, 3, colors[Math.floor(t / 700) % colors.length]);
       c.globalAlpha = 1;
     }
   }
 
   function drawRecordPlayer(c, s, t) {
-    box(c, 160, 240, 26, 22, '#9a6a44');
-    R(c, 163, 254, 20, 5, '#7a4e30');
-    box(c, 160, 232, 26, 12, '#d8c8a8');
+    const wood = '#9a6a44';
+    shadow(c, 173, 263, 15, 2, 0.24);
+    soft(c, 160, 240, 26, 22, wood);
+    grain(c, 161, 244, 24, 4, wood, 21);
+    // Los vinilos en el hueco de abajo.
+    R(c, 163, 249, 20, 11, tone(wood, -0.45));
+    ['#c0503e', '#2f4a5a', '#e3b86a', '#efe6d4', '#3d6a9a', '#1f1e24', '#7a62b3'].forEach((col, i) => {
+      R(c, 164 + Math.round(i * 2.6), 251, 2, 9, col);
+      R(c, 164 + Math.round(i * 2.6), 251, 1, 9, tone(col, 0.22));
+    });
+    // Tocadiscos: tapa clara, plato, disco con su etiqueta y el brazo.
+    soft(c, 160, 231, 26, 13, '#d8c8a8', { hi: 0.25 });
+    oval(c, 170, 237, 6, 4, OL);
     oval(c, 170, 237, 5, 3, '#1d1d22');
+    oval(c, 170, 237, 3, 2, '#2c2c34');
     const spin = s.props.radio ? Math.floor(t / 120) % 2 : 0;
     R(c, 169, 236, 2, 2, spin ? '#e0533f' : '#c0503e');
-    R(c, 177, 234, 1, 5, '#9aa3a8');
-    R(c, 176, 238, 3, 1, '#9aa3a8');
+    R(c, 166 + spin * 6, 235, 1, 1, '#5a5a66');
+    R(c, 179, 233, 2, 2, '#9aa3a8');
+    line(c, 180, 234, 175, 239, '#c5ccce');
+    R(c, 163, 242, 2, 1, '#6a6f74');
+    R(c, 181, 242, 2, 1, '#6a6f74');
     // Discos apoyados.
-    box(c, 184, 248, 4, 14, '#2f4a5a');
+    soft(c, 184, 247, 5, 15, '#2f4a5a', { glint: false });
+    R(c, 185, 251, 3, 4, '#e3b86a');
   }
 
   function drawBed(c) {
     const x = 28;
     const y = 38;
-    shadow(c, x + 36, y + 86, 38, 4, 0.22);
-    // Cabecero de madera contra la pared.
-    box(c, x, y, 72, 22, '#8a5a3a');
-    R(c, x + 4, y + 4, 64, 3, '#a87048');
-    // Estructura y colchón.
-    box(c, x + 2, y + 18, 68, 68, '#7a4a2c');
-    R(c, x + 5, y + 20, 62, 62, '#f7f3ea');
-    // Almohadas.
-    box(c, x + 7, y + 22, 27, 13, '#fbf8f2', { hi: 0.3, lo: -0.12 });
-    box(c, x + 38, y + 22, 27, 13, '#fbf8f2', { hi: 0.3, lo: -0.12 });
+    const wood = '#8a5a3a';
+    shadow(c, x + 36, y + 88, 40, 4, 0.24);
+    // Cabecero de madera con dos cuarterones y el canto iluminado.
+    soft(c, x, y, 72, 22, wood);
+    R(c, x + 2, y + 1, 68, 2, tone(wood, 0.24));
+    [[x + 4, 31, 11], [x + 37, 31, 12]].forEach(([px, pw, seed]) => {
+      R(c, px, y + 5, pw, 13, tone(wood, -0.3));
+      R(c, px + 1, y + 6, pw - 2, 11, tone(wood, 0.05));
+      grain(c, px + 1, y + 7, pw - 2, 10, tone(wood, 0.05), seed);
+      R(c, px + 1, y + 6, pw - 2, 1, tone(wood, 0.22));
+    });
+    // Estructura y colchón con la sábana bajera.
+    soft(c, x + 2, y + 18, 68, 68, '#7a4a2c');
+    grain(c, x + 3, y + 81, 66, 3, '#7a4a2c', 3);
+    R(c, x + 5, y + 20, 62, 62, '#e9e2d4');
+    R(c, x + 6, y + 20, 60, 60, '#f8f5ee');
+    // Almohadas mullidas, con sus arrugas y su sombra.
+    [x + 7, x + 38].forEach((px) => {
+      R(c, px + 1, y + 34, 26, 2, 'rgba(60,40,30,.16)');
+      soft(c, px, y + 21, 27, 14, '#fbf8f2', { hi: 0.4, lo: -0.1 });
+      R(c, px + 3, y + 23, 21, 1, '#ffffff');
+      R(c, px + 4, y + 30, 6, 1, '#e4ded2');
+      R(c, px + 17, y + 29, 6, 1, '#e4ded2');
+      R(c, px + 11, y + 27, 4, 1, '#ebe6db');
+    });
+    // Cojín de adorno en el centro.
+    const accent = decorOf('bedding')[1];
+    soft(c, x + 29, y + 28, 14, 10, accent, { hi: 0.25 });
+    R(c, x + 32, y + 32, 8, 1, tone(accent, -0.15));
   }
   // El edredón va aparte: tapa a quien duerme en la cama.
   function drawDuvet(c) {
     const x = 28;
     const y = 38;
     const [duvet, blanket] = decorOf('bedding');
-    R(c, x + 3, y + 40, 66, 44, OL);
-    R(c, x + 4, y + 41, 64, 42, duvet);
-    R(c, x + 4, y + 41, 64, 3, tone(duvet, 0.3));
-    for (let i = 0; i < 4; i += 1) R(c, x + 6, y + 50 + i * 9, 60, 1, tone(duvet, -0.07));
-    // Manta a los pies (por defecto, en verde caqui como el sofá).
-    R(c, x + 3, y + 68, 66, 16, OL);
-    R(c, x + 4, y + 69, 64, 14, blanket);
-    for (let i = x + 6; i < x + 66; i += 4) R(c, i, y + 69, 1, 14, tone(blanket, -0.12));
-    R(c, x + 4, y + 69, 64, 1, tone(blanket, 0.2));
+    R(c, x + 2, y + 40, 68, 45, OL);
+    R(c, x + 3, y + 41, 66, 43, duvet);
+    // Embozo: la sábana vuelta por encima.
+    R(c, x + 3, y + 41, 66, 5, '#fbf9f4');
+    R(c, x + 3, y + 41, 66, 1, '#ffffff');
+    R(c, x + 3, y + 45, 66, 1, '#e1dbce');
+    R(c, x + 3, y + 46, 66, 1, tone(duvet, 0.2));
+    // Pespuntes en cuadrícula.
+    for (let i = 0; i < 2; i += 1) for (let px = x + 6; px < x + 66; px += 3) R(c, px, y + 55 + i * 8, 2, 1, tone(duvet, -0.08));
+    [x + 25, x + 47].forEach((px) => { for (let py = y + 48; py < y + 67; py += 3) R(c, px, py, 1, 2, tone(duvet, -0.08)); });
+    // Pliegues suaves.
+    [[x + 9, y + 50, 13], [x + 38, y + 59, 17], [x + 15, y + 64, 11]].forEach(([fx, fy, fw]) => {
+      R(c, fx, fy, fw, 1, tone(duvet, 0.14));
+      R(c, fx + 2, fy + 1, fw - 4, 1, tone(duvet, -0.1));
+    });
+    // Caída por los lados, más oscura.
+    R(c, x + 3, y + 46, 2, 22, tone(duvet, -0.12));
+    R(c, x + 67, y + 46, 2, 22, tone(duvet, -0.2));
+    // Manta de punto a los pies, con flecos.
+    R(c, x + 1, y + 68, 70, 17, OL);
+    R(c, x + 2, y + 69, 68, 15, blanket);
+    for (let px = x + 3; px < x + 69; px += 3) {
+      R(c, px, y + 70, 1, 13, tone(blanket, -0.12));
+      for (let py = y + 71; py < y + 83; py += 4) R(c, px + 1, py, 1, 1, tone(blanket, 0.12));
+    }
+    R(c, x + 2, y + 69, 68, 1, tone(blanket, 0.25));
+    R(c, x + 2, y + 83, 68, 1, tone(blanket, -0.25));
+    for (let py = y + 70; py < y + 84; py += 2) { R(c, x, py, 1, 1, tone(blanket, 0.1)); R(c, x + 71, py, 1, 1, tone(blanket, -0.05)); }
   }
 
   // Mesillas: la izquierda con un libro y gafas; la derecha con vuestra foto.
@@ -1293,28 +1540,52 @@
     }
   }
   function drawNightstand(c, x, photo) {
-    shadow(c, x + 9, 77, 10, 2, 0.22);
-    box(c, x, 52, 18, 24, '#9a6a44');
-    R(c, x + 3, 64, 12, 1, OL);
-    R(c, x + 8, 66, 2, 1, '#e3b86a');
+    const wood = '#9a6a44';
+    shadow(c, x + 9, 78, 11, 2, 0.24);
+    soft(c, x, 52, 18, 24, wood);
+    // Tapa vista desde arriba y dos cajones con tirador de latón.
+    R(c, x + 1, 53, 16, 4, tone(wood, 0.14));
+    grain(c, x + 1, 54, 16, 3, tone(wood, 0.14), x);
+    R(c, x + 1, 57, 16, 1, tone(wood, -0.32));
+    [59, 67].forEach((dy) => {
+      R(c, x + 2, dy, 14, 7, tone(wood, -0.05));
+      R(c, x + 2, dy, 14, 1, tone(wood, 0.12));
+      R(c, x + 2, dy + 6, 14, 1, tone(wood, -0.3));
+      R(c, x + 7, dy + 3, 4, 1, '#c99a4a');
+      R(c, x + 7, dy + 3, 1, 1, '#f6dc9a');
+    });
+    // Lámpara: pie de cerámica y pantalla de lino plisada.
     const lx = photo === undefined ? x + 3 : x + 8;
-    R(c, lx + 5, 44, 2, 8, '#6a5a4a');
-    box(c, lx, 36, 12, 9, '#efe2c4');
-    R(c, lx + 2, 37, 8, 1, '#fbf3dc');
-    R(c, lx + 2, 50, 8, 2, '#6a5a4a');
+    R(c, lx + 3, 51, 6, 2, OL);
+    ovalBox(c, lx + 6, 48, 2, 3, '#d98f6a');
+    R(c, lx + 5, 46, 1, 2, '#f2b896');
+    R(c, lx + 5, 43, 2, 3, '#6a5a4a');
+    soft(c, lx - 1, 35, 14, 9, '#f1e4c6', { hi: 0.3, lo: -0.14 });
+    for (let i = 1; i < 12; i += 2) R(c, lx + i, 37, 1, 6, '#e2d2ae');
+    R(c, lx, 43, 12, 1, '#d6c5a0');
     if (photo === undefined) {
-      box(c, x + 1, 47, 8, 4, '#3d6a9a');
+      soft(c, x + 1, 47, 9, 5, '#3d6a9a', { glint: false });
+      R(c, x + 2, 48, 1, 3, '#f4efe4');
+      R(c, x + 2, 45, 7, 2, '#c0503e');
+      R(c, x + 2, 45, 7, 1, '#d8705e');
       R(c, x + 10, 49, 5, 1, OL);
-      R(c, x + 10, 48, 2, 2, '#9aa3a8');
-      R(c, x + 13, 48, 2, 2, '#9aa3a8');
+      R(c, x + 10, 48, 2, 2, '#9fc4d8');
+      R(c, x + 13, 48, 2, 2, '#9fc4d8');
+      R(c, x + 10, 48, 1, 1, '#ffffff');
     } else drawSlot(c, PHOTO_SLOTS[8], photo);
   }
   function drawBasket(c) {
-    shadow(c, 18, 112, 9, 2, 0.22);
-    box(c, 10, 98, 16, 14, '#c9a06a');
-    for (let i = 12; i < 25; i += 3) R(c, i, 100, 1, 11, '#a87e4a');
-    pixels(c, [[12, 95, 6, 4], [17, 94, 6, 4]], '#f4f1ea');
-    pixels(c, [[14, 96, 4, 3]], '#1f1e24');
+    shadow(c, 18, 113, 10, 2, 0.24);
+    soft(c, 10, 98, 16, 14, '#c9a06a', { glint: false });
+    // Mimbre trenzado.
+    for (let j = 101; j < 110; j += 2) for (let i = 11 + ((j - 101) / 2) % 2; i < 25; i += 2) R(c, i, j, 1, 1, '#a87e4a');
+    R(c, 10, 98, 16, 2, '#8a6a3a');
+    R(c, 11, 98, 14, 1, '#dcb880');
+    // Ropa asomando.
+    pixels(c, [[12, 94, 6, 5], [17, 93, 6, 5]], OL);
+    pixels(c, [[13, 95, 4, 3], [18, 94, 4, 4]], '#f4f1ea');
+    pixels(c, [[14, 96, 3, 3]], '#3d6a9a');
+    pixels(c, [[20, 95, 2, 1]], '#e98a6a');
   }
   function snakePlant(c, x, y, dry) {
     const pal = dry ? DRYS : GREENS;
@@ -1325,8 +1596,7 @@
       R(c, x + lx, y + ly + 1 + tilt, lw, lh - 1 - tilt, color);
       R(c, x + lx, y + ly + 1 + tilt, 1, lh - 1 - tilt, dry ? '#c9b46a' : '#c9d27a');
     });
-    box(c, x - 8, y - 14, 16, 14, '#efe6d4');
-    R(c, x - 7, y - 11, 14, 1, '#cfc4b1');
+    pot(c, x - 8, y - 14, 16, 14, '#efe6d4', { band: '#cfc4b1' });
   }
   // Poto colgante: maceta con cuerdas o encima de un mueble, con guías que caen.
   function pothos(c, x, y, t, dry, hanging) {
@@ -1428,54 +1698,101 @@
   }
 
   function drawWasher(c, s, t) {
-    shadow(c, 322, 172, 14, 2, 0.22);
-    box(c, 308, 146, 28, 26, '#f1f4f5', { hi: 0.35, lo: -0.15 });
-    R(c, 310, 149, 24, 4, '#d4dcde');
-    R(c, 312, 150, 4, 2, '#7cc4e6');
-    R(c, 328, 150, 3, 2, '#3fbf6a');
-    ovalBox(c, 322, 162, 7, 6, '#9aa3a8');
-    oval(c, 322, 162, 5, 4, s.props.laundry ? '#7cc4e6' : '#c5d1d4');
+    shadow(c, 322, 173, 15, 2, 0.24);
+    soft(c, 308, 146, 28, 26, '#f1f4f5', { hi: 0.35, lo: -0.16 });
+    // Panel de mandos con pantalla y ruleta.
+    R(c, 310, 149, 24, 5, '#dde3e5');
+    R(c, 310, 153, 24, 1, '#b9c2c6');
+    R(c, 312, 150, 6, 2, '#2a3a44');
+    R(c, 313, 150, 3, 1, s.props.laundry ? '#7cf0a0' : '#3a6a54');
+    ovalBox(c, 328, 151, 2, 1, '#c5ccce');
+    R(c, 322, 150, 1, 2, '#9aa3a8');
+    R(c, 324, 150, 1, 2, '#9aa3a8');
+    // Ojo de buey cromado con el cristal.
+    oval(c, 322, 163, 8, 7, OL);
+    oval(c, 322, 163, 7, 6, '#c5ccce');
+    oval(c, 322, 163, 5, 4, s.props.laundry ? '#6fb6d6' : '#3a4a54');
+    R(c, 318, 160, 2, 1, '#ffffff');
+    R(c, 317, 161, 1, 2, '#e8f4f8');
     if (s.props.laundry) {
       const a = t / 120;
-      pixels(c, [[322 + Math.cos(a) * 3, 162 + Math.sin(a) * 2, 2, 2], [322 - Math.cos(a) * 3, 162 - Math.sin(a) * 2, 2, 2]], '#e98a6a');
+      pixels(c, [[322 + Math.cos(a) * 3, 163 + Math.sin(a) * 2, 2, 2], [322 - Math.cos(a) * 3, 163 - Math.sin(a) * 2, 2, 2]], '#e98a6a');
+      pixels(c, [[322 + Math.sin(a) * 2, 163 + Math.cos(a) * 2, 2, 1]], '#f4f1ea');
     }
   }
   function drawWineRack(c) {
-    shadow(c, 487, 77, 15, 2, 0.22);
-    box(c, 472, 44, 30, 32, '#8a5a3a');
+    const wood = '#8a5a3a';
+    shadow(c, 487, 78, 16, 2, 0.24);
+    soft(c, 472, 44, 30, 32, wood);
+    grain(c, 473, 45, 28, 2, wood, 44);
     R(c, 474, 58, 26, 1, OL);
-    [[476, '#5a1a24'], [482, '#2f5a2a'], [488, '#5a1a24'], [494, '#e3c87a']].forEach(([bx, color]) => {
-      box(c, bx, 47, 5, 10, color);
-      R(c, bx + 1, 44, 3, 3, OL);
+    R(c, 474, 59, 26, 1, tone(wood, 0.2));
+    // Botellas de pie, con cápsula, etiqueta y brillo.
+    [[476, '#5a1a24', '#efe6d4'], [482, '#2f5a2a', '#e3b86a'], [488, '#5a1a24', '#f4f1ea'], [494, '#c9b36a', '#c0503e']].forEach(([bx, color, label]) => {
+      R(c, bx + 1, 44, 3, 4, OL);
+      R(c, bx + 1, 44, 3, 2, '#c0303e');
+      soft(c, bx, 47, 5, 11, color, { glint: false });
+      R(c, bx + 1, 51, 3, 3, label);
+      R(c, bx + 1, 48, 1, 6, tone(color, 0.35));
     });
-    for (let i = 0; i < 4; i += 1) ovalBox(c, 477 + i * 6, 66, 2, 2, i % 2 ? '#5a1a24' : '#2f5a2a');
+    // Abajo, botellas tumbadas en el botellero.
+    R(c, 474, 61, 26, 9, tone(wood, -0.45));
+    for (let i = 0; i < 4; i += 1) {
+      ovalBox(c, 477 + i * 6, 66, 2, 2, i % 2 ? '#5a1a24' : '#2f5a2a');
+      R(c, 476 + i * 6, 65, 1, 1, '#9a8a7a');
+    }
     R(c, 474, 70, 26, 1, OL);
+    R(c, 474, 71, 26, 1, tone(wood, 0.2));
   }
   // Escritorio con el portátil (la tapa se ve por detrás) y su sillita.
   function drawDeskChair(c) {
-    shadow(c, 262, 336, 10, 2, 0.2);
-    box(c, 252, 318, 20, 9, '#3a3a40');
-    box(c, 253, 326, 18, 8, '#4a4a52');
+    shadow(c, 262, 337, 11, 2, 0.22);
+    // Silla de oficina: respaldo, asiento acolchado y ruedas.
+    pixels(c, [[253, 334, 2, 2], [270, 334, 2, 2], [261, 336, 2, 2]], OL);
+    soft(c, 252, 318, 20, 9, '#3a3a40', { hi: 0.25 });
+    R(c, 255, 320, 14, 1, '#55555e');
+    soft(c, 253, 326, 18, 8, '#4a4a52', { hi: 0.22 });
+    R(c, 256, 329, 12, 1, '#3a3a42');
   }
   function drawDesk(c, s) {
-    shadow(c, 262, 373, 34, 3, 0.25);
-    R(c, 232, 354, 3, 17, OL);
-    R(c, 289, 354, 3, 17, OL);
-    R(c, 233, 354, 1, 16, '#8a5a3a');
-    R(c, 290, 354, 1, 16, '#8a5a3a');
-    box(c, 230, 342, 64, 14, '#c99a6b');
-    R(c, 232, 344, 60, 1, '#e0b88a');
-    box(c, 250, 332, 24, 12, '#b9c2c6', { hi: 0.3, lo: -0.2 });
+    const wood = '#c99a6b';
+    shadow(c, 262, 374, 35, 3, 0.26);
+    // Patas de horquilla de metal.
+    [[232, 354], [289, 354]].forEach(([lx, ly]) => {
+      R(c, lx, ly, 3, 17, OL);
+      R(c, lx + 1, ly, 1, 16, '#5a5a62');
+      R(c, lx + 1, ly + 2, 1, 4, '#8a8a94');
+    });
+    soft(c, 230, 342, 64, 14, wood);
+    grain(c, 231, 344, 62, 8, wood, 13);
+    R(c, 232, 343, 60, 1, tone(wood, 0.26));
+    R(c, 231, 353, 62, 2, tone(wood, -0.28));
+    // Portátil de espaldas (con su logo) y la luz de la pantalla.
+    soft(c, 250, 332, 24, 12, '#b9c2c6', { hi: 0.32, lo: -0.2 });
+    R(c, 252, 333, 20, 1, '#dfe5e8');
     R(c, 260, 336, 4, 4, '#e8edef');
+    R(c, 261, 335, 1, 1, '#e8edef');
     if (s.props.laptop) {
       c.globalAlpha = 0.6;
       R(c, 249, 331, 26, 1, '#9fd3f0');
+      c.globalAlpha = 0.2;
+      R(c, 248, 328, 28, 3, '#9fd3f0');
       c.globalAlpha = 1;
     }
-    R(c, 237, 330, 2, 13, '#3a3a40');
-    box(c, 233, 326, 9, 5, '#f2c230');
-    box(c, 277, 337, 5, 5, '#f4f1ea');
-    R(c, 278, 338, 3, 1, '#6a4a34');
+    // Flexo amarillo con su brazo.
+    soft(c, 232, 339, 9, 4, '#3a3a40', { glint: false });
+    line(c, 236, 339, 238, 331, '#3a3a40');
+    line(c, 238, 331, 236, 327, '#3a3a40');
+    soft(c, 232, 323, 10, 6, '#f2c230', { hi: 0.3 });
+    R(c, 233, 328, 8, 1, '#c99a1a');
+    // Taza, libreta con boli y la plantita.
+    soft(c, 276, 337, 6, 6, '#f4f1ea', { hi: 0.25 });
+    R(c, 277, 338, 4, 1, '#6a4a34');
+    R(c, 282, 339, 1, 2, '#f4f1ea');
+    R(c, 241, 346, 8, 6, OL);
+    R(c, 242, 346, 6, 5, '#e98a6a');
+    R(c, 243, 347, 4, 1, '#f6b39a');
+    line(c, 244, 350, 248, 348, '#3d6a9a');
     drawSlot(c, PHOTO_SLOTS[10], s.photos?.[10]);
     const day = String(s.data?.day || new Date().getDate()).padStart(2, '0');
     R(c, 284, 333, 11, 11, OL);
@@ -1485,44 +1802,97 @@
     if (s.data?.events) R(c, 292, 341, 2, 2, '#3d6a9a');
   }
   function drawCoatRack(c) {
-    shadow(c, 491, 372, 8, 2, 0.25);
-    R(c, 485, 369, 13, 3, OL);
-    R(c, 490, 326, 2, 44, '#5a3a26');
+    shadow(c, 491, 373, 9, 2, 0.26);
+    ovalBox(c, 491, 370, 6, 2, '#5a3a26');
+    R(c, 490, 326, 2, 44, OL);
+    R(c, 490, 326, 1, 44, '#7a5a3e');
     R(c, 486, 328, 10, 2, '#5a3a26');
-    box(c, 483, 330, 8, 18, '#2f3a5a');
-    box(c, 491, 332, 8, 15, '#c9b48f');
-    box(c, 486, 346, 7, 8, '#c0503e');
-    R(c, 488, 344, 3, 2, OL);
+    // Abrigo azul, gabardina y bolso rojo, con sus pliegues.
+    soft(c, 483, 330, 8, 19, '#2f3a5a');
+    R(c, 485, 333, 1, 14, '#22293f');
+    R(c, 487, 332, 2, 1, '#4a5a80');
+    soft(c, 491, 332, 8, 16, '#c9b48f');
+    R(c, 494, 334, 1, 12, '#a8936e');
+    R(c, 492, 340, 6, 1, '#8a7650');
+    // Bufanda de rayas colgando.
+    for (let i = 0; i < 7; i += 1) R(c, 489, 331 + i * 2, 3, 2, i % 2 ? '#efe2c8' : '#c0503e');
+    soft(c, 486, 346, 8, 8, '#c0503e', { hi: 0.25 });
+    R(c, 488, 344, 4, 2, OL);
+    R(c, 489, 349, 2, 1, '#e3b86a');
+    // Sombrero de paja arriba.
+    ovalBox(c, 491, 325, 6, 2, '#d8bf88');
+    R(c, 489, 322, 5, 3, '#d8bf88');
+    R(c, 489, 324, 5, 1, '#5a3a26');
   }
   function drawShoeBench(c) {
-    box(c, 400, 360, 36, 12, '#a87048');
+    const wood = '#a87048';
+    soft(c, 400, 360, 36, 12, wood);
+    R(c, 401, 361, 34, 2, tone(wood, 0.22));
+    grain(c, 401, 363, 34, 2, wood, 70);
     R(c, 402, 365, 32, 1, OL);
-    pixels(c, [[403, 357, 4, 3], [408, 357, 4, 3]], '#c0303e');
-    pixels(c, [[415, 357, 4, 3], [420, 357, 4, 3]], '#5a6a7a');
-    pixels(c, [[427, 357, 4, 3], [432, 358, 3, 2]], '#f4f1ea');
+    for (let i = 404; i < 434; i += 4) R(c, i, 366, 2, 4, tone(wood, -0.35));
+    // Zapatillas, botas y deportivas con su suela.
+    const pair = (sx, color, sole = '#f4f1ea') => {
+      [[sx, 356], [sx + 5, 357]].forEach(([px, py]) => {
+        R(c, px, py, 4, 4, OL);
+        R(c, px, py, 4, 3, color);
+        R(c, px, py, 4, 1, tone(color, 0.25));
+        R(c, px, py + 3, 4, 1, sole);
+      });
+    };
+    pair(403, '#c0503e');
+    pair(415, '#5a6a7a', '#2b2522');
+    pair(427, '#f4f1ea', '#c9c2b4');
   }
 
   function drawWardrobe(c, s) {
     const x = 124;
     const y = 10;
-    shadow(c, x + 21, y + 66, 22, 3, 0.25);
-    box(c, x, y, 42, 66, '#b88a5e');
-    R(c, x + 2, y + 2, 38, 3, '#d0a478');
+    const wood = '#b88a5e';
+    shadow(c, x + 21, y + 67, 24, 3, 0.26);
+    soft(c, x, y, 42, 66, wood);
+    // Cornisa arriba y zócalo abajo.
+    R(c, x - 1, y, 44, 4, OL);
+    R(c, x, y + 1, 42, 2, tone(wood, 0.24));
+    R(c, x + 1, y + 4, 40, 1, tone(wood, -0.25));
+    R(c, x + 1, y + 61, 40, 4, tone(wood, -0.3));
+    R(c, x + 1, y + 61, 40, 1, tone(wood, -0.1));
     if (s.props.wardrobe) {
-      R(c, x + 3, y + 6, 36, 56, '#4a3224');
+      R(c, x + 3, y + 6, 36, 55, '#3e2a1e');
+      R(c, x + 3, y + 6, 36, 3, '#2a1c14');
       R(c, x + 4, y + 9, 34, 1, '#9aa3a8');
       const clothes = ['#1f1e24', '#f4f1ea', '#c0503e', '#3d6a9a', '#1f1e24', '#e3b86a', '#a9c7e3'];
-      clothes.forEach((color, i) => box(c, x + 5 + i * 5, y + 10, 5, 18 + (i % 3) * 6, color, { hi: 0.2, lo: -0.2 }));
+      clothes.forEach((color, i) => {
+        R(c, x + 6 + i * 5, y + 9, 3, 2, '#9aa3a8');
+        soft(c, x + 5 + i * 5, y + 10, 5, 18 + (i % 3) * 6, color, { glint: false });
+      });
+      // Balda con ropa doblada y cajas abajo.
+      R(c, x + 3, y + 44, 36, 2, tone(wood, 0.1));
+      [['#efe2c8', 0], ['#5a7a9a', 9], ['#c97a5a', 18], ['#efe6d4', 27]].forEach(([col, dx]) => {
+        soft(c, x + 4 + dx, y + 47, 8, 6, col, { glint: false });
+        R(c, x + 5 + dx, y + 49, 6, 1, tone(col, -0.12));
+      });
+      soft(c, x + 5, y + 54, 14, 7, '#d8bf88', { glint: false });
+      soft(c, x + 22, y + 54, 14, 7, '#c9a06a', { glint: false });
       // Puertas abiertas a los lados.
-      box(c, x - 8, y + 4, 9, 62, '#c99a6b');
-      box(c, x + 41, y + 4, 9, 62, '#c99a6b');
+      soft(c, x - 8, y + 4, 9, 62, '#c99a6b');
+      soft(c, x + 41, y + 4, 9, 62, '#c99a6b');
+      R(c, x - 6, y + 8, 5, 54, tone('#c99a6b', -0.08));
+      R(c, x + 43, y + 8, 5, 54, tone('#c99a6b', -0.08));
     } else {
-      R(c, x + 21, y + 6, 1, 56, tone('#b88a5e', -0.4));
-      R(c, x + 18, y + 32, 1, 6, '#e3b86a');
-      R(c, x + 24, y + 32, 1, 6, '#e3b86a');
-      R(c, x + 4, y + 6, 1, 54, tone('#b88a5e', 0.15));
+      grain(c, x + 2, y + 6, 38, 54, wood, 7, 3);
+      // Dos puertas con cuarterones y tiradores de latón.
+      [x + 3, x + 22].forEach((px) => {
+        [[y + 8, 23], [y + 34, 24]].forEach(([py, ph]) => {
+          R(c, px + 2, py, 13, ph, tone(wood, -0.22));
+          R(c, px + 3, py + 1, 11, ph - 2, tone(wood, 0.04));
+          R(c, px + 3, py + 1, 11, 1, tone(wood, 0.2));
+          R(c, px + 3, py + 1, 1, ph - 2, tone(wood, 0.12));
+        });
+      });
+      R(c, x + 21, y + 5, 1, 56, tone(wood, -0.45));
+      [x + 18, x + 24].forEach((hx) => { R(c, hx, y + 31, 1, 7, '#c99a4a'); R(c, hx, y + 31, 1, 2, '#f6dc9a'); });
     }
-    R(c, x + 2, y + 62, 38, 3, tone('#b88a5e', -0.3));
   }
 
   // Espejo de pie con forma de gota, como el de vuestra foto. Refleja a quien se pone delante.
@@ -1589,15 +1959,31 @@
     R(c, x + 8, bottom - 2, 2, 4, OL);
   }
 
-  function drawTub(c, s) {
+  function drawTub(c, s, t = 0) {
     const x = 228;
     const y = 40;
-    shadow(c, x + 36, y + 52, 38, 3, 0.2);
-    box(c, x, y, 72, 50, '#f4f6f6', { hi: 0.4, lo: -0.12 });
-    R(c, x + 4, y + 4, 64, 40, '#d7e6ea');
-    R(c, x + 6, y + 6, 60, 36, s.props.bath ? '#a8dcea' : '#e2eef1');
-    R(c, x + 58, y + 8, 3, 3, '#9aa3a8');
-    R(c, x + 57, y + 6, 6, 2, '#b9c2c6');
+    shadow(c, x + 36, y + 53, 39, 3, 0.22);
+    soft(c, x, y, 72, 50, '#f4f6f6', { hi: 0.4, lo: -0.14 });
+    // Interior de esquinas redondas, con la pared del fondo en sombra.
+    R(c, x + 5, y + 4, 62, 42, '#c3d3d8');
+    R(c, x + 4, y + 5, 64, 40, '#c3d3d8');
+    R(c, x + 7, y + 6, 58, 38, s.props.bath ? '#8fd0e6' : '#e2eef1');
+    R(c, x + 6, y + 7, 60, 36, s.props.bath ? '#8fd0e6' : '#e2eef1');
+    R(c, x + 7, y + 6, 58, 3, s.props.bath ? '#7cc0da' : '#cfdfe4');
+    if (s.props.bath) {
+      for (let i = 0; i < 4; i += 1) R(c, x + 10 + Math.round((t / 90 + i * 13) % 44), y + 15 + i * 7, 6, 1, '#c4ecf6');
+    } else {
+      R(c, x + 10, y + 12, 22, 1, '#ffffff');
+      R(c, x + 10, y + 13, 10, 1, '#f4fafb');
+    }
+    ovalBox(c, x + 13, y + 38, 1, 1, '#9aa3a8');
+    // Grifo cromado y un patito en el borde.
+    soft(c, x + 55, y + 4, 9, 5, '#c5ccce', { hi: 0.4 });
+    R(c, x + 58, y + 9, 2, 3, '#9aa3a8');
+    R(c, x + 58, y + 9, 1, 2, '#ffffff');
+    pixels(c, [[x + 6, y + 1, 4, 3], [x + 9, y, 2, 2]], '#f2c230');
+    pixels(c, [[x + 11, y + 1, 1, 1]], '#e98a3a');
+    pixels(c, [[x + 9, y, 1, 1]], OL);
   }
   // Borde delantero de la bañera, espuma y cortina: tapan a quien se baña.
   function drawTubFront(c, s, t) {
@@ -1631,35 +2017,65 @@
   }
 
   function drawSink(c) {
-    shadow(c, 317, 68, 10, 2, 0.2);
+    shadow(c, 317, 69, 11, 2, 0.22);
+    // Pie de cerámica con brillo.
+    R(c, 314, 52, 7, 16, OL);
     R(c, 315, 52, 5, 16, '#e4e9ea');
-    R(c, 315, 52, 1, 16, OL);
-    R(c, 319, 52, 1, 16, OL);
+    R(c, 315, 52, 1, 16, '#ffffff');
+    R(c, 319, 52, 1, 16, '#c5d1d4');
+    // Lavabo ovalado, grifo y jabón, vaso con cepillos.
     ovalBox(c, 317, 48, 11, 5, '#fbfcfc');
-    oval(c, 317, 48, 7, 3, '#d4e2e6');
-    R(c, 316, 42, 2, 4, '#9aa3a8');
-    R(c, 310, 44, 3, 2, '#7f9fc0');
-    R(c, 322, 43, 2, 4, '#e98a6a');
+    oval(c, 317, 49, 8, 3, '#c9d9de');
+    oval(c, 317, 49, 7, 2, '#dce8ec');
+    R(c, 311, 46, 4, 1, '#ffffff');
+    R(c, 316, 41, 2, 5, '#9aa3a8');
+    R(c, 316, 41, 3, 1, '#c5ccce');
+    R(c, 316, 42, 1, 2, '#ffffff');
+    soft(c, 308, 41, 4, 5, '#7f9fc0', { glint: false });
+    R(c, 309, 39, 2, 2, '#c5ccce');
+    soft(c, 321, 42, 4, 5, '#e98a6a', { glint: false });
+    pixels(c, [[322, 39, 1, 3], [324, 38, 1, 4]], '#7cc4e6');
+    pixels(c, [[322, 39, 1, 1], [324, 38, 1, 1]], '#ffffff');
   }
 
   function drawToilet(c) {
-    box(c, 323, 112, 11, 22, '#f4f6f6', { hi: 0.4, lo: -0.12 });
+    // Cisterna contra la pared, con tapa y botón.
+    soft(c, 323, 112, 11, 22, '#f4f6f6', { hi: 0.4, lo: -0.12 });
+    R(c, 324, 113, 9, 20, '#fbfcfc');
+    R(c, 324, 113, 1, 20, '#ffffff');
+    R(c, 332, 114, 1, 18, '#d4dee1');
+    ovalBox(c, 328, 122, 1, 2, '#c5ccce');
+    // Taza con su asiento y el agua.
     ovalBox(c, 315, 123, 8, 7, '#fbfcfc');
-    oval(c, 314, 123, 5, 4, '#d4e2e6');
+    oval(c, 314, 123, 6, 5, '#e7eef0');
+    oval(c, 314, 123, 5, 4, '#bfe0ea');
+    R(c, 311, 120, 3, 1, '#ffffff');
+    R(c, 320, 117, 1, 12, '#d4dee1');
   }
 
   function drawFridge(c, s) {
     const x = 346;
     const y = 6;
-    shadow(c, x + 12, y + 74, 13, 3, 0.25);
-    box(c, x, y, 24, 72, '#eef1f2', { hi: 0.35, lo: -0.15 });
-    R(c, x + 1, y + 28, 22, 1, '#b9c2c6');
-    R(c, x + 19, y + 12, 2, 10, '#9aa3a8');
-    R(c, x + 19, y + 34, 2, 14, '#9aa3a8');
+    shadow(c, x + 12, y + 75, 14, 3, 0.26);
+    soft(c, x, y, 24, 72, '#eef1f2', { hi: 0.35, lo: -0.16 });
+    // Acabado satinado: una banda clara vertical.
+    R(c, x + 3, y + 2, 2, 68, '#f8fafb');
+    R(c, x + 6, y + 2, 1, 68, '#f4f6f7');
+    R(c, x + 1, y + 27, 22, 1, '#a9b2b6');
+    R(c, x + 1, y + 28, 22, 1, '#ffffff');
+    // Tiradores cromados.
+    [[y + 11, 11], [y + 33, 15]].forEach(([hy, hh]) => {
+      R(c, x + 19, hy, 3, hh, OL);
+      R(c, x + 20, hy, 1, hh, '#c5ccce');
+      R(c, x + 20, hy + 1, 1, 2, '#ffffff');
+    });
+    R(c, x + 2, y + 68, 20, 2, '#9aa3a8');
+    for (let i = x + 4; i < x + 21; i += 3) R(c, i, y + 68, 1, 2, '#6a6f74');
     // La nota de la compra (una raya por cosa apuntada), imanes de Italia y España y una foto.
     const items = Math.min(s.data?.shopping || 0, 6);
     R(c, x + 3, y + 33, 12, 15, 'rgba(0,0,0,.15)');
     R(c, x + 2, y + 32, 12, 15, '#fbf6dc');
+    R(c, x + 2, y + 32, 12, 1, '#fffbe8');
     for (let i = 0; i < items; i += 1) R(c, x + 4, y + 35 + i * 2, 5 + ((i * 3) % 4), 1, '#5a6a8a');
     if (!items) pixelText(c, 'OK', x + 4, y + 37, '#3a9a5a');
     R(c, x + 7, y + 31, 2, 2, '#c0303e');
@@ -1668,9 +2084,18 @@
     pixels(c, [[x + 18, y + 34, 1, 3]], '#c0303e');
     pixels(c, [[x + 16, y + 40, 3, 1], [x + 16, y + 42, 3, 1]], '#c0303e');
     pixels(c, [[x + 16, y + 41, 3, 1]], '#f2c230');
+    // Imán de limón y dibujo pegado en el congelador.
+    pixels(c, [[x + 4, y + 8, 4, 3]], '#f2d23a');
+    pixels(c, [[x + 5, y + 8, 2, 1]], '#fff2a0');
+    R(c, x + 10, y + 7, 7, 9, '#ffffff');
+    pixels(c, [[x + 11, y + 12, 2, 3], [x + 14, y + 11, 2, 4]], '#e98a6a');
+    pixels(c, [[x + 11, y + 9, 5, 1]], '#7cc4e6');
     drawSlot(c, PHOTO_SLOTS[9], s.photos?.[9]);
     if (s.props.fridge) {
-      box(c, x - 14, y + 29, 15, 44, '#eef1f2');
+      soft(c, x - 14, y + 29, 15, 44, '#eef1f2');
+      R(c, x - 12, y + 32, 11, 38, '#f8fafb');
+      pixels(c, [[x - 11, y + 36, 3, 6], [x - 7, y + 37, 3, 5]], '#f4f1ea');
+      pixels(c, [[x - 11, y + 50, 7, 3]], '#e3b86a');
       R(c, x + 1, y + 29, 22, 42, '#fff7c2');
       for (let i = 0; i < 3; i += 1) R(c, x + 2, y + 41 + i * 11, 20, 1, '#d9cf9a');
       pixels(c, [[x + 4, y + 35, 4, 5], [x + 12, y + 36, 6, 4], [x + 3, y + 46, 7, 4], [x + 13, y + 47, 4, 3], [x + 6, y + 57, 10, 3]], '#e07a5f');
@@ -1681,100 +2106,200 @@
   function drawCounter(c, s, t) {
     const x = 370;
     const y = 32;
-    shadow(c, x + 50, y + 42, 50, 3, 0.2);
-    box(c, x, y + 22, 100, 20, '#7f9a7a');
-    for (let i = x + 24.5; i < x + 100; i += 24.5) R(c, i, y + 24, 1, 16, tone('#7f9a7a', -0.35));
-    for (let i = x + 10; i < x + 100; i += 24.5) R(c, i, y + 28, 4, 1, '#d9c38e');
-    // Encimera.
+    const sage = '#7f9a7a';
+    shadow(c, x + 50, y + 43, 51, 3, 0.22);
+    // Muebles bajos: puertas con marco, tiradores de latón y zócalo.
+    soft(c, x, y + 22, 100, 20, sage);
+    for (let i = 0; i < 4; i += 1) {
+      const dx = Math.round(x + 1 + i * 24.5);
+      R(c, dx + 2, y + 25, 21, 13, tone(sage, -0.16));
+      R(c, dx + 3, y + 26, 19, 11, tone(sage, 0.03));
+      R(c, dx + 3, y + 26, 19, 1, tone(sage, 0.2));
+      R(c, dx + 3, y + 26, 1, 11, tone(sage, 0.1));
+      R(c, dx + 9, y + 28, 7, 1, '#c9a96a');
+      R(c, dx + 9, y + 28, 2, 1, '#f2dca8');
+      if (i) R(c, dx, y + 24, 1, 15, tone(sage, -0.42));
+    }
+    R(c, x + 1, y + 38, 98, 2, tone(sage, -0.45));
+    // Encimera de mármol con vetas.
     R(c, x - 1, y, 102, 24, OL);
-    R(c, x, y + 1, 100, 22, '#e9e1d2');
+    R(c, x, y + 1, 100, 22, '#ece6da');
+    c.globalAlpha = 0.55;
+    [[x + 2, y + 18, 9, -1], [x + 56, y + 20, 7, -1], [x + 84, y + 6, 6, 1], [x + 20, y + 3, 5, 1]].forEach(([vx, vy, len, dir]) => line(c, vx, vy, vx + len, vy + dir * Math.round(len / 3), '#cfc5b3'));
+    c.globalAlpha = 1;
     R(c, x, y + 1, 100, 1, '#fbf8f2');
     R(c, x, y + 21, 100, 2, '#cfc4b1');
-    // Fogones.
-    R(c, x + 24, y + 4, 30, 16, '#2a2a2e');
-    [[x + 30, y + 8], [x + 46, y + 8], [x + 30, y + 16], [x + 46, y + 16]].forEach(([bx, by], i) => {
-      oval(c, bx, by, 4, 2, s.props.stove && i === 0 ? '#e0533f' : '#4a4a50');
-      oval(c, bx, by, 2, 1, '#2a2a2e');
+    // Fogones de gas con parrillas y mandos.
+    R(c, x + 24, y + 4, 30, 16, OL);
+    R(c, x + 25, y + 5, 28, 14, '#2a2a2e');
+    R(c, x + 25, y + 5, 28, 1, '#45454d');
+    [[x + 31, y + 9], [x + 46, y + 9], [x + 31, y + 16], [x + 46, y + 16]].forEach(([bx, by], i) => {
+      oval(c, bx, by, 4, 2, '#4a4a50');
+      oval(c, bx, by, 2, 1, '#1a1a1e');
+      if (s.props.stove && i === 0) {
+        const f = Math.floor(t / 90) % 2;
+        pixels(c, [[bx - 3, by, 1, 1], [bx + 3, by, 1, 1], [bx, by - 2, 1, 1], [bx, by + 2, 1, 1]], f ? '#5aa0ff' : '#ff9a3a');
+        pixels(c, [[bx - 2, by - 1, 1, 1], [bx + 2, by + 1, 1, 1]], f ? '#ff9a3a' : '#5aa0ff');
+      }
     });
-    // Olla y la cafetera italiana.
-    box(c, x + 24, y - 2, 13, 11, '#9aa3a8');
-    R(c, x + 25, y - 2, 11, 2, '#c5ccce');
+    R(c, x + 25, y + 12, 28, 1, '#1a1a1e');
+    R(c, x + 38, y + 5, 1, 14, '#1a1a1e');
+    for (let k = 0; k < 4; k += 1) { R(c, x + 28 + k * 7, y + 21, 2, 2, '#c5ccce'); R(c, x + 28 + k * 7, y + 21, 1, 1, '#ffffff'); }
+    // Olla con tapa y la cafetera italiana.
+    soft(c, x + 24, y - 2, 13, 11, '#9aa3a8', { hi: 0.35 });
+    R(c, x + 25, y - 1, 11, 2, '#c5ccce');
+    R(c, x + 29, y - 3, 3, 2, OL);
     R(c, x + 21, y + 2, 3, 2, '#6a6f74');
     R(c, x + 37, y + 2, 3, 2, '#6a6f74');
-    box(c, x + 43, y + 10, 6, 8, '#b9c2c6');
+    sheen(c, x + 26, y + 1, 6);
+    if (s.props.stove) {
+      c.globalAlpha = 0.6;
+      R(c, x + 28, y - 6 - ((t / 80) % 5), 1, 2, '#ffffff');
+      R(c, x + 32, y - 7 - ((t / 95) % 5), 1, 2, '#ffffff');
+      c.globalAlpha = 1;
+    }
+    soft(c, x + 43, y + 10, 6, 8, '#b9c2c6', { hi: 0.35 });
     R(c, x + 44, y + 8, 4, 2, '#6a6f74');
-    // Fregadero (con espuma si se friegan los platos).
-    R(c, x + 64, y + 5, 26, 14, '#9aa3a8');
-    R(c, x + 66, y + 7, 22, 10, '#c5ccce');
-    if (s.props.dishes) for (let i = 0; i < 6; i += 1) ovalBox(c, x + 69 + i * 3, y + 10 + (i % 2) * 3 + Math.sin(t / 300 + i), 2, 2, '#ffffff');
+    R(c, x + 49, y + 12, 1, 3, OL);
+    R(c, x + 44, y + 13, 4, 1, '#8a9094');
     if (s.props.coffee) {
       c.globalAlpha = 0.7;
       R(c, x + 45, y + 4 - ((t / 60) % 6), 1, 2, '#ffffff');
       R(c, x + 47, y + 2 - ((t / 70) % 6), 1, 2, '#ffffff');
       c.globalAlpha = 1;
     }
-    R(c, x + 76, y + 2, 2, 5, '#6a6f74');
-    // Tabla de cortar con tomates, albahaca y frutero.
-    box(c, x + 4, y + 6, 16, 11, '#c99a6b');
-    pixels(c, [[x + 7, y + 9, 3, 3], [x + 12, y + 10, 3, 3]], '#d6333f');
+    // Fregadero de acero con grifo de cuello de cisne (con espuma si se friegan los platos).
+    R(c, x + 63, y + 4, 28, 16, OL);
+    R(c, x + 64, y + 5, 26, 14, '#a9b2b6');
+    R(c, x + 66, y + 7, 22, 10, '#c5ccce');
+    R(c, x + 66, y + 7, 22, 2, '#aab3b7');
+    R(c, x + 77, y + 12, 2, 1, '#6a6f74');
+    if (s.props.dishes) for (let i = 0; i < 6; i += 1) ovalBox(c, x + 69 + i * 3, y + 10 + (i % 2) * 3 + Math.sin(t / 300 + i), 2, 2, '#ffffff');
+    R(c, x + 76, y + 1, 2, 6, '#6a6f74');
+    R(c, x + 76, y + 1, 5, 1, '#9aa3a8');
+    R(c, x + 80, y + 1, 1, 3, '#9aa3a8');
+    R(c, x + 76, y + 2, 1, 4, '#c5ccce');
+    soft(c, x + 86, y + 1, 4, 6, '#9ad1c9', { glint: false });
+    R(c, x + 87, y, 2, 1, '#6a6f74');
+    // Tabla de cortar con tomates y cuchillo.
+    soft(c, x + 3, y + 6, 18, 12, '#c99a6b', { glint: false });
+    grain(c, x + 4, y + 8, 16, 8, '#c99a6b', 4);
+    R(c, x + 18, y + 8, 1, 1, OL);
+    ovalBox(c, x + 8, y + 11, 2, 2, '#d6333f');
+    ovalBox(c, x + 13, y + 12, 2, 2, '#d6333f');
+    pixels(c, [[x + 7, y + 10, 1, 1], [x + 12, y + 11, 1, 1]], '#ff8a8a');
     pixels(c, [[x + 8, y + 8, 1, 1], [x + 13, y + 9, 1, 1]], '#3a9a5a');
-    ovalBox(c, x + 95, y + 10, 4, 3, '#c99a6b');
-    pixels(c, [[x + 92, y + 7, 3, 3], [x + 96, y + 7, 3, 3]], '#f2c230');
-    pixels(c, [[x + 94, y + 6, 3, 3]], '#e07a5f');
+    R(c, x + 6, y + 15, 8, 1, '#c5ccce');
+    R(c, x + 14, y + 15, 4, 1, OL);
+    // Albahaca en su maceta y el frutero.
     R(c, x + 58, y + 3, 4, 6, '#4c9a5a');
-    R(c, x + 57, y + 9, 6, 4, '#c47a52');
+    pixels(c, [[x + 57, y + 4, 2, 2], [x + 61, y + 2, 2, 2], [x + 59, y + 1, 2, 2]], '#5aa86a');
+    pixels(c, [[x + 59, y + 2, 1, 1], [x + 61, y + 3, 1, 1]], '#8fd08a');
+    soft(c, x + 56, y + 9, 7, 5, '#c47a52', { glint: false });
+    ovalBox(c, x + 95, y + 11, 4, 3, '#c99a6b');
+    ovalBox(c, x + 93, y + 9, 2, 2, '#f2c230');
+    ovalBox(c, x + 97, y + 9, 2, 2, '#f2c230');
+    ovalBox(c, x + 95, y + 7, 2, 2, '#e07a5f');
+    pixels(c, [[x + 92, y + 8, 1, 1], [x + 94, y + 6, 1, 1]], '#ffffff');
   }
 
   function drawTable(c, s) {
     const x = 410;
     const y = 106;
-    shadow(c, x + 30, y + 34, 32, 3, 0.25);
-    box(c, x, y, 60, 26, '#b88a5e');
-    R(c, x + 2, y + 2, 56, 2, '#d0a478');
-    // Mantel de cuadros (picnic italiano) en el centro.
+    const wood = '#b88a5e';
+    shadow(c, x + 30, y + 35, 33, 3, 0.26);
+    [x + 3, x + 53].forEach((lx) => {
+      R(c, lx, y + 24, 4, 9, OL);
+      R(c, lx + 1, y + 24, 2, 8, '#7a4e30');
+      R(c, lx + 1, y + 24, 1, 6, '#9a6a44');
+    });
+    soft(c, x, y, 60, 26, wood);
+    grain(c, x + 1, y + 3, 58, 19, wood, 9);
+    R(c, x + 2, y + 1, 56, 1, tone(wood, 0.26));
+    R(c, x + 1, y + 22, 58, 2, tone(wood, -0.3));
+    // Camino de mesa de cuadros (picnic italiano), con flecos.
     for (let i = 0; i < 6; i += 1) for (let j = 0; j < 3; j += 1) R(c, x + 18 + i * 4, y + 6 + j * 4, 4, 4, (i + j) % 2 ? '#f4f1ea' : '#c0503e');
-    R(c, x + 4, y + 25, 3, 8, '#7a4e30');
-    R(c, x + 53, y + 25, 3, 8, '#7a4e30');
+    for (let i = x + 18; i < x + 42; i += 2) { R(c, i, y + 4, 1, 2, '#f4f1ea'); R(c, i, y + 18, 1, 2, '#f4f1ea'); }
+    c.globalAlpha = 0.12;
+    R(c, x + 18, y + 14, 24, 4, '#000000');
+    c.globalAlpha = 1;
     if (s.props.puzzle) {
       R(c, x + 4, y + 4, 20, 14, '#eadab4');
       R(c, x + 36, y + 6, 18, 12, '#1f3b6e');
       pixels(c, [[x + 6, y + 6, 4, 3], [x + 14, y + 10, 3, 3], [x + 38, y + 8, 5, 3], [x + 46, y + 12, 4, 3]], '#4f7bb0');
       pixels(c, [[x + 28, y + 16, 3, 3], [x + 31, y + 4, 3, 2]], '#eadab4');
     } else {
-      ovalBox(c, x + 10, y + 12, 4, 3, '#ffffff');
-      R(c, x + 9, y + 10, 3, 2, '#e6a85a');
-      box(c, x + 46, y + 7, 6, 7, '#ffffff');
-      R(c, x + 52, y + 9, 2, 3, '#ffffff');
+      // Plato de pasta con tenedor, jarrón con flores y copa de vino.
+      ovalBox(c, x + 10, y + 12, 5, 4, '#ffffff');
+      oval(c, x + 10, y + 12, 3, 2, '#f3efe6');
+      pixels(c, [[x + 8, y + 11, 2, 1], [x + 10, y + 12, 2, 1], [x + 9, y + 13, 3, 1], [x + 11, y + 11, 1, 1]], '#e6b85a');
+      pixels(c, [[x + 10, y + 11, 1, 1], [x + 9, y + 12, 1, 1]], '#c0503e');
+      R(c, x + 4, y + 9, 1, 6, '#c5ccce');
+      ovalBox(c, x + 30, y + 10, 2, 3, '#e9edf0');
+      pixels(c, [[x + 28, y + 4, 2, 2], [x + 32, y + 5, 2, 2], [x + 30, y + 3, 2, 2]], '#e05a7a');
+      pixels(c, [[x + 29, y + 6, 1, 2], [x + 31, y + 6, 1, 2]], '#4c9a5a');
+      pixels(c, [[x + 30, y + 3, 1, 1], [x + 32, y + 5, 1, 1]], '#f6b0c0');
+      soft(c, x + 46, y + 7, 6, 7, '#dfeaf0', { hi: 0.3 });
+      R(c, x + 47, y + 10, 4, 3, '#7a1f2c');
+      R(c, x + 47, y + 8, 1, 2, '#ffffff');
+      R(c, x + 48, y + 14, 2, 2, '#c5d4dc');
     }
   }
 
   function drawChair(c, x, side) {
     const y = 108;
-    shadow(c, x + 7, y + 28, 8, 2, 0.22);
-    box(c, x, y + 8, 14, 12, '#a87048');
-    if (side === 'left') box(c, x - 2, y - 2, 5, 24, '#8a5a3a');
-    else box(c, x + 11, y - 2, 5, 24, '#8a5a3a');
-    R(c, x + 1, y + 20, 2, 7, '#6a4a34');
-    R(c, x + 11, y + 20, 2, 7, '#6a4a34');
+    const wood = '#a87048';
+    shadow(c, x + 7, y + 29, 9, 2, 0.24);
+    R(c, x + 1, y + 19, 2, 8, OL);
+    R(c, x + 11, y + 19, 2, 8, OL);
+    R(c, x + 1, y + 19, 1, 7, '#8a5a3a');
+    R(c, x + 11, y + 19, 1, 7, '#8a5a3a');
+    soft(c, x, y + 8, 14, 12, wood);
+    // Cojín de lino atado.
+    soft(c, x + 2, y + 9, 10, 9, '#e9dcc0', { hi: 0.25, glint: false });
+    R(c, x + 3, y + 13, 8, 1, '#d4c4a2');
+    // Respaldo de barrotes.
+    const bx = side === 'left' ? x - 2 : x + 11;
+    soft(c, bx, y - 2, 5, 24, '#8a5a3a');
+    for (let i = y + 1; i < y + 19; i += 3) R(c, bx + 1, i, 3, 1, tone('#8a5a3a', -0.3));
+    R(c, bx + 1, y - 1, 3, 1, tone('#8a5a3a', 0.25));
   }
 
   function drawCoffeeTable(c) {
-    shadow(c, 108, 312, 22, 3, 0.25);
+    shadow(c, 108, 314, 24, 3, 0.26);
+    [[92, 304], [123, 304]].forEach(([lx, ly]) => { R(c, lx, ly, 3, 7, OL); R(c, lx + 1, ly, 1, 6, '#5a3a26'); });
     ovalBox(c, 108, 300, 21, 9, '#8a5a3a');
     oval(c, 108, 299, 19, 7, '#a87048');
-    R(c, 94, 297, 10, 1, '#c08a5a');
-    box(c, 112, 294, 6, 6, '#f4f1ea');
-    R(c, 113, 295, 4, 1, '#6a4a34');
-    R(c, 98, 299, 9, 5, '#3d6a9a');
-    R(c, 98, 299, 9, 1, '#6f9acb');
+    // Vetas en anillos y un reflejo.
+    [[15, 5], [10, 3]].forEach(([rx, ry]) => {
+      oval(c, 108, 299, rx, ry, '#97603c');
+      oval(c, 108, 299, rx - 1, ry - 1, '#a87048');
+    });
+    R(c, 94, 296, 10, 1, '#c89a6a');
+    R(c, 92, 298, 3, 1, '#c08a5a');
+    // Libros apilados, taza, mando y un cuenco con mandarinas.
+    soft(c, 96, 298, 11, 6, '#3d6a9a', { glint: false });
+    R(c, 97, 302, 9, 1, '#f4efe4');
+    soft(c, 97, 295, 9, 5, '#e3b86a', { glint: false });
+    R(c, 98, 298, 7, 1, '#f4efe4');
+    soft(c, 112, 293, 6, 6, '#f4f1ea', { hi: 0.25 });
+    R(c, 113, 294, 4, 1, '#6a4a34');
+    R(c, 118, 295, 1, 2, '#f4f1ea');
+    R(c, 116, 302, 6, 2, OL);
+    R(c, 117, 302, 4, 1, '#4a4a52');
+    R(c, 118, 302, 1, 1, '#e05a5a');
   }
 
   function drawFloorLamp(c) {
-    shadow(c, 368, 248, 6, 2, 0.25);
-    R(c, 363, 246, 10, 2, OL);
-    R(c, 367, 206, 2, 40, '#3a3a40');
-    box(c, 360, 196, 16, 12, '#efe2c4');
-    R(c, 362, 198, 12, 1, '#fbf3dc');
+    shadow(c, 368, 249, 7, 2, 0.26);
+    ovalBox(c, 368, 246, 5, 2, '#3a3a40');
+    R(c, 367, 206, 2, 40, OL);
+    R(c, 367, 206, 1, 40, '#6a6a74');
+    // Pantalla de tambor con costuras y luz por dentro.
+    soft(c, 359, 195, 18, 13, '#efe2c4', { hi: 0.3, lo: -0.16 });
+    for (let i = 362; i < 376; i += 3) R(c, i, 197, 1, 9, '#e2d2ae');
+    R(c, 360, 196, 16, 1, '#fbf3dc');
+    R(c, 360, 206, 16, 1, '#c9b48f');
   }
 
   function drawMonstera(c, t, x = 486, y = 262, dry = false) {
@@ -1792,8 +2317,7 @@
     leaf(x + 6 + sway, y - 40, 8);
     leaf(x - 2, y - 26, 7);
     leaf(x + 9, y - 22, 6);
-    box(c, x - 8, y - 12, 16, 13, '#e9e1d2');
-    R(c, x - 7, y - 9, 14, 1, '#cfc4b1');
+    pot(c, x - 8, y - 12, 16, 13, '#e9e1d2', { band: '#c9a06a' });
   }
 
   // Sillón de lectura junto a la librería, con mesita, lámpara y una manta.
@@ -1801,43 +2325,61 @@
     const x = 444;
     const y = 252;
     const fabric = decor.sofa === 'mustard' ? '#7d7f4f' : '#c39a3c';
-    shadow(c, x + 14, y + 30, 16, 3, 0.25);
-    box(c, x + 2, y, 24, 14, tone(fabric, -0.1));
-    R(c, x + 4, y + 2, 20, 2, tone(fabric, 0.15));
-    box(c, x + 2, y + 10, 24, 16, fabric);
-    box(c, x + 4, y + 11, 20, 11, tone(fabric, 0.06), { hi: 0.2, lo: -0.18 });
-    box(c, x - 2, y + 6, 7, 20, tone(fabric, -0.14));
-    box(c, x + 23, y + 6, 7, 20, tone(fabric, -0.14));
-    R(c, x + 1, y + 26, 2, 3, '#3a2a20');
-    R(c, x + 25, y + 26, 2, 3, '#3a2a20');
+    shadow(c, x + 14, y + 31, 17, 3, 0.26);
+    R(c, x + 1, y + 26, 3, 4, OL);
+    R(c, x + 24, y + 26, 3, 4, OL);
+    R(c, x + 2, y + 26, 1, 3, '#8a5a3a');
+    R(c, x + 25, y + 26, 1, 3, '#8a5a3a');
+    soft(c, x + 2, y, 24, 14, tone(fabric, -0.1));
+    weave(c, x + 3, y + 3, 22, 9, tone(fabric, -0.1));
+    // Capitoné: botones del respaldo.
+    pixels(c, [[x + 8, y + 6, 1, 1], [x + 14, y + 6, 1, 1], [x + 20, y + 6, 1, 1], [x + 11, y + 9, 1, 1], [x + 17, y + 9, 1, 1]], tone(fabric, -0.35));
+    soft(c, x + 2, y + 10, 24, 16, fabric);
+    soft(c, x + 4, y + 11, 20, 11, tone(fabric, 0.06), { hi: 0.22, lo: -0.18 });
+    weave(c, x + 6, y + 14, 16, 6, tone(fabric, 0.06));
+    soft(c, x - 2, y + 6, 7, 20, tone(fabric, -0.14));
+    soft(c, x + 23, y + 6, 7, 20, tone(fabric, -0.14));
     // Manta de cuadros sobre el brazo.
     for (let i = 0; i < 4; i += 1) for (let j = 0; j < 5; j += 1) R(c, x + 23 + (i % 2) * 3, y + 7 + j * 3, 3, 3, (i + j) % 2 ? '#efe2c8' : '#c0503e');
+    for (let j = y + 22; j < y + 25; j += 1) R(c, x + 23 + (j % 2), j, 1, 1, '#efe2c8');
+    // Libro abierto en el asiento.
+    R(c, x + 9, y + 15, 9, 5, OL);
+    R(c, x + 10, y + 15, 3, 4, '#fbf6e8');
+    R(c, x + 14, y + 15, 3, 4, '#f4efe0');
+    R(c, x + 13, y + 15, 1, 4, '#c9b48f');
   }
   function drawSideTable(c, s) {
     const x = 478;
     const y = 262;
-    shadow(c, x + 6, y + 18, 7, 2, 0.22);
+    shadow(c, x + 6, y + 19, 8, 2, 0.24);
     ovalBox(c, x + 6, y + 4, 7, 4, '#8a5a3a');
-    R(c, x + 5, y + 7, 2, 10, '#6a4a34');
-    R(c, x + 2, y + 16, 8, 2, '#6a4a34');
+    oval(c, x + 6, y + 3, 5, 2, '#a87048');
+    R(c, x + 5, y + 8, 2, 9, OL);
+    R(c, x + 5, y + 8, 1, 9, '#7a4e30');
+    ovalBox(c, x + 6, y + 17, 4, 1, '#6a4a34');
     // Lámpara de lectura y una taza.
     R(c, x + 4, y - 8, 1, 10, '#3a3a40');
-    box(c, x, y - 14, 9, 7, '#efe2c4');
-    R(c, x + 1, y - 13, 7, 1, '#fbf3dc');
-    box(c, x + 8, y, 4, 3, '#f4f1ea');
+    soft(c, x, y - 14, 10, 8, '#efe2c4', { hi: 0.3 });
+    for (let i = x + 2; i < x + 9; i += 2) R(c, i, y - 12, 1, 5, '#e2d2ae');
+    soft(c, x + 8, y, 5, 4, '#f4f1ea', { glint: false });
+    R(c, x + 9, y + 1, 3, 1, '#6a4a34');
   }
   // Olivo en maceta en el rincón de la cocina.
   function drawOliveTree(c, s, t) {
     const x = 488;
     const y = 124;
-    shadow(c, x, y + 2, 9, 2, 0.25);
-    box(c, x - 7, y - 10, 14, 11, '#c9714a');
-    R(c, x - 8, y - 11, 16, 3, '#b8603e');
-    R(c, x - 1, y - 30, 2, 20, '#7a5a3a');
+    shadow(c, x, y + 3, 10, 2, 0.26);
+    soft(c, x - 7, y - 10, 14, 11, '#c9714a');
+    R(c, x - 8, y - 12, 16, 3, OL);
+    R(c, x - 7, y - 11, 14, 2, '#d88a62');
+    R(c, x - 5, y - 6, 10, 1, tone('#c9714a', -0.15));
+    // Tronco retorcido.
+    pixels(c, [[x - 1, y - 30, 2, 20], [x, y - 18, 2, 6], [x - 2, y - 24, 2, 4]], '#7a5a3a');
+    pixels(c, [[x - 1, y - 28, 1, 8]], '#9a7a5a');
     const sway = Math.round(Math.sin(t / 1600) * 1);
     [[-7, -36, 8, 6], [4, -38, 8, 6], [-2, -44, 9, 6], [-9, -28, 6, 4], [6, -30, 6, 4]].forEach(([dx, dy, rx, ry], i) => {
       ovalBox(c, x + dx + sway, y + dy, rx, ry, i % 2 ? '#7f9a6a' : '#6f8a5c');
-      R(c, x + dx + sway - 2, y + dy - 2, 3, 1, '#a8c08e');
+      for (let k = 0; k < 5; k += 1) R(c, x + dx + sway - rx + 2 + Math.floor(hash(i, k) * (rx * 2 - 4)), y + dy - ry + 2 + Math.floor(hash(k, i) * (ry * 2 - 3)), 2, 1, k % 2 ? '#a8c08e' : '#5a7448');
     });
     pixels(c, [[x - 4 + sway, y - 36], [x + 6 + sway, y - 40], [x + sway, y - 46], [x - 8 + sway, y - 28]], '#3a3a2a');
   }
