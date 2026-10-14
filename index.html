@@ -38,7 +38,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=62" />
+    <link rel="stylesheet" href="styles.css?v=64" />
     <script src="vendor/lucide-1.49.0.js"></script>
   </head>
   <body>
@@ -290,6 +290,15 @@
               <div id="agendaList"><p class="empty-note">Cargando agenda…</p></div>
             </section>
 
+            <section class="panel documents-section" id="documentsSection" aria-labelledby="documentsTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Papeles</p><h2 id="documentsTitle">Documentos</h2></div>
+                <button class="pill-button" type="button" data-doc-add><i data-lucide="upload"></i> Subir</button>
+              </div>
+              <p class="upkeep-summary" id="documentsSummary"></p>
+              <div id="documentsBody"><p class="empty-note">Cargando…</p></div>
+            </section>
+
             <section class="panel upkeep-section" id="upkeepSection" aria-labelledby="upkeepTitle">
               <div class="section-heading">
                 <div><p class="eyebrow">Mantenimiento</p><h2 id="upkeepTitle">Casa al día</h2></div>
@@ -398,6 +407,12 @@
       <div class="plant-sheet-panel">
         <button class="icon-button small plant-sheet-close" type="button" id="closePlantSheet" aria-label="Cerrar"><i data-lucide="x"></i></button>
         <div class="plant-sheet-body"></div>
+      </div>
+    </div>
+    <div class="plant-sheet doc-sheet" id="docSheet" role="dialog" aria-modal="true" aria-labelledby="docSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-doc aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="docSheetBody"></div>
       </div>
     </div>
     <div class="plant-sheet assistant-sheet" id="assistantSheet" role="dialog" aria-modal="true" aria-labelledby="assistantTitle">
@@ -562,6 +577,7 @@
     <script src="kitchen.js?v=4"></script>
     <script src="nosotros.js?v=9"></script>
     <script src="upkeep.js?v=1"></script>
+    <script src="documents.js?v=1"></script>
     <script src="avatars.js?v=7"></script>
     <script src="sims-world.js?v=17"></script>
     <script src="sims-places.js?v=2"></script>
