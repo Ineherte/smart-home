@@ -10,3 +10,8 @@ supabase/.temp/
 # Sistema / editor
 .DS_Store
 *.log
+
+# Facturas y documentos personales: nunca al repositorio (es público).
+/*.pdf
+fattura*.pdf
+bolletta*.pdf

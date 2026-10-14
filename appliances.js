@@ -126,7 +126,10 @@
       </div>`;
     }).join('');
     const buttons = Object.entries(APPLIANCES).filter(([id]) => !busy.has(id)).map(([id, info]) => `<button type="button" class="appliance-start" data-appliance-start="${id}"><span>${info.emoji}</span>Poner la ${escapeHtml(info.label.toLowerCase())}<small>te aviso al terminar</small></button>`).join('');
-    host.innerHTML = `${cards}${buttons ? `<div class="appliance-starts" aria-label="Poner la lavadora">${buttons}</div>` : ''}`;
+    // La franja de la luz ahora y cuándo empieza la más barata (con los precios de vuestra factura).
+    const band = window.umbralEnergy?.bandSummary();
+    const bandLine = band ? `<button type="button" class="appliance-band is-${band.now.toLowerCase()}${band.cheap ? ' is-cheap' : ''}" data-open-energy><i data-lucide="zap"></i><span>${band.cheap ? `Ahora es ${band.now}, la franja más barata: buen momento.` : `Ahora ${band.now} (${band.label})${band.next ? ` · la más barata, ${band.next.band}, ${band.when}` : ''}.`}</span><i data-lucide="chevron-right" class="appliance-band-more"></i></button>` : '';
+    host.innerHTML = `${cards}${buttons ? `<div class="appliance-starts" aria-label="Poner la lavadora">${buttons}</div>${bandLine}` : ''}`;
     lucide.createIcons();
     // Mientras haya algo en marcha, la cuenta atrás se actualiza cada 20 segundos.
     clearInterval(tick);
@@ -218,6 +221,12 @@
   });
 
   host?.addEventListener('click', async (event) => {
+    // La línea de la franja abre Cuentas → Luz (el análisis de vuestras facturas).
+    if (event.target.closest('[data-open-energy]')) {
+      document.querySelector('.nav-item[data-action="finance"]')?.click();
+      setTimeout(() => document.querySelector('[data-money-tab="luz"]')?.click(), 60);
+      return;
+    }
     const startButton = event.target.closest('[data-appliance-start]');
     if (startButton) return openStart(startButton.dataset.applianceStart);
     const done = event.target.closest('[data-appliance-finish]');
@@ -231,6 +240,7 @@
     store.subscribe(() => load());
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDone(); });
+  window.addEventListener('umbral:energy', () => render());
 
   // ---------- Para el asistente ----------
   // «he puesto la lavadora (de 1 hora / programa rápido) y avisa a Matteo»

@@ -14,7 +14,7 @@ create table if not exists public.documents (
   person text not null default 'both' check (char_length(person) <= 40),
   scope text not null default 'private' check (scope in ('shared', 'private')),
   title text not null check (char_length(title) between 1 and 80),
-  category text not null default 'Otros' check (category in ('Identidad', 'Salud', 'Casa', 'Coche', 'Trabajo', 'Viajes', 'Dinero', 'Garantías', 'Estudios', 'Otros')),
+  category text not null default 'Otros',
   path text not null check (char_length(path) <= 400),
   file_name text check (char_length(file_name) <= 160),
   mime text check (char_length(mime) <= 100),
@@ -24,6 +24,9 @@ create table if not exists public.documents (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Carpetas (se puede volver a ejecutar para añadir carpetas nuevas, como Facturas).
+alter table public.documents drop constraint if exists documents_category_check;
+alter table public.documents add constraint documents_category_check check (category in ('Identidad', 'Salud', 'Casa', 'Coche', 'Trabajo', 'Viajes', 'Facturas', 'Dinero', 'Garantías', 'Estudios', 'Otros'));
 create index if not exists documents_household_idx on public.documents (household_id, created_at desc);
 
 alter table public.documents enable row level security;

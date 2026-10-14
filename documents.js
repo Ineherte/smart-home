@@ -1,5 +1,5 @@
 // Vida → Documentos: una carpeta para los papeles importantes (DNI escaneado, contrato del piso,
-// tarjeta sanitaria, garantías…), en PDF o foto.
+// tarjeta sanitaria, facturas, garantías…), en PDF o foto.
 // Cada documento es de alguien (tuyo, de tu pareja o de los dos) y lo ven los dos o solo tú.
 // Con Supabase, los archivos van al bucket privado household-documents y solo se abren con
 // enlaces temporales; las reglas de acceso las pone la base de datos (documents.sql). En modo
@@ -10,7 +10,7 @@
   const MAX_BYTES = 15 * 1024 * 1024;
   const CATEGORIES = [
     ['Identidad', 'id-card'], ['Salud', 'heart-pulse'], ['Casa', 'house'], ['Coche', 'car'], ['Trabajo', 'briefcase'],
-    ['Viajes', 'plane'], ['Dinero', 'landmark'], ['Garantías', 'shield-check'], ['Estudios', 'graduation-cap'], ['Otros', 'folder']
+    ['Viajes', 'plane'], ['Facturas', 'receipt-text'], ['Dinero', 'landmark'], ['Garantías', 'shield-check'], ['Estudios', 'graduation-cap'], ['Otros', 'folder']
   ];
   const categoryIcon = (name) => (CATEGORIES.find(([category]) => category === name) || CATEGORIES.at(-1))[1];
   let documents = [];
@@ -424,5 +424,22 @@
     }
   });
 
-  window.umbralDocuments = { open: openAdd, list: () => documents, reload: load };
+  window.umbralDocuments = {
+    open: openAdd,
+    list: () => documents,
+    reload: load,
+    // Para otras secciones (Cuentas → Luz sube aquí las facturas en PDF).
+    async upload(file, { title, category = 'Otros', person = 'both', scope = 'shared', notes = '' } = {}) {
+      editing = null;
+      const doc = await saveDocument({ title: title || file.name, category, person, scope, expires: '', notes }, file);
+      render();
+      return doc;
+    },
+    async openById(id) {
+      if (!loaded) await load();
+      const doc = documents.find((entry) => entry.id === id);
+      if (doc) openDetail(doc);
+      else showToast('No encuentro ese documento');
+    }
+  };
 })();

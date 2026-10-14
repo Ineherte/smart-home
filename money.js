@@ -187,6 +187,9 @@ document.querySelector('.money-switch').addEventListener('click', (event) => {
   document.querySelectorAll('[data-money-tab]').forEach((button) => button.setAttribute('aria-pressed', String(button === tab)));
   document.querySelectorAll('[data-money-pane]').forEach((pane) => { pane.hidden = pane.dataset.moneyPane !== tab.dataset.moneyTab; });
   if (tab.dataset.moneyTab === 'personal') openPersonalPane();
+  // La luz va por facturas: el selector de mes no aplica.
+  document.querySelector('#financeModal .finance-month').hidden = tab.dataset.moneyTab === 'luz';
+  if (tab.dataset.moneyTab === 'luz') window.umbralEnergy?.render();
   document.querySelector('.finance-panel').scrollTo({ top: 0, behavior: 'smooth' });
 });
 
