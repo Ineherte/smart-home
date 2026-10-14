@@ -388,7 +388,7 @@ async function addPlace(result) {
 async function visitPlace(id) {
   const place = places.find((entry) => entry.id === id);
   if (!place) return;
-  const changes = { kind: 'trip', visited_on: new Date().toISOString().slice(0, 10) };
+  const changes = { kind: 'trip', visited_on: dateToISO(new Date()) };
   try {
     if (placesShared) await placesStore.update(id, changes);
     Object.assign(place, changes);

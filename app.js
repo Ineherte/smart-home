@@ -125,15 +125,15 @@ function renderSmartLights() {
   if (!container) return;
 
   container.innerHTML = smartLights.map((light) => `
-    <div class="light-row" data-light-id="${light.id}" data-powered="${String(light.powered)}">
+    <div class="light-row" data-light-id="${escapeHtml(light.id)}" data-powered="${String(light.powered)}">
       <div class="light-meta">
         <span class="light-icon"><i data-lucide="lightbulb"></i></span>
         <div>
-          <strong>${light.name}</strong>
-          <small>${light.powered ? 'Encendida' : 'Apagada'} · ${light.room}</small>
+          <strong>${escapeHtml(light.name)}</strong>
+          <small>${light.powered ? 'Encendida' : 'Apagada'} · ${escapeHtml(light.room)}</small>
         </div>
       </div>
-      <button type="button" class="light-toggle" data-light-toggle="${light.id}" aria-label="Cambiar estado de ${light.name}"></button>
+      <button type="button" class="light-toggle" data-light-toggle="${escapeHtml(light.id)}" aria-label="Cambiar estado de ${escapeHtml(light.name)}"></button>
     </div>
   `).join('');
 
@@ -1178,16 +1178,25 @@ function financeSourceLabel(source) {
 }
 
 const financeCategories = ['Hogar', 'Alimentación', 'Transporte', 'Viajes', 'Ocio', 'Compras', 'Salud', 'Otros'];
+// Icono de cada categoría en la lista de movimientos (el color sale de categoryColor).
+const financeCategoryIcons = { Hogar: 'house', 'Alimentación': 'shopping-cart', Transporte: 'car', Viajes: 'plane', Ocio: 'ticket', Compras: 'shopping-bag', Salud: 'heart-pulse', Otros: 'receipt' };
 
+// Categorías antiguas o más finas que guarda la base de datos (y los Atajos) → las de la app.
+const financeCategoryAliases = { Compra: 'Alimentación', Supermercado: 'Alimentación', Alquiler: 'Hogar', Luz: 'Hogar', Internet: 'Hogar', Agua: 'Hogar', Gas: 'Hogar' };
+
+// La categoría elegida manda; solo se adivina por el texto cuando no hay una válida (imports).
 function financeCategory(value, description = '') {
-  const text = `${value || ''} ${description || ''}`.toLowerCase();
-  if (/alquil|internet|tim|octopus|luz|agua|gas|hogar|casa/.test(text)) return 'Hogar';
-  if (/pizza|pizz|cena|comida|comer|restaurant|restaurante|supermercado|compra|gelato|vino|aperitivo|bebida|aliment/.test(text)) return 'Alimentación';
-  if (/tren|taxi|metro|bus|avion|aereo|aeropuerto|vuelo|viaje|hotel|airbnb|retorno|billete/.test(text)) return text.includes('viaj') || /avion|aereo|vuelo|hotel|airbnb|retorno/.test(text) ? 'Viajes' : 'Transporte';
-  if (/ocio|cine|concierto|teatro|fiesta|entrada|bar/.test(text)) return 'Ocio';
-  if (/regalo|ropa|compra|tienda|electron|mueble/.test(text)) return 'Compras';
+  if (financeCategories.includes(value)) return value;
+  if (financeCategoryAliases[value]) return financeCategoryAliases[value];
+  const text = normalizeText(`${value || ''} ${description || ''}`);
+  if (/alquil|internet|\btim\b|octopus|\bluz\b|\bagua\b|\bgas\b|hogar|\bcasa\b|ikea|limpieza/.test(text)) return 'Hogar';
+  if (/pizz|cena|comida|comer|restaurant|supermercado|\bcompra\b|esselunga|carrefour|lidl|coop|gelato|vino|aperitivo|bebida|aliment/.test(text)) return 'Alimentación';
+  if (/viaj|avion|aereo|vuelo|hotel|airbnb|ryanair|booking/.test(text)) return 'Viajes';
+  if (/tren|taxi|metro|\bbus\b|gasolin|parking|aparcamiento|peaje|billete/.test(text)) return 'Transporte';
+  if (/ocio|cine|concierto|teatro|fiesta|entrada|\bbar\b/.test(text)) return 'Ocio';
+  if (/regalo|ropa|tienda|electron|mueble|amazon/.test(text)) return 'Compras';
   if (/farmacia|medic|salud|doctor|dentista/.test(text)) return 'Salud';
-  return financeCategories.includes(value) ? value : 'Otros';
+  return 'Otros';
 }
 
 function financeEntries(data) {
@@ -1263,7 +1272,7 @@ function houseMoveRow(row) {
   const split = shareInes(row) !== 0.5 ? splitLabel(row) : '';
   const meta = [row.kind === 'bill' ? 'Factura' : row.category, row.date ? financeDate(row.date) : '', `pagó ${row.payer}`].filter(Boolean).join(' · ');
   return `<button type="button" class="move-row" data-house-open="${row.kind}|${escapeHtml(row.id)}">
-    <span class="pcat-icon${row.kind === 'bill' ? ' is-bill' : ''}"><i data-lucide="${row.kind === 'bill' ? 'file-text' : 'receipt'}"></i></span>
+    <span class="pcat-icon${row.kind === 'bill' ? ' is-bill' : ' is-tinted'}"${row.kind === 'bill' ? '' : ` style="--tint:${categoryColor(row.category)}"`}><i data-lucide="${row.kind === 'bill' ? 'file-text' : financeCategoryIcons[row.category] || 'receipt'}"></i></span>
     <span class="move-copy"><strong>${escapeHtml(row.title)}${badge}</strong><small>${escapeHtml(meta)}${split ? ` · <em class="split-tag">${escapeHtml(split)}</em>` : ''}${row.pending ? ' · <em class="is-pending">por pagar</em>' : ''}</small></span>
     <b>${row.amount ? financeMoney(row.amount) : '—'}</b>
   </button>`;
@@ -1309,9 +1318,22 @@ function calculateFinanceSettlement(entries, settlements = []) {
   return { total, fairShare, owed, paid, balance, amount: Math.abs(balance[creditor]), creditor, debtor, paymentsTotal };
 }
 
+// Lo que ha pagado cada uno en el mes y, con una raya, lo que le tocaba según el reparto.
 function renderFinancePayerChart(settlement) {
-  const maximum = Math.max(settlement.paid.Ines, settlement.paid.Matteo, 1);
-  document.querySelector('#financePayerChart').innerHTML = ['Ines', 'Matteo'].map((person) => `<div class="finance-payer-row"><strong>${person}</strong><div class="finance-payer-track"><span style="width:${Math.max(3, settlement.paid[person] / maximum * 100)}%"></span></div><b>${financeMoney(settlement.paid[person])}</b></div>`).join('');
+  const people = ['Ines', 'Matteo'];
+  const maximum = Math.max(...people.map((person) => Math.max(settlement.paid[person], settlement.owed[person])), 1);
+  const total = settlement.paid.Ines + settlement.paid.Matteo;
+  document.querySelector('#financePayerChart').innerHTML = people.map((person) => {
+    const paid = settlement.paid[person];
+    const owed = settlement.owed[person];
+    const label = `${person}: pagó ${financeMoney(paid)}, le tocaba ${financeMoney(owed)}`;
+    return `<div class="finance-payer-row" title="${escapeHtml(label)}"><strong>${person}</strong><div class="finance-payer-track" role="img" aria-label="${escapeHtml(label)}"><span style="width:${Math.max(3, (paid / maximum) * 100)}%"></span>${owed > 0 ? `<i class="finance-payer-fair" style="left:${Math.min(100, (owed / maximum) * 100)}%"></i>` : ''}</div><b>${financeMoney(paid)}</b></div>`;
+  }).join('');
+  document.querySelector('#financePayerSplit').textContent = total ? `${Math.round((settlement.paid.Ines / total) * 100)} % · ${Math.round((settlement.paid.Matteo / total) * 100)} %` : '';
+  const note = document.querySelector('#financePayerNote');
+  const gap = settlement.paid.Ines - settlement.owed.Ines;
+  note.hidden = !total;
+  note.innerHTML = Math.abs(gap) < 0.01 ? 'La raya marca lo que le toca a cada uno: este mes, justo lo suyo.' : `La raya marca lo que le toca a cada uno. Este mes ${escapeHtml(gap > 0 ? 'Ines' : 'Matteo')} ha puesto <b>${financeMoney(Math.abs(gap))}</b> de más.`;
 }
 
 function renderFixedCosts(fixedCosts) {
@@ -1377,7 +1399,7 @@ function renderFinanceTile(settlement, pendingBills) {
 }
 
 async function refreshFinance() {
-  try { financeCache = await getFinanceData(); renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeInCloud() ? 'Sincronizado entre los dos' : 'Guardado en este teléfono'} · cada gasto con su reparto`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
+  try { financeCache = { ...(await getFinanceData()), loaded: true }; renderFinance(financeCache); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="cloud-check"></i> ${financeInCloud() ? 'Sincronizado entre los dos' : 'Guardado en este teléfono'} · cada gasto con su reparto`; lucide.createIcons(); } catch (error) { console.error('[Umbral]', error); document.querySelector('#financeStatus').innerHTML = `<i data-lucide="circle-alert"></i> No se pudieron cargar los datos financieros: ${escapeHtml(error.message || 'error desconocido')}`; lucide.createIcons(); }
 }
 
 function openFinance() {

@@ -112,7 +112,9 @@ async function loadResets() {
     console.error('[Umbral] Reinicios de cuentas:', error);
     financeResets = [];
   }
-  renderFinance(financeCache);
+  // Sin los gastos cargados aún no se pinta nada (saldría «al día» aunque haya deudas).
+  if (financeCache.loaded) renderFinance(financeCache);
+  else if (!(supabaseClient && authUserId)) refreshFinance();
 }
 
 function renderResetNote() {

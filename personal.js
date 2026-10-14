@@ -281,10 +281,13 @@ function buildInsights(month) {
     const top = [...fresh.values()].filter((entry) => entry.amount >= 30).sort((first, second) => second.amount - first.amount)[0];
     if (top) insights.push({ tone: 'neutral', icon: 'sparkles', title: `Nuevo: ${top.name}`, text: `${money0(top.amount)} en un sitio donde no habías gastado antes.` });
   }
+  // Solo con datos suficientes (varios días distintos) y comparando con la media de los otros seis.
   const weekdays = weekdayAverages(month);
   const max = Math.max(...weekdays);
-  const mean = weekdays.reduce((sum, value) => sum + value, 0) / 7;
-  if (max > mean * 1.6 && max >= 10) {
+  const mean = (weekdays.reduce((sum, value) => sum + value, 0) - max) / 6;
+  const spendingDays = new Set(entries.map((entry) => entry.expense_date)).size;
+  const activeWeekdays = weekdays.filter((value) => value > 0).length;
+  if (spendingDays >= 8 && activeWeekdays >= 4 && max > mean * 1.6 && max >= 10) {
     const day = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados', 'domingos'][weekdays.indexOf(max)];
     insights.push({ tone: 'neutral', icon: 'calendar-days', title: `Los ${day.endsWith('s') ? day : `${day}`} gastas más`, text: `${money0(max)} de media ese día, frente a ${money0(mean)} el resto.` });
   }
@@ -443,7 +446,7 @@ function movementRow(entry) {
   const kindLabel = KIND_LABELS[entry.kind] && KIND_LABELS[entry.kind] !== entry.category ? KIND_LABELS[entry.kind] : '';
   const meta = [entry.category, kindLabel, refund ? 'Devolución' : ''].filter(Boolean).join(' · ');
   return `<button type="button" class="move-row${entry.excluded ? ' is-excluded' : ''}" data-open-movement="${escapeHtml(entry.id)}">
-    <span class="pcat-icon${income ? ' is-income' : ''}"><i data-lucide="${categoryInfo(entry.category).icon}"></i></span>
+    <span class="pcat-icon${income ? ' is-income' : ' is-tinted'}"${income ? '' : ` style="--tint:${categoryColor(entry.category)}"`}><i data-lucide="${categoryInfo(entry.category).icon}"></i></span>
     <span class="move-copy"><strong>${escapeHtml(entryMerchant(entry))}${sourceBadge(entry) ? ` <em class="finance-item-source">${sourceBadge(entry)}</em>` : ''}</strong><small>${escapeHtml(meta)}${entry.excluded ? ' · <em>no cuenta</em>' : ''}</small></span>
     <b class="${income || refund ? 'is-plus' : ''}">${income || refund ? '+' : ''}${financeMoney(entry.amount)}</b>
   </button>`;
