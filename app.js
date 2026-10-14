@@ -1016,12 +1016,19 @@ document.querySelector('#weatherCard').addEventListener('keydown', (event) => {
 });
 document.querySelector('#closeWeather').addEventListener('click', () => history.back());
 
-const newsFeeds = {
-  italy: { label: 'Italia', flag: 'IT', url: 'https://www.ansa.it/sito/ansait_rss.xml' },
-  spain: { label: 'España', flag: 'ES', url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada' }
+// Noticias por secciones. Italia: el Inter y la política italiana; España: portada y política.
+// Salen de la función «news» de Supabase (junta varias fuentes y quita repetidas). Si no está,
+// se tiran de los canales de ANSA y El País a través de rss2json.
+const newsFallbackFeeds = {
+  italy: [
+    { id: 'inter', label: 'Inter', emoji: '⚽', url: 'https://www.ansa.it/sito/notizie/sport/calcio/calcio_rss.xml', keep: /\binter\b|nerazzurr|chivu|lautaro|san siro/i },
+    { id: 'politica', label: 'Política italiana', emoji: '🏛️', url: 'https://www.ansa.it/sito/notizie/politica/politica_rss.xml' }
+  ],
+  spain: [{ id: 'portada', label: 'Lo más importante', emoji: '📰', url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada' }]
 };
 let activeNewsCountry = 'italy';
 const newsCache = {};
+const newsExpanded = new Set();
 
 function stripNewsMarkup(value) {
   const element = document.createElement('div');
@@ -1029,52 +1036,71 @@ function stripNewsMarkup(value) {
   return element.textContent.trim();
 }
 
-function cleanNewsTitle(value) {
-  return value.replace(/^\s*\d{1,2}\s+/, '').replace(/\s+/g, ' ').trim();
-}
-
-function classifyNews(title) {
-  const categories = [
-    ['Política', /governo|govern|elezion|politic|senato|congres|ministro|president|moncloa|parlamento/i],
-    ['Economía', /econom|mercat|mercado|inflaz|inflac|banca|lavoro|empleo|empresa|prezzo|precio/i],
-    ['Sociedad', /salute|sanit|scuola|educa|famil|turist|migr|societ|viv|seguridad/i],
-    ['Cultura', /cinema|cultur|music|teatro|arte|libro|festival|venezia/i]
-  ];
-  return categories.find(([, pattern]) => pattern.test(title))?.[0] || 'Actualidad';
-}
-
 function formatNewsTime(date = new Date()) {
   return new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(date);
 }
+// «12:40», «ayer 21:30» o «12 oct».
+function newsWhen(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const days = Math.round((new Date(dateToISO(new Date())) - new Date(dateToISO(date))) / 86400000);
+  return days <= 0 ? formatNewsTime(date) : days === 1 ? `ayer ${formatNewsTime(date)}` : new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' }).format(date);
+}
 
-function renderNews(items, country) {
+function renderNews(sections, country) {
   const feed = document.querySelector('#italyNews');
   const insight = document.querySelector('#newsInsight');
-  const source = newsFeeds[country];
-  if (!items.length) {
-    insight.textContent = 'No hemos podido construir el briefing en este momento.';
+  const filled = (sections || []).filter((section) => section.items.length);
+  if (!filled.length) {
+    insight.textContent = 'No hemos podido traer las noticias ahora mismo.';
     feed.innerHTML = '<div class="news-empty"><i data-lucide="cloud-off"></i><strong>No hay noticias disponibles</strong><span>Prueba a actualizar en un momento.</span></div>';
     lucide.createIcons();
     return;
   }
-
-  const [lead, ...secondary] = items.slice(0, 4);
-  const categories = [...new Set(items.slice(0, 4).map((item) => item.category))];
-  insight.innerHTML = `<strong>${items.length > 3 ? 'Panorama amplio' : 'Lo esencial'}</strong> · ${categories.slice(0, 2).join(' y ')} · ${items.length} titulares seleccionados`;
-  feed.innerHTML = `
-    <a class="news-lead" href="${escapeHtml(lead.link)}" target="_blank" rel="noreferrer">
-      <span class="news-kicker"><span class="news-flag">${source.flag}</span> Lo más importante de ${source.label}</span>
-      <strong>${escapeHtml(lead.title)}</strong>
-      <span class="news-source">${escapeHtml(lead.source || 'Google News')} · ${escapeHtml(lead.timeLabel)}</span>
-      <i data-lucide="arrow-up-right"></i>
-    </a>
-    <div class="news-list">${secondary.map((item, index) => `
+  const total = filled.reduce((sum, section) => sum + section.items.length, 0);
+  insight.innerHTML = `${filled.map((section) => `${section.emoji} <strong>${escapeHtml(section.label)}</strong>`).join(' · ')} · ${total} titulares`;
+  const row = (item) => `
       <a class="news-item" href="${escapeHtml(item.link)}" target="_blank" rel="noreferrer">
-        <span class="news-item-index">${String(index + 2).padStart(2, '0')}</span>
-        <span><strong>${escapeHtml(item.title)}</strong><small><b>${escapeHtml(item.category)}</b> · ${escapeHtml(item.source || 'Actualidad')} · ${escapeHtml(item.timeLabel)}</small></span>
+        <span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.source || 'Noticias')}${item.date ? ` · ${escapeHtml(newsWhen(item.date))}` : ''}</small></span>
         <i data-lucide="chevron-right"></i>
-      </a>`).join('')}</div>`;
+      </a>`;
+  feed.innerHTML = filled.map((section) => {
+    const key = `${country}-${section.id}`;
+    const [lead, ...rest] = section.items;
+    const open = newsExpanded.has(key);
+    const shown = open ? rest : rest.slice(0, 3);
+    return `<section class="news-group is-${escapeHtml(section.id)}">
+      <h3 class="news-group-title"><span class="news-group-emoji" aria-hidden="true">${section.emoji}</span>${escapeHtml(section.label)}<small>${section.items.length}</small></h3>
+      <a class="news-lead" href="${escapeHtml(lead.link)}" target="_blank" rel="noreferrer">
+        <strong>${escapeHtml(lead.title)}</strong>
+        <span class="news-source">${escapeHtml(lead.source || 'Noticias')}${lead.date ? ` · ${escapeHtml(newsWhen(lead.date))}` : ''}</span>
+        <i data-lucide="arrow-up-right"></i>
+      </a>
+      <div class="news-list">${shown.map(row).join('')}</div>
+      ${rest.length > 3 ? `<button type="button" class="news-more" data-news-more="${escapeHtml(key)}">${open ? 'Ver menos' : `Ver ${rest.length - 3} más`}<i data-lucide="${open ? 'chevron-up' : 'chevron-down'}"></i></button>` : ''}
+    </section>`;
+  }).join('');
   lucide.createIcons();
+}
+
+// Lo de siempre (sin la función de Supabase): un canal por sección a través de rss2json.
+async function loadNewsFallback(country) {
+  return Promise.all(newsFallbackFeeds[country].map(async (section) => {
+    try {
+      const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(section.url)}`);
+      const data = await response.json();
+      if (data.status !== 'ok') throw new Error('Fuente no disponible');
+      const items = (data.items || []).map((item) => ({
+        title: stripNewsMarkup(item.title).replace(/^\s*\d{1,2}\s+/, '').replace(/\s+/g, ' ').trim(),
+        link: item.link,
+        source: (item.author || data.feed?.title?.split(' - ')[0] || 'Noticias').replace(/^Primo piano\s*/i, '').trim(),
+        date: Date.parse(String(item.pubDate || '').replace(' ', 'T')) || 0
+      })).filter((item) => item.title && /^https?:\/\//i.test(item.link || '') && (!section.keep || section.keep.test(item.title)));
+      return { id: section.id, label: section.label, emoji: section.emoji, items };
+    } catch {
+      return { id: section.id, label: section.label, emoji: section.emoji, items: [] };
+    }
+  }));
 }
 
 async function loadNews(country = activeNewsCountry) {
@@ -1082,31 +1108,40 @@ async function loadNews(country = activeNewsCountry) {
   const updated = document.querySelector('#newsUpdated');
   const refreshIcon = document.querySelector('#refreshNews svg');
   if (refreshIcon) refreshIcon.classList.add('spin');
-  feed.innerHTML = '<div class="news-loading"><span></span><span></span><span></span></div>';
+  if (newsCache[country]) renderNews(newsCache[country], country);
+  else feed.innerHTML = '<div class="news-loading"><span></span><span></span><span></span></div>';
   try {
-    const rssUrl = encodeURIComponent(newsFeeds[country].url);
-    const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
-    if (!response.ok) throw new Error('No se pudo cargar el resumen');
-    const data = await response.json();
-    if (data.status !== 'ok') throw new Error('Fuente no disponible');
-    const items = (data.items || []).map((item) => ({
-      title: cleanNewsTitle(stripNewsMarkup(item.title)), link: item.link,
-      source: (item.author || data.feed?.title?.split(' - ')[0] || 'Actualidad').replace(/^Primo piano\s*/i, '').trim(),
-      category: classifyNews(cleanNewsTitle(stripNewsMarkup(item.title))),
-      timeLabel: formatNewsTime(new Date(item.pubDate))
-    })).filter((item) => item.title && /^https?:\/\//i.test(item.link || ''));
-    newsCache[country] = items;
-    renderNews(items, country);
+    let sections = null;
+    const base = (window.SUPABASE_CONFIG?.url || '').replace(/\/$/, '');
+    if (base) {
+      try {
+        const response = await fetch(`${base}/functions/v1/news?country=${country}`, { signal: AbortSignal.timeout?.(12000) });
+        if (response.ok) sections = (await response.json()).sections;
+      } catch {}
+    }
+    if (!sections?.some((section) => section.items.length)) sections = await loadNewsFallback(country);
+    if (!sections.some((section) => section.items.length)) throw new Error('Sin noticias');
+    newsCache[country] = sections;
+    if (country === activeNewsCountry) renderNews(sections, country);
     updated.innerHTML = `<i data-lucide="clock-3"></i> Actualizado hoy a las ${formatNewsTime()}`;
     lucide.createIcons();
   } catch {
-    renderNews(newsCache[country] || [], country);
+    if (country === activeNewsCountry) renderNews(newsCache[country] || [], country);
     updated.innerHTML = '<i data-lucide="wifi-off"></i> No se pudo actualizar ahora';
     lucide.createIcons();
   } finally {
     if (refreshIcon) refreshIcon.classList.remove('spin');
   }
 }
+
+document.querySelector('#italyNews').addEventListener('click', (event) => {
+  const more = event.target.closest('[data-news-more]');
+  if (!more) return;
+  const key = more.dataset.newsMore;
+  if (newsExpanded.has(key)) newsExpanded.delete(key);
+  else newsExpanded.add(key);
+  renderNews(newsCache[activeNewsCountry], activeNewsCountry);
+});
 
 document.querySelectorAll('[data-news-country]').forEach((tab) => {
   tab.addEventListener('click', () => {
