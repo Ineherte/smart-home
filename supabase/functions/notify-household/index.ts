@@ -7,6 +7,8 @@
 //        plant-reminders  recordatorio diario de riego para todo el hogar.
 //        morning-brief    resumen de la mañana para cada persona (tareas, planes, menú, fechas).
 //        daily-photo      «¡Foto del día!» a la hora sorpresa de hoy, si aún no hay foto.
+//        appliances       la lavadora ha terminado: aviso a quien toque, con un consejo para
+//                         secar la ropa dentro de casa; y otro si la ropa sigue dentro.
 // Secretos: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:tu@correo) y CRON_SECRET.
 // Cifrado según RFC 8291 (aes128gcm) y firma VAPID según RFC 8292, solo con WebCrypto.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -40,6 +42,7 @@ Deno.serve(async (request) => {
     }
     if (job === 'morning-brief') return json(await sendMorningBrief(admin, vapid));
     if (job === 'daily-photo') return json(await sendDailyPhoto(admin, vapid));
+    if (job === 'appliances') return json(await sendApplianceAlerts(admin, vapid));
     return json(await sendPlantReminders(admin, vapid));
   }
 
@@ -257,6 +260,81 @@ async function sendDailyPhoto(admin: Admin, vapid: Vapid) {
   if (!pending.length) return { households: 0, sent: 0 };
   const result = await deliver(admin, pending, message, vapid);
   return { households: households.length - done.size, ...result };
+}
+
+// ---------- Lavadora ----------
+type ApplianceRun = { id: string; household_id: string; appliance: string; program: string | null; started_by: string | null; started_by_id: string | null; notify: string; ends_at: string; notified_at: string | null };
+const APPLIANCE_DONE: Record<string, { title: string; body: string; again: string }> = {
+  lavadora: { title: '🧺 ¡La lavadora ha terminado!', body: 'Tiéndela pronto para que no coja olor.', again: '🧺 La ropa sigue en la lavadora' }
+};
+
+// Se tiende dentro de casa: el consejo es cómo secarla mejor según el tiempo de Turín
+// (lluvia, humedad y temperatura de las próximas horas) y cuánto tardará, más o menos.
+async function dryingAdvice(): Promise<string> {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=45.0703&longitude=7.6869&hourly=precipitation_probability,precipitation,temperature_2m,relative_humidity_2m&forecast_hours=8&timezone=Europe%2FRome';
+    const data = await (await fetch(url, { signal: AbortSignal.timeout(6000) })).json();
+    const hours = (data.hourly?.time || []).map((_: string, i: number) => ({ rain: Number(data.hourly.precipitation_probability?.[i] ?? 0), mm: Number(data.hourly.precipitation?.[i] ?? 0), temp: Number(data.hourly.temperature_2m?.[i] ?? 15), humidity: Number(data.hourly.relative_humidity_2m?.[i] ?? 60) }));
+    if (!hours.length) return '';
+    return indoorDryingTip(hours);
+  } catch {
+    return '';
+  }
+}
+type HourWeather = { rain: number; mm: number; temp: number; humidity: number };
+export function indoorDryingTip(hours: HourWeather[]) {
+  const now = hours[0];
+  const next = hours.slice(0, 6);
+  const humidity = next.reduce((sum, hour) => sum + hour.humidity, 0) / next.length;
+  const raining = next.slice(0, 3).some((hour) => hour.rain >= 50 || hour.mm >= 0.3);
+  // Horas aproximadas para que se seque dentro: más con humedad y frío, menos con aire seco.
+  let dry = 8;
+  if (humidity >= 80) dry += 5; else if (humidity >= 70) dry += 3; else if (humidity < 60) dry -= 2;
+  if (now.temp < 12) dry += 2; else if (now.temp >= 20) dry -= 2;
+  const when = ` Seca en unas ${Math.max(4, dry)} horas.`;
+  if (raining) return `🌧️ Llueve fuera: ventanas cerradas, tendedero cerca de un radiador y la ropa bien separada.${when}`;
+  if (humidity >= 75) return `💧 Mucha humedad hoy (${Math.round(humidity)} %): ventila un rato o pon el deshumidificador.${when}`;
+  if (now.temp < 12) return `🥶 Hace ${Math.round(now.temp)}° fuera: tendedero cerca del radiador (sin tocarlo) y ventila solo 10 minutos.${when}`;
+  if (humidity < 60 && now.temp >= 18) return `☀️ Aire seco y ${Math.round(now.temp)}°: abre las ventanas un rato y se secará antes de lo normal.${when}`;
+  return `🧺 Buen día para secar dentro: ventila un poco y deja espacio entre prendas.${when}`;
+}
+
+async function sendApplianceAlerts(admin: Admin, vapid: Vapid) {
+  const now = new Date();
+  const due = await rows<ApplianceRun>(admin.from('appliance_runs').select('id, household_id, appliance, program, started_by, started_by_id, notify, ends_at, notified_at')
+    .is('finished_at', null).lte('ends_at', new Date(now.getTime() + 30000).toISOString()).gte('ends_at', new Date(now.getTime() - 12 * 3600000).toISOString()));
+  if (!due.length) return { due: 0 };
+  // Primer aviso al terminar; el segundo, 45 minutos después si nadie la ha vaciado.
+  const first = due.filter((run) => !run.notified_at);
+  const again = await rows<ApplianceRun & { reminded_at: string | null }>(admin.from('appliance_runs').select('id, household_id, appliance, program, started_by, started_by_id, notify, ends_at, notified_at, reminded_at')
+    .is('finished_at', null).is('reminded_at', null).lte('notified_at', new Date(now.getTime() - 45 * 60000).toISOString()));
+  if (!first.length && !again.length) return { due: 0 };
+  const households = [...new Set([...first, ...again].map((run) => run.household_id))];
+  const subscriptions = await rows<StoredSubscription & { household_id: string; user_id: string; person: string | null }>(admin.from('push_subscriptions').select('id, household_id, user_id, person, endpoint, p256dh, auth').in('household_id', households));
+  const { data: members } = await admin.from('household_members').select('household_id, user_id').in('household_id', households);
+  // A quién: quien la puso, su pareja o los dos.
+  const targets = (run: ApplianceRun) => subscriptions.filter((subscription) => {
+    if (subscription.household_id !== run.household_id) return false;
+    const mine = subscription.user_id === run.started_by_id || (!!run.started_by && subscription.person === run.started_by);
+    return run.notify === 'both' || (run.notify === 'me' ? mine : !mine && (members || []).some((member) => member.household_id === run.household_id && member.user_id === subscription.user_id));
+  });
+  const advice = first.some((run) => run.appliance === 'lavadora') ? await dryingAdvice() : '';
+  let sent = 0;
+  for (const run of first) {
+    const copy = APPLIANCE_DONE[run.appliance] || APPLIANCE_DONE.lavadora;
+    const who = run.notify !== 'me' && run.started_by ? ` La puso ${run.started_by}.` : '';
+    const body = `${run.appliance === 'lavadora' && advice ? advice : copy.body}${who}`;
+    const result = await deliver(admin, targets(run), { title: copy.title, body, url: './?abrir=home', tag: `appliance-${run.id}` }, vapid);
+    sent += result.sent;
+    await admin.from('appliance_runs').update({ notified_at: now.toISOString() }).eq('id', run.id);
+  }
+  for (const run of again) {
+    const copy = APPLIANCE_DONE[run.appliance] || APPLIANCE_DONE.lavadora;
+    const result = await deliver(admin, targets(run), { title: copy.again, body: 'Terminó hace 45 minutos. Cuando la saques, márcalo en Umbral.', url: './?abrir=home', tag: `appliance-${run.id}` }, vapid);
+    sent += result.sent;
+    await admin.from('appliance_runs').update({ reminded_at: now.toISOString() }).eq('id', run.id);
+  }
+  return { finished: first.length, reminded: again.length, sent };
 }
 
 function addDaysIso(iso: string, days: number) {

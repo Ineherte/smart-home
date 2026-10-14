@@ -1,7 +1,9 @@
 -- Avisos programados. Supabase llama a la función notify-household para:
 --   · el riego: cada mañana, si alguna planta toca hoy (y cada dos días si sigue sin regar);
 --   · el resumen de la mañana: tareas, planes, menú, plantas y cuenta atrás de cada persona;
---   · la foto del día: a una hora sorpresa entre las 10:00 y las 20:00, si aún no hay foto.
+--   · la foto del día: a una hora sorpresa entre las 10:00 y las 20:00, si aún no hay foto;
+--   · la lavadora: cada minuto mira si ha terminado
+--     (necesita appliances.sql).
 --
 -- Antes de ejecutarlo:
 --   1. En Edge Functions → Secrets, crea CRON_SECRET con una contraseña larga inventada.
@@ -11,7 +13,7 @@
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
 
-select cron.unschedule(jobid) from cron.job where jobname in ('umbral-plant-reminders', 'umbral-morning-brief', 'umbral-daily-photo');
+select cron.unschedule(jobid) from cron.job where jobname in ('umbral-plant-reminders', 'umbral-morning-brief', 'umbral-daily-photo', 'umbral-appliances');
 
 -- 07:00 UTC = 9:00 en Turín en verano y 8:00 en invierno.
 select cron.schedule(
@@ -49,6 +51,19 @@ select cron.schedule(
     url := 'https://lnctwcizdjaeomvkcbst.supabase.co/functions/v1/notify-household',
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', 'PON_AQUI_EL_CRON_SECRET'),
     body := jsonb_build_object('job', 'daily-photo')
+  );
+  $$
+);
+
+-- Cada minuto: ¿ha terminado la lavadora? (si no hay nada en marcha, la función no hace nada).
+select cron.schedule(
+  'umbral-appliances',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := 'https://lnctwcizdjaeomvkcbst.supabase.co/functions/v1/notify-household',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', 'PON_AQUI_EL_CRON_SECRET'),
+    body := jsonb_build_object('job', 'appliances')
   );
   $$
 );

@@ -3357,3 +3357,40 @@ html[data-modal="open"], html[data-modal="open"] body { overflow: hidden; oversc
 .doc-scope input:disabled + span { opacity: .45; }
 .doc-form svg.spin { animation: spin 1s linear infinite; }
 .docs-people button { padding: 8px 4px; font-size: 12.5px; white-space: nowrap; }
+
+/* ---------- Lavadora ---------- */
+.appliance-strip { display: grid; gap: 10px; margin-top: 10px; }
+.appliance-strip:empty { display: none; }
+.appliance-starts { display: flex; gap: 8px; }
+.appliance-start { display: flex; flex: 1; align-items: center; gap: 10px; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); font-size: 14.5px; font-weight: 600; text-align: left; }
+.appliance-start > span { font-size: 18px; }
+.appliance-start small { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 500; }
+.appliance-start:active { transform: scale(.98); }
+.appliance-card { display: grid; gap: 10px; padding: 14px; border: 1px solid color-mix(in srgb, #3d7fd6 25%, var(--line)); border-radius: var(--radius-lg); background: linear-gradient(135deg, var(--surface), color-mix(in srgb, #3d7fd6 9%, var(--surface))); box-shadow: var(--shadow-sm); }
+.appliance-card.is-done { border-color: color-mix(in srgb, var(--green) 40%, var(--line)); background: linear-gradient(135deg, var(--surface), var(--green-soft)); }
+.appliance-top { display: flex; align-items: center; gap: 12px; }
+.appliance-icon { display: grid; width: 42px; height: 42px; flex-shrink: 0; place-items: center; border-radius: 13px; background: color-mix(in srgb, #3d7fd6 16%, var(--surface)); color: #2a62ad; }
+.appliance-card.is-done .appliance-icon { background: var(--green); color: var(--lime); }
+.appliance-icon svg.lucide { width: 21px; height: 21px; }
+/* El tambor gira mientras lava. */
+.appliance-icon.is-spinning svg.lucide circle:last-of-type { transform-box: fill-box; transform-origin: center; animation: drum 1.6s linear infinite; }
+@keyframes drum { to { transform: rotate(360deg); } }
+.appliance-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.appliance-copy strong { font-size: 15px; }
+.appliance-copy small { color: var(--muted); font-size: 12.5px; }
+.appliance-left { flex-shrink: 0; font-family: var(--font-display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: #2a62ad; }
+.appliance-card.is-done .appliance-left { color: var(--accent); }
+.appliance-track { height: 6px; overflow: hidden; border-radius: var(--radius-pill); background: var(--track); }
+.appliance-track span { display: block; height: 100%; border-radius: inherit; background: #3d7fd6; transition: width .6s ease; }
+.appliance-tip { margin: 0; padding: 9px 11px; border-radius: 12px; background: var(--surface); color: var(--ink-soft); font-size: 13px; line-height: 1.45; }
+.appliance-actions { display: flex; justify-content: flex-end; }
+.appliance-actions .primary-button { width: 100%; justify-content: center; }
+.appliance-programs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.appliance-program input { position: absolute; opacity: 0; }
+.appliance-program span { display: grid; gap: 2px; padding: 11px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); text-align: center; cursor: pointer; }
+.appliance-program b { font-size: 14px; }
+.appliance-program small { color: var(--muted); font-size: 12px; }
+.appliance-program input:checked + span { border-color: #3d7fd6; background: color-mix(in srgb, #3d7fd6 12%, var(--surface)); box-shadow: 0 0 0 1px #3d7fd6; }
+.appliance-program input:focus-visible + span { outline: 2px solid var(--green); }
+.appliance-hint { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .appliance-icon.is-spinning svg.lucide circle:last-of-type { animation: none; } }

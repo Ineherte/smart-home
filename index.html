@@ -38,7 +38,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=64" />
+    <link rel="stylesheet" href="styles.css?v=65" />
     <script src="vendor/lucide-1.49.0.js"></script>
   </head>
   <body>
@@ -71,6 +71,7 @@
             <button type="button" class="quick-action is-note" data-action="quick-note"><span><i data-lucide="notebook-pen"></i></span>Nota</button>
             <button type="button" class="quick-action is-expense" data-action="quick-expense"><span><i data-lucide="receipt-euro"></i></span>Gasto</button>
           </div>
+          <div class="appliance-strip" id="applianceStrip" aria-live="polite"></div>
 
           <section class="attention-section" aria-labelledby="home-title" hidden>
             <div class="section-heading">
@@ -415,6 +416,12 @@
         <div class="plant-sheet-body" id="docSheetBody"></div>
       </div>
     </div>
+    <div class="plant-sheet appliance-sheet" id="applianceSheet" role="dialog" aria-modal="true" aria-labelledby="applianceSheetTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-appliance aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="plant-sheet-body" id="applianceSheetBody"></div>
+      </div>
+    </div>
     <div class="plant-sheet assistant-sheet" id="assistantSheet" role="dialog" aria-modal="true" aria-labelledby="assistantTitle">
       <div class="plant-sheet-panel">
         <button class="icon-button small plant-sheet-close" type="button" data-close-assistant aria-label="Cerrar"><i data-lucide="x"></i></button>
@@ -578,6 +585,7 @@
     <script src="nosotros.js?v=9"></script>
     <script src="upkeep.js?v=1"></script>
     <script src="documents.js?v=1"></script>
+    <script src="appliances.js?v=1"></script>
     <script src="avatars.js?v=7"></script>
     <script src="sims-world.js?v=17"></script>
     <script src="sims-places.js?v=2"></script>
@@ -589,7 +597,7 @@
     <script src="sims-mind.js?v=3"></script>
     <script src="app.js?v=53"></script>
     <script src="summary.js?v=4"></script>
-    <script src="assistant.js?v=1"></script>
+    <script src="assistant.js?v=2"></script>
     <script src="ux.js?v=2"></script>
     <script src="native.js?v=1"></script>
   </body>

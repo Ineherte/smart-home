@@ -97,6 +97,33 @@
   ];
 
   const handlers = [
+    // Lavadora: «he puesto la lavadora de 1 hora y avisa a Matteo», «¿cuánto le queda a la
+    // lavadora?», «ya he tendido la ropa».
+    (p) => {
+      const appliances = window.umbralAppliances;
+      if (!appliances) return null;
+      if (/\b(?:cuanto|cuando|que tal|como va)\b.*\b(?:queda|acaba|termina|va)\b/.test(p.low) && /\b(?:lavadora|colada|ropa)\b/.test(p.low)) {
+        return { run: async () => ({ icon: 'washing-machine', text: appliances.status('lavadora'), open: 'home' }) };
+      }
+      if (/\b(?:tendido|tendida|tendi|he sacado la ropa|saque la ropa|ya esta tendida|recogido la ropa)\b/.test(p.low)) {
+        return { run: async () => {
+          const target = appliances.active()[0];
+          if (!target) return { icon: 'washing-machine', text: 'La lavadora no estaba en marcha.', tone: 'info' };
+          await appliances.finish(target.id);
+          return { icon: 'check', text: '¡Hecho! Ropa tendida.', open: 'home' };
+        } };
+      }
+      const plan = appliances.parseStart(p.orig);
+      if (!plan) return null;
+      return { run: async () => {
+        const run = await appliances.start(plan.appliance, plan);
+        const info = appliances.APPLIANCES[plan.appliance];
+        const who = plan.notify === 'both' ? 'os aviso a los dos' : plan.notify === 'partner' ? `aviso a ${otherPerson(currentUser)}` : 'te aviso';
+        const tip = appliances.tipFor(run);
+        return { icon: info.icon, text: `${info.label} en marcha${plan.program ? ` (${plan.program.toLowerCase()})` : ''}: termina a las ${appliances.clock(run.ends_at)} y ${who}.${tip ? ` ${tip}` : ''}`, open: 'home', undo: () => appliances.finish(run.id) };
+      } };
+    },
+
     // Preguntas: qué falta en la compra, qué tengo hoy, qué plantas tienen sed, cómo van las cuentas.
     (p) => {
       const { low } = p;
