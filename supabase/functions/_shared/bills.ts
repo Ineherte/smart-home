@@ -2,18 +2,22 @@
 // Lo usa la función «bills» (facturas que llegan por correo o que se suben desde la app).
 import { getDocumentProxy } from 'npm:unpdf@0.12.1';
 
-// Texto del PDF línea a línea: cada trozo de texto va a la línea de su altura en la página
-// (las tablas de la factura, como el PUN mes a mes, se leen por filas).
-export async function pdfText(bytes: Uint8Array): Promise<string> {
+export type PdfItem = { page: number; x: number; y: number; w: number; str: string };
+
+// Texto del PDF línea a línea (cada trozo va a la línea de su altura en la página: las tablas,
+// como el PUN mes a mes, se leen por filas) y los trozos con su posición (para los gráficos).
+export async function pdfRead(bytes: Uint8Array): Promise<{ text: string; items: PdfItem[] }> {
   // Una copia: la librería se queda con el búfer que recibe (y luego hay que subir el PDF).
   const pdf = await getDocumentProxy(bytes.slice());
   const pages: string[] = [];
+  const items: PdfItem[] = [];
   for (let n = 1; n <= pdf.numPages; n += 1) {
     const page = await pdf.getPage(n);
     const content = await page.getTextContent();
     const lines = new Map<number, { x: number; text: string }[]>();
-    for (const item of content.items as { str: string; transform: number[] }[]) {
+    for (const item of content.items as { str: string; transform: number[]; width?: number }[]) {
       if (!item.str?.trim()) continue;
+      items.push({ page: n, x: item.transform[4], y: item.transform[5], w: item.width || 0, str: item.str.trim() });
       const y = Math.round(item.transform[5] / 2) * 2;
       const key = [...lines.keys()].find((existing) => Math.abs(existing - y) <= 2) ?? y;
       if (!lines.has(key)) lines.set(key, []);
@@ -21,7 +25,35 @@ export async function pdfText(bytes: Uint8Array): Promise<string> {
     }
     pages.push([...lines.entries()].sort((a, b) => b[0] - a[0]).map(([, parts]) => parts.sort((a, b) => a.x - b.x).map((part) => part.text).join(' ').replace(/\s+/g, ' ').trim()).join('\n'));
   }
-  return pages.join('\n');
+  return { text: pages.join('\n'), items };
+}
+export async function pdfText(bytes: Uint8Array): Promise<string> {
+  return (await pdfRead(bytes)).text;
+}
+
+// El gráfico «Informazioni storiche sui consumi» (hasta 18 meses): encima de cada mes, el total
+// y dentro de la barra F3, F2 y F1 (de arriba abajo). Se lee por la posición de cada número.
+export function parseConsumptionHistory(items: PdfItem[]) {
+  // La fila de meses del gráfico: muchos «MM/AA» a la misma altura en la misma página.
+  const labels = items.filter((item) => /^\d{2}\/\d{2}$/.test(item.str));
+  const rows = new Map<string, PdfItem[]>();
+  labels.forEach((item) => { const key = `${item.page}:${Math.round(item.y)}`; rows.set(key, [...(rows.get(key) || []), item]); });
+  const row = [...rows.values()].sort((a, b) => b.length - a.length)[0];
+  if (!row || row.length < 6) return [];
+  const months = row.sort((a, b) => a.x - b.x).map((item) => ({ month: `20${item.str.slice(3)}-${item.str.slice(0, 2)}`, cx: item.x + item.w / 2 }));
+  const spacing = (months.at(-1)!.cx - months[0].cx) / Math.max(1, months.length - 1);
+  const baseY = row[0].y;
+  // Números enteros encima de la fila de meses (como mucho ~380 puntos más arriba).
+  const numbers = items.filter((item) => item.page === row[0].page && /^\d{1,4}$/.test(item.str) && item.y > baseY + 2 && item.y < baseY + 380);
+  type Month = { month: string; kwh: number; f1: number | null; f2: number | null; f3: number | null };
+  return months.map(({ month, cx }): Month | null => {
+    const column = numbers.filter((item) => Math.abs(item.x + item.w / 2 - cx) < spacing * 0.45).sort((a, b) => b.y - a.y).map((item) => Number(item.str));
+    if (!column.length) return null;
+    const [total, ...rest] = column;
+    // Lo normal: total, F3, F2, F1. Si la suma cuadra, se guarda el reparto.
+    if (rest.length >= 3 && Math.abs(rest[0] + rest[1] + rest[2] - total) <= 2) return { month, kwh: total, f1: rest[2], f2: rest[1], f3: rest[0] };
+    return { month, kwh: total, f1: null, f2: null, f3: null };
+  }).filter((entry): entry is Month => Boolean(entry) && entry!.kwh > 0);
 }
 
 const num = (value: string | undefined | null) => {
@@ -43,7 +75,7 @@ const MONTHS_IT: Record<string, string> = { gen: '01', feb: '02', mar: '03', apr
 export type OctopusBill = ReturnType<typeof parseOctopus>;
 
 // Factura de la luz de Octopus Energy Italia.
-export function parseOctopus(raw: string) {
+export function parseOctopus(raw: string, items: PdfItem[] = []) {
   const text = raw.replace(/ /g, ' ');
   const flat = text.replace(/\s+/g, ' ');
   const period = flat.match(/PERIODO DI RIFERIMENTO:?\s*dal\s*(\d{2}\/\d{2}\/\d{4})\s*al\s*(\d{2}\/\d{2}\/\d{4})/i);
@@ -99,7 +131,7 @@ export function parseOctopus(raw: string) {
     pun_month: num(one(flat, /PUN \(\d{2}\/\d{2}\):\s*(?:Spread:)?\s*([\d.,]+)\s*€\/kWh/i)),
     annual_kwh: num(one(flat, /CONSUMO ANNUO:[^:]*:\s*([\d.,]+)\s*kWh/i)) ?? num(one(flat, /([\d.]+)\s*kWh\/anno/i)),
     annual_cost: num(one(flat, /SPESA ANNUA:[^:]*:\s*([\d.,]+)\s*€/i)),
-    details: { pun, max_power: maxPower, readings }
+    details: { pun, max_power: maxPower, readings, history: items.length ? parseConsumptionHistory(items) : [] }
   };
   return result;
 }

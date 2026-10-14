@@ -82,6 +82,21 @@
     window.dispatchEvent(new CustomEvent('umbral:energy'));
   }
 
+  // Consumo mes a mes: el gráfico de 18 meses que trae cada factura (la más reciente manda) y,
+  // encima, los datos de cada factura (que además tienen el importe).
+  const prevMonth = (month) => { const d = new Date(`${month}-15T12:00:00`); d.setMonth(d.getMonth() - 1); return dateToISO(d).slice(0, 7); };
+  function monthlySeries() {
+    const months = new Map();
+    luz().forEach((bill) => (bill.details?.history || []).forEach((entry) => months.set(entry.month, { month: entry.month, kwh: n(entry.kwh), f1: n(entry.f1), f2: n(entry.f2), f3: n(entry.f3), total: null })));
+    luz().forEach((bill) => {
+      const month = String(bill.period_start || '').slice(0, 7);
+      if (!month) return;
+      const before = months.get(month);
+      months.set(month, { month, kwh: n(bill.kwh), f1: n(bill.kwh_f1) ?? before?.f1 ?? null, f2: n(bill.kwh_f2) ?? before?.f2 ?? null, f3: n(bill.kwh_f3) ?? before?.f3 ?? null, total: n(bill.total_amount) });
+    });
+    return [...months.values()].filter((entry) => entry.kwh).sort((a, b) => a.month.localeCompare(b.month));
+  }
+
   // ---------- Consejos con vuestros números ----------
   function insights(bill, list) {
     const out = [];
@@ -122,11 +137,19 @@
       const change = avg(pun.at(-1)) / avg(pun[0]) - 1;
       if (Math.abs(change) > 0.15) out.push({ icon: change > 0 ? 'trending-up' : 'trending-down', tone: change > 0 ? 'warn' : 'good', title: `El precio de mercado ha ${change > 0 ? 'subido' : 'bajado'} un ${pct(Math.abs(change))} en un año`, text: `${/flex/i.test(bill.offer || '') ? 'Vuestra tarifa (Flex) sigue ese precio cada mes' : 'Vuestra tarifa es variable'}. ${change > 0 ? 'Si sigue subiendo, comparad con una tarifa de precio fijo: con la variable cada subida llega a la factura.' : 'Con precio variable, os estáis beneficiando de la bajada.'}` });
     }
-    // Este mes frente al anterior y frente al mismo mes del año pasado.
-    const previous = list.at(-2);
-    if (previous && n(previous.kwh)) {
-      const change = kwh / n(previous.kwh) - 1;
-      if (Math.abs(change) >= 0.15) out.push({ icon: change > 0 ? 'arrow-up-right' : 'arrow-down-right', tone: change > 0 ? 'warn' : 'good', title: `${pct(Math.abs(change))} ${change > 0 ? 'más' : 'menos'} que el mes anterior`, text: `${Math.round(kwh)} kWh frente a ${Math.round(n(previous.kwh))} kWh en ${monthLong(previous.period_start)}.` });
+    // Frente al mismo mes del año pasado (del historial de las facturas).
+    const series = monthlySeries();
+    const thisMonth = String(bill.period_start || '').slice(0, 7);
+    const lastYear = series.find((entry) => entry.month === `${Number(thisMonth.slice(0, 4)) - 1}${thisMonth.slice(4)}`);
+    if (lastYear?.kwh && kwh) {
+      const change = kwh / lastYear.kwh - 1;
+      out.push({ icon: 'calendar-range', tone: change > 0.1 ? 'warn' : change < -0.1 ? 'good' : '', title: `${Math.abs(change) < 0.05 ? 'Igual que' : `${pct(Math.abs(change))} ${change > 0 ? 'más' : 'menos'} que`} hace un año`, text: `${Math.round(kwh)} kWh este ${monthLong(bill.period_start).split(' ')[0]} frente a ${Math.round(lastYear.kwh)} kWh el año pasado.` });
+    }
+    // Este mes frente al anterior.
+    const previous = series.find((entry) => entry.month === prevMonth(thisMonth));
+    if (previous?.kwh) {
+      const change = kwh / previous.kwh - 1;
+      if (Math.abs(change) >= 0.15) out.push({ icon: change > 0 ? 'arrow-up-right' : 'arrow-down-right', tone: change > 0 ? 'warn' : 'good', title: `${pct(Math.abs(change))} ${change > 0 ? 'más' : 'menos'} que el mes anterior`, text: `${Math.round(kwh)} kWh frente a ${Math.round(previous.kwh)} kWh en ${monthLong(previous.month)}.` });
     }
     return out;
   }
@@ -151,8 +174,10 @@
       return;
     }
     const total = n(bill.total_amount) || 0;
-    const previous = list.at(-2);
-    const delta = previous && n(previous.total_amount) ? total / n(previous.total_amount) - 1 : null;
+    // Frente al mes anterior: en euros si hay su factura; si no, en kWh (del historial).
+    const before = monthlySeries().find((entry) => entry.month === prevMonth(String(bill.period_start || '').slice(0, 7)));
+    const delta = before?.total ? total / before.total - 1 : null;
+    const deltaKwh = !before?.total && before?.kwh ? n(bill.kwh) / before.kwh - 1 : null;
     const parts = [
       ['Energía', n(bill.energy_cost), 'var(--cat-1)'],
       ['Red y contador', n(bill.network_cost), 'var(--cat-3)'],
@@ -160,22 +185,26 @@
       ['Impuestos e IVA', n(bill.taxes), 'var(--cat-7)'],
       ['Canon RAI', n(bill.tv_fee), 'var(--cat-5)']
     ].filter(([, value]) => value);
-    const maxKwh = Math.max(...list.slice(-12).map((entry) => n(entry.kwh) || 0), 1);
+    const series = monthlySeries().slice(-12);
+    const maxKwh = Math.max(...series.map((entry) => entry.kwh || 0), 1);
+    const currentMonth = String(bill.period_start || '').slice(0, 7);
     pane.innerHTML = `
       <div class="energy-hero">
         <div><span>Última factura · ${escapeHtml(monthLong(bill.period_start))}</span><strong>${money(total)}</strong>
-          <small>${Math.round(n(bill.kwh))} kWh${delta != null ? ` · <b class="${delta > 0 ? 'is-up' : 'is-down'}">${delta > 0 ? '↑' : '↓'} ${pct(Math.abs(delta))}</b> que el mes anterior` : ''}${bill.due_date ? ` · se cobra el ${new Date(`${bill.due_date}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}` : ''}</small></div>
+          <small>${Math.round(n(bill.kwh))} kWh${delta != null ? ` · <b class="${delta > 0 ? 'is-up' : 'is-down'}">${delta > 0 ? '↑' : '↓'} ${pct(Math.abs(delta))}</b> que el mes anterior` : deltaKwh != null ? ` · <b class="${deltaKwh > 0 ? 'is-up' : 'is-down'}">${deltaKwh > 0 ? '↑' : '↓'} ${pct(Math.abs(deltaKwh))}</b> de consumo que el mes anterior` : ''}${bill.due_date ? ` · se cobra el ${new Date(`${bill.due_date}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}` : ''}</small></div>
         <div class="energy-hero-side"><span>Al año</span><b>${n(bill.annual_cost) ? money(n(bill.annual_cost)) : '—'}</b><small>${n(bill.annual_kwh) ? `${Math.round(n(bill.annual_kwh))} kWh` : ''}</small></div>
       </div>
       ${bandCard}
-      <section class="money-card"><div class="finance-subheading"><strong>Consumo por mes</strong><span>kWh por franja</span></div>
-        <div class="energy-bars">${list.slice(-12).map((entry) => {
-          const height = (n(entry.kwh) / maxKwh) * 100;
-          const seg = (key) => (n(entry[`kwh_${key}`]) ? `<i class="is-${key}" style="flex:${n(entry[`kwh_${key}`])}"></i>` : '');
-          return `<div class="energy-bar${entry === bill ? ' is-current' : ''}" title="${escapeHtml(`${monthLong(entry.period_start)}: ${Math.round(n(entry.kwh))} kWh, ${money(n(entry.total_amount) || 0)}`)}"><b>${Math.round(n(entry.kwh))}</b><span class="energy-bar-stack" style="height:${Math.max(6, height)}%">${seg('f3')}${seg('f2')}${seg('f1')}</span><small>${MONTHS[Number(String(entry.period_start).slice(5, 7)) - 1] || ''}</small></div>`;
+      <section class="money-card"><div class="finance-subheading"><strong>Consumo por mes</strong><span>${series.length > 1 ? `${monthShort(series[0].month)} – ${monthShort(series.at(-1).month)}` : 'kWh por franja'}</span></div>
+        <div class="energy-bars">${series.map((entry) => {
+          const height = (entry.kwh / maxKwh) * 100;
+          const split = entry.f1 != null && entry.f2 != null && entry.f3 != null;
+          const stack = split ? ['f3', 'f2', 'f1'].map((key) => (entry[key] ? `<i class="is-${key}" style="flex:${entry[key]}"></i>` : '')).join('') : '<i class="is-total" style="flex:1"></i>';
+          const detail = `${capitalizeFirst(monthLong(entry.month))}: ${Math.round(entry.kwh)} kWh${split ? ` (F1 ${entry.f1}, F2 ${entry.f2}, F3 ${entry.f3})` : ''}${entry.total ? `, ${money(entry.total)}` : ''}`;
+          return `<div class="energy-bar${entry.month === currentMonth ? ' is-current' : ''}" title="${escapeHtml(detail)}" aria-label="${escapeHtml(detail)}"><b>${Math.round(entry.kwh)}</b><span class="energy-bar-stack" style="height:${Math.max(4, height)}%">${stack}</span><small>${MONTHS[Number(entry.month.slice(5, 7)) - 1] || ''}</small></div>`;
         }).join('')}</div>
         <div class="energy-legend"><span><i class="is-f1"></i>F1 · día laborable</span><span><i class="is-f2"></i>F2 · tardes y sábado</span><span><i class="is-f3"></i>F3 · noche y domingo</span></div>
-        ${list.length < 3 ? '<p class="energy-note">Con más facturas verás la evolución: el script de Gmail puede traer las de los últimos 2 años («importarHistorial»).</p>' : ''}
+        ${series.length < 3 ? '<p class="energy-note">Con más facturas verás la evolución: el script de Gmail puede traer las de los últimos 2 años («importarHistorial»).</p>' : series.some((entry) => entry.f1 == null) ? '<p class="energy-note">Las barras grises son meses sin el reparto por franjas.</p>' : ''}
       </section>
       <section class="money-card"><div class="finance-subheading"><strong>A dónde va cada euro</strong><span>${escapeHtml(monthLong(bill.period_start))}</span></div>
         <div class="category-stack" aria-hidden="true">${parts.map(([name, value, color]) => `<span style="flex:${value};background:${color}" title="${escapeHtml(name)}"></span>`).join('')}</div>
@@ -188,7 +217,7 @@
       </section>
       <section class="money-card"><div class="finance-subheading"><strong>Facturas de la luz</strong><span>${list.length}</span></div>
         ${[...list].reverse().map((entry) => billRow(entry)).join('')}
-        ${uploadButton()}
+        <div class="energy-actions">${uploadButton()}${supabaseClient && authUserId ? '<button type="button" class="link-button" data-energy-reparse><i data-lucide="refresh-cw"></i> Volver a leer las facturas</button>' : ''}</div>
       </section>
       ${timSection(tim)}
       <p class="notes-local-warning"><i data-lucide="info"></i> ${escapeHtml(bill.offer || 'Octopus')} · ${escapeHtml(bill.tariff_type || '')} · potencia ${String(n(bill.committed_kw) || '').replace('.', ',')} kW. Los PDF están en Documentos → Facturas.</p>`;
@@ -250,7 +279,24 @@
     if (input?.files[0]) uploadBill(input.files[0]);
     if (input) input.value = '';
   });
+  async function reparse(button) {
+    button.disabled = true;
+    button.textContent = 'Leyendo…';
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('bills', { body: { reparse: true } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await load();
+      showToast(`${data.updated} ${data.updated === 1 ? 'factura leída' : 'facturas leídas'} de nuevo${data.failed?.length ? ` · ${data.failed.length} no se pudieron` : ''}`);
+    } catch (error) {
+      button.disabled = false;
+      showSupabaseError('No se pudieron volver a leer', error);
+    }
+  }
+
   pane?.addEventListener('click', (event) => {
+    const again = event.target.closest('[data-energy-reparse]');
+    if (again) return reparse(again);
     const row = event.target.closest('[data-energy-doc]');
     if (row?.dataset.energyDoc) window.umbralDocuments?.openById?.(row.dataset.energyDoc);
   });

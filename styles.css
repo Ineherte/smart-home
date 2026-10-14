@@ -3459,3 +3459,9 @@ html[data-modal="open"], html[data-modal="open"] body { overflow: hidden; oversc
 button.appliance-band { width: 100%; padding: 2px 0; text-align: left; }
 .appliance-band span { flex: 1; }
 .appliance-band .appliance-band-more { width: 15px; height: 15px; color: var(--muted); }
+.energy-bar-stack .is-total { background: var(--line-strong); }
+.energy-bar.is-current .energy-bar-stack .is-total { background: var(--muted); }
+.energy-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.energy-actions .energy-upload { margin-top: 0; }
+.energy-actions .link-button { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+.energy-actions .link-button svg.lucide { width: 14px; height: 14px; }

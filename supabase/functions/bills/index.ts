@@ -3,11 +3,12 @@
 //   · Desde el Gmail (script de Google, ver LEEME.md): cabecera x-sync-token y
 //     POST { owner, file_name, pdf_base64, subject?, from?, message_id? }. Guarda el PDF en
 //     Documentos (carpeta Facturas, de los dos) y lee sus datos.
-//   · Desde la app (sesión del usuario): POST { document_id } de un PDF ya subido a Documentos.
+//   · Desde la app (sesión del usuario): POST { document_id } de un PDF ya subido a Documentos,
+//     o POST { reparse: true } para volver a leer todas las facturas guardadas (si mejora el lector).
 // Secretos: SYNC_TOKEN e IPHONE_OWNER_IDS (los mismos que los Atajos).
 // supabase functions deploy bills --no-verify-jwt
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { pdfText, parseOctopus, parseTim, detectProvider, billTitle } from '../_shared/bills.ts';
+import { pdfRead, parseOctopus, parseTim, detectProvider, billTitle } from '../_shared/bills.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,6 +60,27 @@ Deno.serve(async (request) => {
     const { data: userData } = await admin.auth.getUser(token);
     const user = userData?.user;
     if (!user || user.is_anonymous) return json({ error: 'Inicia sesión' }, 401);
+    // Volver a leer todas las facturas del hogar con el lector de ahora.
+    if (body.reparse) {
+      const { data: membership } = await admin.from('household_members').select('household_id').eq('user_id', user.id).limit(1).maybeSingle();
+      if (!membership?.household_id) return json({ error: 'No encuentro vuestro hogar' }, 404);
+      const { data: saved } = await admin.from('utility_bills').select('id, document_id').eq('household_id', membership.household_id).not('document_id', 'is', null);
+      let updated = 0;
+      const failed: string[] = [];
+      for (const bill of saved || []) {
+        const { data: billDoc } = await admin.from('documents').select('path, title').eq('id', bill.document_id).maybeSingle();
+        if (!billDoc) continue;
+        const file = await admin.storage.from(BUCKET).download(billDoc.path);
+        if (file.error || !file.data) { failed.push(billDoc.title); continue; }
+        const read = await readBill(new Uint8Array(await file.data.arrayBuffer()), billDoc.title || '');
+        if (!read) { failed.push(billDoc.title); continue; }
+        const row: Record<string, unknown> = {};
+        for (const key of COLUMNS) if (key in read) row[key] = (read as Record<string, unknown>)[key];
+        const { error } = await admin.from('utility_bills').update(row).eq('id', bill.id);
+        if (error) failed.push(billDoc.title); else updated += 1;
+      }
+      return json({ updated, failed });
+    }
     const { data: doc } = await admin.from('documents').select('id, household_id, owner_id, scope, path, title').eq('id', String(body.document_id || '')).maybeSingle();
     if (!doc) return json({ error: 'No encuentro ese documento' }, 404);
     const { data: member } = await admin.from('household_members').select('household_id').eq('user_id', user.id).eq('household_id', doc.household_id).maybeSingle();
@@ -85,9 +107,9 @@ type Read = ReturnType<typeof parseOctopus> | ReturnType<typeof parseTim>;
 type Admin = any;
 
 async function readBill(bytes: Uint8Array, hint: string): Promise<Read | null> {
-  const text = await pdfText(bytes);
+  const { text, items } = await pdfRead(bytes);
   const provider = detectProvider(text, hint);
-  if (provider === 'Octopus') return parseOctopus(text);
+  if (provider === 'Octopus') return parseOctopus(text, items);
   if (provider === 'TIM') return parseTim(text);
   return null;
 }
