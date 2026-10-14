@@ -38,7 +38,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=60" />
+    <link rel="stylesheet" href="styles.css?v=61" />
     <script src="vendor/lucide-1.49.0.js"></script>
   </head>
   <body>
@@ -50,6 +50,7 @@
         </a>
         <div class="topbar-actions">
           <span class="sync-status" id="syncStatus"><i data-lucide="circle-check"></i><span>Sincronizado</span></span>
+          <button class="icon-button assistant-open" type="button" data-action="assistant" aria-label="Asistente: pídele algo a Umbral" title="Asistente"><i data-lucide="wand-sparkles"></i></button>
           <button class="avatar" type="button" aria-label="Abrir perfil" title="Perfil" id="userAvatar">IN</button>
         </div>
       </header>
@@ -63,6 +64,7 @@
 
       <div class="views">
         <div class="view view-home" data-space="home">
+          <button type="button" class="assistant-bar" data-action="assistant"><span class="assistant-bar-icon"><i data-lucide="wand-sparkles"></i></span><span class="assistant-bar-text">Pídele algo a Umbral…<small>«Apunta leche», «he regado la monstera», «cena el sábado a las 21»</small></span><i data-lucide="mic" class="assistant-bar-mic"></i></button>
           <div class="quick-actions" aria-label="Añadir rápido">
             <button type="button" class="quick-action is-shopping" data-action="quick-shopping"><span><i data-lucide="shopping-basket"></i></span>Compra</button>
             <button type="button" class="quick-action is-task" data-action="quick-task"><span><i data-lucide="list-checks"></i></span>Tarea</button>
@@ -398,6 +400,21 @@
         <div class="plant-sheet-body"></div>
       </div>
     </div>
+    <div class="plant-sheet assistant-sheet" id="assistantSheet" role="dialog" aria-modal="true" aria-labelledby="assistantTitle">
+      <div class="plant-sheet-panel">
+        <button class="icon-button small plant-sheet-close" type="button" data-close-assistant aria-label="Cerrar"><i data-lucide="x"></i></button>
+        <div class="assistant-head"><span class="assistant-head-icon"><i data-lucide="wand-sparkles"></i></span><div><p class="eyebrow muted">Asistente</p><h2 id="assistantTitle">¿Qué hago?</h2></div></div>
+        <div class="assistant-log" id="assistantLog" aria-live="polite">
+          <p class="assistant-hello">Escribe o dicta como hablas, y lo hago: la compra, tareas con plazo, el calendario, notas, el riego, gastos y luces. Puedes pedir varias cosas a la vez. Para dictar, toca el micrófono del teclado.</p>
+        </div>
+        <div class="suggestion-row assistant-suggestions" id="assistantSuggestions"></div>
+        <form class="assistant-form" id="assistantForm" autocomplete="off">
+          <input id="assistantInput" type="text" enterkeyhint="send" placeholder="Apunta leche y recuérdame pagar la luz el viernes" aria-label="Qué quieres que haga" />
+          <button type="button" class="assistant-mic" id="assistantMic" aria-label="Dictar" hidden><i data-lucide="mic"></i></button>
+          <button type="submit" class="assistant-send" aria-label="Enviar"><i data-lucide="arrow-up"></i></button>
+        </form>
+      </div>
+    </div>
     <div class="plant-sheet item-sheet" id="itemSheet" role="dialog" aria-modal="true" aria-labelledby="itemSheetTitle">
       <div class="plant-sheet-panel">
         <button class="icon-button small plant-sheet-close" type="button" data-close-item aria-label="Cerrar"><i data-lucide="x"></i></button>
@@ -533,7 +550,7 @@
     <script src="scene.js?v=12"></script>
     <script src="store.js?v=1"></script>
     <script src="push.js?v=1"></script>
-    <script src="shopping.js?v=4"></script>
+    <script src="shopping.js?v=5"></script>
     <script src="tasks.js?v=8"></script>
     <script src="notes.js?v=2"></script>
     <script src="pending.js?v=4"></script>
@@ -554,8 +571,9 @@
     <script src="sims-build.js?v=1"></script>
     <script src="sims-music.js?v=1"></script>
     <script src="sims-mind.js?v=3"></script>
-    <script src="app.js?v=51"></script>
+    <script src="app.js?v=52"></script>
     <script src="summary.js?v=4"></script>
+    <script src="assistant.js?v=1"></script>
     <script src="ux.js?v=2"></script>
     <script src="native.js?v=1"></script>
   </body>

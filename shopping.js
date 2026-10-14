@@ -44,15 +44,26 @@ function shoppingCategory(name) {
 }
 
 // "leche, pan y 6 huevos" → tres artículos; "2 kg de patatas" → cantidad "2kg".
+// «leche, 2 kilos de patatas y una botella de vino» → [{ quantity, name }]. Quita artículos
+// («la leche» → Leche) y entiende unidades escritas («kilos», «litros», «docena»…).
+const SHOPPING_WORD_NUMBERS = { un: '1', una: '1', uno: '1', dos: '2', tres: '3', cuatro: '4', cinco: '5', seis: '6', siete: '7', ocho: '8', nueve: '9', diez: '10', doce: '12' };
 function parseShoppingInput(text) {
-  const unit = '(?:kg|gr?|l|ml|cl|uds?|unidades|paquetes?|botellas?|latas?|bricks?)';
+  const unit = '(?:kg|kgs|kilos?|gr?|gramos?|l|litros?|ml|cl|uds?|unidades|paquetes?|botellas?|latas?|bricks?|docenas?|bolsas?|tarros?|botes?|cajas?|barras?)';
+  const number = '(?:\\d+(?:[.,]\\d+)?|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce|media)';
+  const clean = (name) => capitalizeFirst(name.trim().replace(/^(?:el|la|los|las|un|una|unos|unas|algo de|un poco de|más|mas)\s+/i, '').replace(/[.!?]+$/, '').trim());
+  // «500 g» → 500g; «2 kilos» y «1 botella» se quedan con su espacio.
+  const qty = (raw) => raw.replace(/\s+/g, ' ').trim().replace(/^(\p{L}+)/u, (word) => SHOPPING_WORD_NUMBERS[word.toLowerCase()] || word).replace(/^media\b/i, '½').replace(/^(\S+) (kg|kgs|gr?|l|ml|cl|uds?)$/i, '$1$2');
   return text.split(/[,;\n]+|\s+y\s+|\s+e\s+/).map((part) => part.trim()).filter(Boolean).map((part) => {
-    let match = part.match(new RegExp(`^(\\d+(?:[.,]\\d+)?\\s*${unit}?)\\s+(?:de\\s+|di\\s+)?(.+)$`, 'i'));
-    if (match) return { quantity: match[1].replace(/\s+/g, ''), name: capitalizeFirst(match[2].trim()) };
+    // «2 kilos de patatas», «una botella de vino», «6 huevos» (pero no «un pan»: sin unidad, «un» es artículo).
+    let match = part.match(new RegExp(`^(${number}\\s*${unit})\\s+(?:de\\s+|di\\s+)?(.+)$`, 'iu')) || part.match(new RegExp('^(\\d+(?:[.,]\\d+)?)\\s+(?:de\\s+)?(.+)$', 'i'));
+    if (match) return { quantity: qty(match[1]), name: clean(match[2]) };
+    // «dos limones», «seis huevos» («un/una» se quedan como artículo: «una lechuga»).
+    match = part.match(/^(dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\s+(.+)$/i);
+    if (match) return { quantity: qty(match[1]), name: clean(match[2]) };
     match = part.match(new RegExp(`^(.+?)\\s+x?\\s*(\\d+(?:[.,]\\d+)?\\s*${unit}?)$`, 'i'));
-    if (match) return { quantity: match[2].replace(/\s+/g, ''), name: capitalizeFirst(match[1].trim()) };
-    return { quantity: '', name: capitalizeFirst(part) };
-  }).filter((item) => item.name.length <= 80);
+    if (match) return { quantity: qty(match[2]), name: clean(match[1]) };
+    return { quantity: '', name: clean(part) };
+  }).filter((item) => item.name && item.name.length <= 80);
 }
 
 async function loadShopping() {

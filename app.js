@@ -492,22 +492,44 @@ async function openCalendar() {
 document.querySelector('#previousMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); renderCalendar(); });
 document.querySelector('#nextMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); renderCalendar(); });
 document.querySelector('#closeCalendar').addEventListener('click', () => history.back());
-document.querySelector('#eventForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value || null, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
+// Guarda un evento (desde el formulario del calendario o desde el asistente). Devuelve su id.
+async function saveCalendarEvent(eventData) {
+  let id = null;
   if (supabaseClient && authUserId) {
-    if (!householdReady()) return;
-    const { error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId, household_id: householdId });
-    if (error) return showSupabaseError('No se pudo guardar el evento', error);
+    if (!householdReady()) throw new Error('Tu hogar aún se está conectando');
+    const { data, error } = await supabaseClient.from('events').insert({ ...eventData, owner_id: authUserId, household_id: householdId }).select('id').single();
+    if (error) throw error;
+    id = data?.id || null;
     if (eventData.scope === 'shared') {
       const when = new Date(`${eventData.event_date}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
       notifyHousehold(`${currentUser} añadió un plan`, `${eventData.title} · ${when}${eventData.event_time ? ` a las ${eventData.event_time.slice(0, 5)}` : ''}`, { open: 'calendar' });
     }
   } else {
-    const events = readEvents();
-    events.push({ ...eventData, id: createLocalId() });
-    localStorage.setItem(localEventsKey(), JSON.stringify(events));
+    id = createLocalId();
+    localStorage.setItem(localEventsKey(), JSON.stringify([...readEvents(), { ...eventData, id }]));
+  }
+  await renderCalendarData();
+  return id;
+}
+
+async function deleteCalendarEvent(id) {
+  if (supabaseClient && authUserId) {
+    const { error } = await supabaseClient.from('events').delete().eq('id', id);
+    if (error) throw error;
+  } else {
+    localStorage.setItem(localEventsKey(), JSON.stringify(readEvents().filter((entry) => entry.id !== id)));
+  }
+  await renderCalendarData();
+}
+
+document.querySelector('#eventForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const eventData = { title: form.title.value.trim(), event_date: form.date.value, event_time: form.time.value || null, duration: form.duration.value.trim(), location: form.location.value.trim(), scope: form.scope.value };
+  try {
+    await saveCalendarEvent(eventData);
+  } catch (error) {
+    return showSupabaseError('No se pudo guardar el evento', error);
   }
   selectedDate = new Date(`${eventData.event_date}T12:00:00`);
   visibleMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
@@ -1900,6 +1922,7 @@ document.querySelectorAll('[data-action]').forEach((action) => {
     }
 
     if (type === 'lights') showView('luces');
+    if (type === 'assistant') window.umbralAssistant?.open('', { listen: Boolean(event.target.closest('.assistant-bar-mic')) });
   });
 });
 
