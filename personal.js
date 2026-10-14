@@ -28,6 +28,7 @@ const isRefundEntry = (entry) => entry.direction === 'in' && entry.kind === 'car
 const spendValue = (entry) => (entry.excluded || isIncome(entry) ? 0 : isRefundEntry(entry) ? -Number(entry.amount) : Number(entry.amount));
 const KIND_LABELS = { card: 'Tarjeta', transfer: 'Transferencia', sdd: 'Domiciliación', withdraw: 'Efectivo', fee: 'Comisión', other: 'Otro' };
 const SOURCE_BADGES = { apple_pay: 'Apple Pay' };
+const sourceBadge = (entry) => (String(entry.source_reference || '').startsWith('satispay:') ? 'Satispay' : SOURCE_BADGES[entry.source]);
 const money0 = (value) => financeMoney(value).replace(/,\d\d(?=\s)/, '');
 
 // ---------- Datos ----------
@@ -443,7 +444,7 @@ function movementRow(entry) {
   const meta = [entry.category, kindLabel, refund ? 'Devolución' : ''].filter(Boolean).join(' · ');
   return `<button type="button" class="move-row${entry.excluded ? ' is-excluded' : ''}" data-open-movement="${escapeHtml(entry.id)}">
     <span class="pcat-icon${income ? ' is-income' : ''}"><i data-lucide="${categoryInfo(entry.category).icon}"></i></span>
-    <span class="move-copy"><strong>${escapeHtml(entryMerchant(entry))}${SOURCE_BADGES[entry.source] ? ` <em class="finance-item-source">${SOURCE_BADGES[entry.source]}</em>` : ''}</strong><small>${escapeHtml(meta)}${entry.excluded ? ' · <em>no cuenta</em>' : ''}</small></span>
+    <span class="move-copy"><strong>${escapeHtml(entryMerchant(entry))}${sourceBadge(entry) ? ` <em class="finance-item-source">${sourceBadge(entry)}</em>` : ''}</strong><small>${escapeHtml(meta)}${entry.excluded ? ' · <em>no cuenta</em>' : ''}</small></span>
     <b class="${income || refund ? 'is-plus' : ''}">${income || refund ? '+' : ''}${financeMoney(entry.amount)}</b>
   </button>`;
 }
@@ -786,15 +787,19 @@ async function applyReview(key, { category, excluded }) {
 
 function renderWalletSteps() {
   const url = `${(window.SUPABASE_CONFIG?.url || 'https://TU-PROYECTO.supabase.co').replace(/\/$/, '')}/functions/v1/wallet-ingest`;
+  const partner = escapeHtml(otherPerson(currentUser));
+  const copy = `<div class="copy-field"><code>${escapeHtml(url)}</code><button type="button" class="link-button" data-copy="${escapeHtml(url)}">Copiar</button></div>`;
   document.querySelector('#walletSteps').innerHTML = `
-    <p>Si además quieres ver los pagos con el iPhone al momento (sin esperar al extracto), un Atajo los envía aquí. Al importar el extracto no se duplican.</p>
+    <p>Cada vez que pagues con Apple Pay, el iPhone te pregunta de quién es el gasto y lo apunta solo: en tus gastos, a medias con ${partner} en las cuentas de la casa, o como gasto de ${partner} (te lo debe). Al importar el extracto no se duplica.</p>
     <ol>
-      <li>Abre <b>Atajos</b> → <b>Automatización</b> → <b>+</b> → <b>Wallet</b> (o «Transacción»).</li>
-      <li>Elige tus tarjetas, marca <b>Ejecutar inmediatamente</b> y pulsa Siguiente.</li>
-      <li>Crea un atajo con la acción <b>Obtener contenido de URL</b>:<div class="copy-field"><code>${escapeHtml(url)}</code><button type="button" class="link-button" data-copy="${escapeHtml(url)}">Copiar</button></div></li>
-      <li>Método <b>POST</b>. En <b>Cabeceras</b> añade <code>x-sync-token</code> con vuestro SYNC_TOKEN.</li>
-      <li>En <b>Cuerpo</b> elige <b>JSON</b>: <code>owner</code> = <b>${escapeHtml(currentUser)}</b>, <code>amount</code> = <b>Importe</b>, <code>merchant</code> = <b>Comerciante</b>.</li>
-    </ol>`;
+      <li>Abre <b>Atajos</b> → <b>Automatización</b> → <b>+</b> → <b>Transacción</b> (Wallet). Elige tus tarjetas y marca <b>Ejecutar inmediatamente</b>.</li>
+      <li>Añade <b>Elegir de la lista</b> con cuatro elementos: <b>A medias con ${partner}</b>, <b>Mío</b>, <b>De ${partner}</b> y <b>No apuntar</b>. En <b>Mensaje</b> pon <i>«Importe en Comerciante: ¿de quién es?»</i>.</li>
+      <li>Añade <b>Obtener contenido de URL</b>:${copy}</li>
+      <li>Método <b>POST</b>. En <b>Cabeceras</b>, <code>x-sync-token</code> con vuestro SYNC_TOKEN.</li>
+      <li>En <b>Cuerpo</b>, <b>JSON</b>: <code>owner</code> = <b>${escapeHtml(currentUser)}</b>, <code>amount</code> = <b>Importe</b>, <code>merchant</code> = <b>Comerciante</b>, <code>share</code> = <b>Elemento seleccionado</b> (elige la variable, no lo escribas).</li>
+      <li>Para terminar, <b>Obtener valor del diccionario</b> (clave <code>message</code>) y <b>Mostrar notificación</b>.</li>
+    </ol>
+    <p><b>Satispay</b> no avisa al iPhone de los pagos, así que se hace con otra automatización: <b>App</b> → Satispay → <b>Se cierra</b>. Pregunta si has pagado algo y el importe, y llama a la misma URL con <code>method</code> = <code>satispay</code>. Los pasos completos están en <code>supabase/functions/wallet-ingest/LEEME.md</code>.</p>`;
 }
 
 // ---------- Eventos ----------
