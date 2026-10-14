@@ -107,13 +107,13 @@ export function parseOctopus(raw: string, items: PdfItem[] = []) {
     kind: 'luz',
     invoice_number: one(flat, /NUMERO FATTURA[^:]*:\s*([A-Z0-9][A-Z0-9-]{5,})/i),
     supply_code: one(flat, /Codice Fornitura:\s*([A-Z0-9-]+)/i),
-    issue_date: isoDate(one(flat, /DATA FATTURA:\s*(\d{2}\/\d{2}\/\d{4})/i)),
-    due_date: isoDate(one(flat, /Entro il\s*(\d{2}\/\d{2}\/\d{4})/i)),
+    issue_date: isoDate(one(flat, /DATA FATTURA:?[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/i)),
+    due_date: isoDate(one(flat, /Entro il[\s\S]{0,80}?(\d{2}\/\d{2}\/\d{4})/i)),
     period_start: isoDate(period?.[1]),
     period_end: isoDate(period?.[2]),
     total_amount: num(one(flat, /TOTALE DA PAGARE\s*([\d.,]+)\s*€/i)) ?? num(one(flat, /dovrai pagare\s*([\d.,]+)\s*€/i)),
     bill_amount: num(one(flat, /TOTALE BOLLETTA\s*([\d.,]+)\s*€/i)),
-    kwh: num(one(flat, /CONSUMO FATTURATO:\s*([\d.,]+)\s*kWh/i)),
+    kwh: num(one(flat, /CONSUMO FATTURATO:?[\s\S]{0,80}?(\d[\d.,]*)\s*kWh/i)),
     kwh_f1: num(f1?.[1]), kwh_f2: num(f2?.[1]), kwh_f3: num(f3?.[1]),
     price_f1: num(f1?.[2]), price_f2: num(f2?.[2]), price_f3: num(f3?.[2]),
     energy_cost: num(one(flat, /Spesa per la materia energia.*?TOTALE\s*([\d.,]+)\s*€/i)),
@@ -124,13 +124,15 @@ export function parseOctopus(raw: string, items: PdfItem[] = []) {
     taxes: num(one(flat, /Accise e IVA\s*([\d.,]+)\s*€/i)),
     vat: num(one(flat, /DI CUI IVA\s*([\d.,]+)\s*€/i)),
     tv_fee: num(one(flat, /Canone di abbonamento alla televisione per uso privato\s*([\d.,]+)\s*€/i)),
-    committed_kw: num(one(flat, /POTENZA IMPEGNATA:?\s*([\d.,]+)\s*kW/i)),
-    offer: one(flat, /NOME OFFERTA(?: COMMERCIALE)?:\s*(.+?)\s+(?:DATA|PENALI|CODICE|POTENZA)/i),
-    tariff_type: one(flat, /TIPOLOGIA OFFERTA:\s*(\w+)/i),
+    // Algunos recuadros van uno al lado del otro y sus líneas se mezclan: se busca el primer
+    // valor que encaje unos caracteres después de la etiqueta.
+    committed_kw: num(one(flat, /POTENZA IMPEGNATA[\s\S]{0,220}?(\d+(?:[.,]\d+)?)\s*kW\b/i)),
+    offer: one(flat, /NOME OFFERTA(?: COMMERCIALE)?:\s*(Octopus\s+[A-Za-zÀ-ÿ]+(?:\s+v\d+)?)/i) ?? one(flat, /\b(Octopus\s+(?:Flex|Fissa|Fix|Mono|Green)[A-Za-z]*(?:\s+v\d+)?)/i),
+    tariff_type: one(flat, /TIPOLOGIA OFFERTA:?[\s\S]{0,80}?\b(Multioraria|Monoraria|Bioraria|Fasce|Oraria)\b/i),
     payment: one(flat, /METODO PAGAMENTO:\s*(.+?)\s+(?:PERIODO|SITUAZIONE|DATA)/i),
     pun_month: num(one(flat, /PUN \(\d{2}\/\d{2}\):\s*(?:Spread:)?\s*([\d.,]+)\s*€\/kWh/i)),
-    annual_kwh: num(one(flat, /CONSUMO ANNUO:[^:]*:\s*([\d.,]+)\s*kWh/i)) ?? num(one(flat, /([\d.]+)\s*kWh\/anno/i)),
-    annual_cost: num(one(flat, /SPESA ANNUA:[^:]*:\s*([\d.,]+)\s*€/i)),
+    annual_kwh: num(one(flat, /([\d.]+)\s*kWh\/anno/i)) ?? num(one(flat, /CONSUMO ANNUO[\s\S]{0,260}?(\d[\d.]*)\s*kWh\b/i)),
+    annual_cost: num(one(flat, /SPESA ANNUA[\s\S]{0,260}?(\d[\d.]*,\d{2})\s*€/i)),
     details: { pun, max_power: maxPower, readings, history: items.length ? parseConsumptionHistory(items) : [] }
   };
   return result;

@@ -2139,5 +2139,19 @@ updateLightStatusText();
 updateConnectionState();
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').then((registration) => {
+    // El iPhone deja la app en memoria: al volver a ella, se mira si hay una versión nueva.
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) registration.update().catch(() => {}); });
+  }).catch(() => {}));
+  // Cuando entra una versión nueva: si la app está a la vista, se ofrece recargar; si no, se
+  // recarga sola. (La primera instalación no cuenta.)
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+  const reload = () => { if (reloading) return; reloading = true; window.location.reload(); };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
+    if (document.hidden) return reload();
+    showToast('Hay una versión nueva de Umbral', { action: 'Actualizar', onAction: reload, duration: 15000 });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) reload(); }, { once: true });
+  });
 }

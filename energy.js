@@ -7,6 +7,8 @@
   const store = createHouseholdStore({ table: 'utility_bills', localKey: 'umbral-utility-bills' });
   let bills = [];
   let loaded = false;
+  let selectedMonth = null;
+  let metric = 'kwh';
   const money = (value) => (typeof financeMoney === 'function' ? financeMoney(value) : `${Number(value).toFixed(2)} €`);
   const cents = (value) => `${(value * 100).toFixed(1).replace('.', ',')} cént.`;
   const pct = (value) => `${Math.round(value * 100)} %`;
@@ -173,44 +175,96 @@
       lucide.createIcons();
       return;
     }
-    const total = n(bill.total_amount) || 0;
-    // Frente al mes anterior: en euros si hay su factura; si no, en kWh (del historial).
-    const before = monthlySeries().find((entry) => entry.month === prevMonth(String(bill.period_start || '').slice(0, 7)));
-    const delta = before?.total ? total / before.total - 1 : null;
-    const deltaKwh = !before?.total && before?.kwh ? n(bill.kwh) / before.kwh - 1 : null;
-    const parts = [
-      ['Energía', n(bill.energy_cost), 'var(--cat-1)'],
-      ['Red y contador', n(bill.network_cost), 'var(--cat-3)'],
-      ['Cargos del sistema', n(bill.system_charges), 'var(--cat-4)'],
-      ['Impuestos e IVA', n(bill.taxes), 'var(--cat-7)'],
-      ['Canon RAI', n(bill.tv_fee), 'var(--cat-5)']
-    ].filter(([, value]) => value);
-    const series = monthlySeries().slice(-12);
-    const maxKwh = Math.max(...series.map((entry) => entry.kwh || 0), 1);
-    const currentMonth = String(bill.period_start || '').slice(0, 7);
+    // ----- Zoom: el mes elegido -----
+    const series = monthlySeries();
+    const months = series.map((entry) => entry.month);
+    if (!selectedMonth || !months.includes(selectedMonth)) selectedMonth = String(bill.period_start || '').slice(0, 7) || months.at(-1);
+    const index = months.indexOf(selectedMonth);
+    const month = series[index] || { month: selectedMonth, kwh: null };
+    const monthBill = list.find((entry) => String(entry.period_start || '').slice(0, 7) === selectedMonth) || null;
+    const before = series.find((entry) => entry.month === prevMonth(selectedMonth));
+    const yearAgo = series.find((entry) => entry.month === `${Number(selectedMonth.slice(0, 4)) - 1}${selectedMonth.slice(4)}`);
+    const total = monthBill ? n(monthBill.total_amount) || 0 : null;
+    const kwh = month.kwh;
+    const days = new Date(Number(selectedMonth.slice(0, 4)), Number(selectedMonth.slice(5, 7)), 0).getDate();
+    const split = month.f1 != null && month.f2 != null && month.f3 != null;
+    const compare = (other, label) => {
+      if (!other?.kwh || !kwh) return '';
+      const change = kwh / other.kwh - 1;
+      const euro = total != null && other.total ? total - other.total : null;
+      return `<div class="energy-compare ${change > 0.05 ? 'is-up' : change < -0.05 ? 'is-down' : ''}"><small>${label}</small><b>${Math.abs(change) < 0.05 ? '≈ igual' : `${change > 0 ? '↑' : '↓'} ${pct(Math.abs(change))}`}</b><span>${Math.round(other.kwh)} kWh${other.total ? ` · ${money(other.total)}` : ''}${euro != null ? ` (${euro > 0 ? '+' : '−'}${money(Math.abs(euro))})` : ''}</span></div>`;
+    };
+    const bandRows = [
+      ['f1', 'F1', 'De lunes a viernes, de 8 a 19 h'],
+      ['f2', 'F2', 'Laborables 7-8 h y 19-23 h, y sábados'],
+      ['f3', 'F3', 'Noches (23-7 h), domingos y festivos']
+    ];
+    const parts = monthBill ? [
+      ['Energía', n(monthBill.energy_cost), 'var(--cat-1)', 'La luz que habéis gastado'],
+      ['Red y contador', n(monthBill.network_cost), 'var(--cat-3)', 'Transporte de la luz y potencia contratada'],
+      ['Cargos del sistema', n(monthBill.system_charges), 'var(--cat-4)', 'Renovables y otros cargos fijados por ley'],
+      ['Impuestos e IVA', n(monthBill.taxes), 'var(--cat-7)', 'Impuesto de la luz e IVA al 10 %'],
+      ['Canon RAI', n(monthBill.tv_fee), 'var(--cat-5)', 'La tele pública, va en la luz de enero a octubre']
+    ].filter(([, value]) => value) : [];
+
+    // ----- Mes a mes -----
+    const last12 = series.slice(-12);
+    const values = last12.map((entry) => (metric === 'eur' ? entry.total : entry.kwh));
+    const maxValue = Math.max(...values.map((value) => value || 0), 1);
+    const withValue = last12.filter((entry, i) => values[i]);
+    const sum = values.reduce((acc, value) => acc + (value || 0), 0);
+    const fmt = (value) => (metric === 'eur' ? money(value) : `${Math.round(value)} kWh`);
+    const peak = withValue.length ? withValue.reduce((a, b) => ((metric === 'eur' ? b.total : b.kwh) > (metric === 'eur' ? a.total : a.kwh) ? b : a)) : null;
+    const low = withValue.length ? withValue.reduce((a, b) => ((metric === 'eur' ? b.total : b.kwh) < (metric === 'eur' ? a.total : a.kwh) ? b : a)) : null;
+    const valueOf = (entry) => (metric === 'eur' ? entry.total : entry.kwh);
+
     pane.innerHTML = `
-      <div class="energy-hero">
-        <div><span>Última factura · ${escapeHtml(monthLong(bill.period_start))}</span><strong>${money(total)}</strong>
-          <small>${Math.round(n(bill.kwh))} kWh${delta != null ? ` · <b class="${delta > 0 ? 'is-up' : 'is-down'}">${delta > 0 ? '↑' : '↓'} ${pct(Math.abs(delta))}</b> que el mes anterior` : deltaKwh != null ? ` · <b class="${deltaKwh > 0 ? 'is-up' : 'is-down'}">${deltaKwh > 0 ? '↑' : '↓'} ${pct(Math.abs(deltaKwh))}</b> de consumo que el mes anterior` : ''}${bill.due_date ? ` · se cobra el ${new Date(`${bill.due_date}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}` : ''}</small></div>
-        <div class="energy-hero-side"><span>Al año</span><b>${n(bill.annual_cost) ? money(n(bill.annual_cost)) : '—'}</b><small>${n(bill.annual_kwh) ? `${Math.round(n(bill.annual_kwh))} kWh` : ''}</small></div>
+      <div class="energy-month-nav" role="group" aria-label="Mes que se muestra">
+        <button type="button" data-energy-step="-1" aria-label="Mes anterior" ${index <= 0 ? 'disabled' : ''}><i data-lucide="chevron-left"></i></button>
+        <div><strong>${escapeHtml(capitalizeFirst(monthLong(selectedMonth)))}</strong><small>${monthBill ? 'Con factura' : 'Solo consumo (sin factura de este mes)'}</small></div>
+        <button type="button" data-energy-step="1" aria-label="Mes siguiente" ${index >= months.length - 1 ? 'disabled' : ''}><i data-lucide="chevron-right"></i></button>
       </div>
-      ${bandCard}
-      <section class="money-card"><div class="finance-subheading"><strong>Consumo por mes</strong><span>${series.length > 1 ? `${monthShort(series[0].month)} – ${monthShort(series.at(-1).month)}` : 'kWh por franja'}</span></div>
-        <div class="energy-bars">${series.map((entry) => {
-          const height = (entry.kwh / maxKwh) * 100;
-          const split = entry.f1 != null && entry.f2 != null && entry.f3 != null;
-          const stack = split ? ['f3', 'f2', 'f1'].map((key) => (entry[key] ? `<i class="is-${key}" style="flex:${entry[key]}"></i>` : '')).join('') : '<i class="is-total" style="flex:1"></i>';
-          const detail = `${capitalizeFirst(monthLong(entry.month))}: ${Math.round(entry.kwh)} kWh${split ? ` (F1 ${entry.f1}, F2 ${entry.f2}, F3 ${entry.f3})` : ''}${entry.total ? `, ${money(entry.total)}` : ''}`;
-          return `<div class="energy-bar${entry.month === currentMonth ? ' is-current' : ''}" title="${escapeHtml(detail)}" aria-label="${escapeHtml(detail)}"><b>${Math.round(entry.kwh)}</b><span class="energy-bar-stack" style="height:${Math.max(4, height)}%">${stack}</span><small>${MONTHS[Number(entry.month.slice(5, 7)) - 1] || ''}</small></div>`;
-        }).join('')}</div>
-        <div class="energy-legend"><span><i class="is-f1"></i>F1 · día laborable</span><span><i class="is-f2"></i>F2 · tardes y sábado</span><span><i class="is-f3"></i>F3 · noche y domingo</span></div>
-        ${series.length < 3 ? '<p class="energy-note">Con más facturas verás la evolución: el script de Gmail puede traer las de los últimos 2 años («importarHistorial»).</p>' : series.some((entry) => entry.f1 == null) ? '<p class="energy-note">Las barras grises son meses sin el reparto por franjas.</p>' : ''}
+      <section class="energy-zoom">
+        <div class="energy-zoom-figures">
+          <div><span>Pagasteis</span><strong>${total != null ? money(total) : '—'}</strong><small>${monthBill?.due_date ? `cobro el ${new Date(`${monthBill.due_date}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}` : monthBill ? '' : 'sin factura'}</small></div>
+          <div><span>Gastasteis</span><strong>${kwh ? `${Math.round(kwh)} kWh` : '—'}</strong><small>${kwh ? `${(kwh / days).toFixed(1).replace('.', ',')} kWh al día` : ''}</small></div>
+          <div><span>Cada kWh, con todo</span><strong>${total != null && kwh ? money(total / kwh) : '—'}</strong><small>${monthBill?.energy_cost && kwh ? `la energía sola, ${cents(n(monthBill.energy_cost) / kwh)}` : ''}</small></div>
+        </div>
+        <div class="energy-compares">${compare(before, 'Frente al mes anterior')}${compare(yearAgo, 'Frente a hace un año')}</div>
       </section>
-      <section class="money-card"><div class="finance-subheading"><strong>A dónde va cada euro</strong><span>${escapeHtml(monthLong(bill.period_start))}</span></div>
+      <section class="money-card"><div class="finance-subheading"><strong>Cuándo gastasteis la luz</strong><span>${escapeHtml(monthLong(selectedMonth))}</span></div>
+        ${split ? `<div class="energy-split" aria-hidden="true">${bandRows.map(([key]) => `<i class="is-${key}" style="flex:${month[key] || 0}"></i>`).join('')}</div>
+        <div class="energy-split-rows">${bandRows.map(([key, label, meaning]) => {
+          const price = monthBill ? n(monthBill[`price_${key}`]) : null;
+          return `<div class="energy-split-row"><span class="energy-split-badge is-${key}">${label}</span><span class="energy-split-copy"><strong>${Math.round(month[key])} kWh · ${pct(month[key] / kwh)}</strong><small>${meaning}</small></span><b>${price ? money(month[key] * price) : ''}${price ? `<small>${cents(price)}/kWh</small>` : ''}</b></div>`;
+        }).join('')}</div>` : '<p class="energy-note">De este mes solo sabemos el total, sin el reparto por franjas.</p>'}
+      </section>
+      ${monthBill ? `<section class="money-card"><div class="finance-subheading"><strong>A dónde fue el dinero</strong><span>${money(total)}</span></div>
         <div class="category-stack" aria-hidden="true">${parts.map(([name, value, color]) => `<span style="flex:${value};background:${color}" title="${escapeHtml(name)}"></span>`).join('')}</div>
-        <div class="category-rows">${parts.map(([name, value, color]) => `<div class="category-row"><i class="category-dot" style="background:${color}"></i><span class="category-name">${escapeHtml(name)}</span><span class="category-share">${pct(value / total)}</span><b>${money(value)}</b></div>`).join('')}</div>
-        ${p ? `<div class="energy-prices">${['F1', 'F2', 'F3'].map((key) => `<div class="is-${key.toLowerCase()}"><small>${key}</small><b>${cents(p[key])}</b><span>${Math.round(n(bill[`kwh_${key.toLowerCase()}`]) || 0)} kWh</span></div>`).join('')}</div>` : ''}
+        <div class="category-rows">${parts.map(([name, value, color, meaning]) => `<div class="category-row energy-part"><i class="category-dot" style="background:${color}"></i><span class="category-name">${escapeHtml(name)}<small>${escapeHtml(meaning)}</small></span><span class="category-share">${pct(value / total)}</span><b>${money(value)}</b></div>`).join('')}</div>
+        ${monthBill.document_id ? `<button type="button" class="link-button energy-open-pdf" data-energy-doc="${escapeHtml(monthBill.document_id)}"><i data-lucide="file-text"></i> Ver la factura en PDF</button>` : ''}
+      </section>` : `<section class="money-card energy-nobill"><p>No tenemos la factura de ${escapeHtml(monthLong(selectedMonth))}: el consumo sale del gráfico de otra factura. Súbela para ver cuánto pagasteis y a dónde fue el dinero.</p>${uploadButton()}</section>`}
+
+      <section class="money-card"><div class="finance-subheading"><strong>Mes a mes</strong><span>últimos ${last12.length} meses</span></div>
+        <div class="segmented is-wide energy-metric"><button type="button" data-energy-metric="kwh" aria-pressed="${metric === 'kwh'}">Consumo (kWh)</button><button type="button" data-energy-metric="eur" aria-pressed="${metric === 'eur'}">Gasto (€)</button></div>
+        <div class="energy-bars">${last12.map((entry, i) => {
+          const value = values[i];
+          const height = value ? (value / maxValue) * 100 : 0;
+          const hasSplit = entry.f1 != null && entry.f2 != null && entry.f3 != null;
+          const stack = !value ? '' : metric === 'kwh' && hasSplit ? ['f3', 'f2', 'f1'].map((key) => (entry[key] ? `<i class="is-${key}" style="flex:${entry[key]}"></i>` : '')).join('') : `<i class="is-${metric === 'eur' ? 'money' : 'total'}" style="flex:1"></i>`;
+          const detail = `${capitalizeFirst(monthLong(entry.month))}: ${entry.kwh ? `${Math.round(entry.kwh)} kWh` : ''}${entry.total ? ` · ${money(entry.total)}` : ' · sin factura'}`;
+          return `<button type="button" class="energy-bar${entry.month === selectedMonth ? ' is-current' : ''}${value ? '' : ' is-empty'}" data-energy-month="${entry.month}" aria-pressed="${entry.month === selectedMonth}" aria-label="${escapeHtml(detail)}" title="${escapeHtml(detail)}"><b>${value ? (metric === 'eur' ? Math.round(value) : Math.round(value)) : '–'}</b><span class="energy-bar-stack" style="height:${value ? Math.max(4, height) : 2}%">${stack}</span><small>${MONTHS[Number(entry.month.slice(5, 7)) - 1] || ''}</small></button>`;
+        }).join('')}</div>
+        ${metric === 'kwh' ? '<div class="energy-legend"><span><i class="is-f1"></i>F1 · día laborable</span><span><i class="is-f2"></i>F2 · tardes y sábado</span><span><i class="is-f3"></i>F3 · noche y domingo</span></div>' : ''}
+        <p class="energy-note">Toca un mes para verlo en detalle arriba.${metric === 'eur' && withValue.length < last12.length ? ` Los meses sin factura salen vacíos: el script de Gmail puede traer las antiguas («importarHistorial»).` : ''}</p>
+        ${withValue.length ? `<div class="energy-year">
+          <div><small>Total</small><b>${fmt(sum)}</b><span>${withValue.length === last12.length ? `${last12.length} meses` : `${withValue.length} de ${last12.length} meses`}</span></div>
+          <div><small>Media al mes</small><b>${fmt(sum / withValue.length)}</b><span>${metric === 'kwh' && n(bill.annual_kwh) ? `${Math.round(n(bill.annual_kwh))} kWh/año` : metric === 'eur' && n(bill.annual_cost) ? `${money(n(bill.annual_cost))}/año` : ''}</span></div>
+          <div><small>El que más</small><b>${peak ? fmt(valueOf(peak)) : '—'}</b><span>${peak ? escapeHtml(monthShort(peak.month)) : ''}</span></div>
+          <div><small>El que menos</small><b>${low ? fmt(valueOf(low)) : '—'}</b><span>${low ? escapeHtml(monthShort(low.month)) : ''}</span></div>
+        </div>` : ''}
       </section>
+      ${bandCard}
       ${punChart(bill)}
       <section class="money-card"><div class="finance-subheading"><strong>Cómo mejorar</strong><span>con vuestros números</span></div>
         <div class="insight-list">${insights(bill, list).map((item) => `<div class="insight${item.tone ? ` is-${item.tone}` : ''}"><span class="insight-icon"><i data-lucide="${item.icon}"></i></span><span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.text)}</small></span></div>`).join('')}</div>
@@ -295,6 +349,17 @@
   }
 
   pane?.addEventListener('click', (event) => {
+    const step = event.target.closest('[data-energy-step]');
+    const pick = event.target.closest('[data-energy-month]');
+    const toggle = event.target.closest('[data-energy-metric]');
+    if (step || pick) {
+      const months = monthlySeries().map((entry) => entry.month);
+      selectedMonth = pick ? pick.dataset.energyMonth : months[Math.min(months.length - 1, Math.max(0, months.indexOf(selectedMonth) + Number(step.dataset.energyStep)))];
+      render();
+      if (pick) pane.querySelector('.energy-month-nav')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    if (toggle) { metric = toggle.dataset.energyMetric; return render(); }
     const again = event.target.closest('[data-energy-reparse]');
     if (again) return reparse(again);
     const row = event.target.closest('[data-energy-doc]');
