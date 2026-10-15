@@ -3573,3 +3573,4 @@ button.energy-bar:focus-visible { outline: 2px solid var(--green); }
 .today-ring-wrap { position: relative; display: grid; width: 46px; height: 46px; flex-shrink: 0; place-items: center; }
 .today-ring-wrap .today-ring { position: absolute; inset: 0; }
 .today-ring-wrap b { position: relative; color: var(--accent); font-family: var(--font-display); font-size: 17px; }
+.view-home > .weather-hero { margin-bottom: 14px; }
