@@ -990,7 +990,7 @@
     for (let y = y0, row = 0; y < y0 + h; y += 32, row += 1) {
       // Las tarimas se desplazan media pieza en cada fila, como en un suelo de verdad.
       const shift = list.length > 1 ? (row % 2) * 16 : 0;
-      for (let x = x0 - shift; x < x0 + w; x += span) list.forEach((tile, i) => c.drawImage(img, tile * 32, 0, 32, 32, x + i * 32, y, 32, 32));
+      for (let x = x0 - shift; x < x0 + w; x += span) list.forEach((tile, i) => c.drawImage(img.bitmap || img, tile * 32, 0, 32, 32, x + i * 32, y, 32, 32));
     }
     if (lighten) {
       c.globalCompositeOperation = 'screen';
@@ -2884,7 +2884,15 @@
   const loadImage = (store, key, src, optional) => new Promise((resolve, reject) => {
     if (store[key]?.complete && store[key].naturalWidth) return resolve();
     const img = new Image();
-    img.onload = () => resolve();
+    // Se guarda ya descomprimida (ImageBitmap): dibujar un fotograma no vuelve a descomprimir el
+    // PNG entero en el hilo principal, que era lo que más tardaba al abrir la app.
+    // Desde el archivo (blob) el navegador la descomprime en otro hilo.
+    img.onload = () => {
+      const ready = window.createImageBitmap
+        ? fetch(src).then((response) => response.blob()).then((blob) => createImageBitmap(blob)).then((bitmap) => { img.bitmap = bitmap; })
+        : img.decode ? img.decode() : Promise.resolve();
+      ready.catch(() => {}).then(resolve);
+    };
     img.onerror = () => (optional ? resolve() : reject(new Error(`No se pudo cargar ${src}`)));
     img.src = src;
     store[key] = img;
@@ -2902,7 +2910,7 @@
     const rows = SHEETS[id].rows;
     const row = rows ? rows.indexOf(24) : 24;
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, 16, row * 64 + 8, 32, 56, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img.bitmap || img, 16, row * 64 + 8, 32, 56, 0, 0, canvas.width, canvas.height);
   }
   function loadSprites() {
     return Promise.all([
@@ -2936,13 +2944,13 @@
     const size = Math.round(64 * scale);
     const dx = Math.round(x - 32 * scale);
     const dy = Math.round(y - 62 * scale);
-    c.drawImage(img, col * 64, drawRow * 64, 64, 64, dx, dy, size, size);
+    c.drawImage(img.bitmap || img, col * 64, drawRow * 64, 64, 64, dx, dy, size, size);
     // Expresión: se pintan encima solo los ojos y la boca que cambian.
     const faceIndex = FACE_ORDER.indexOf(a.face);
     const faceImg = a.npc ? null : faceImages[a.key];
     if (faceIndex >= 0 && faceImg?.naturalWidth && !anim.single) {
       const [bx, by, bw, bh] = FACES[a.key].box;
-      c.drawImage(faceImg, col * bw, (faceIndex * 54 + row) * bh, bw, bh, dx + Math.round(bx * scale), dy + Math.round(by * scale), Math.round(bw * scale), Math.round(bh * scale));
+      c.drawImage(faceImg.bitmap || faceImg, col * bw, (faceIndex * 54 + row) * bh, bw, bh, dx + Math.round(bx * scale), dy + Math.round(by * scale), Math.round(bw * scale), Math.round(bh * scale));
     }
   }
 

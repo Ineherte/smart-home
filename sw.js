@@ -1,10 +1,10 @@
-const CACHE_NAME = 'umbral-shell-v95';
+const CACHE_NAME = 'umbral-shell-v97';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css?v=72',
-  './scene.js?v=12',
-  './store.js?v=1',
+  './scene.js?v=13',
+  './store.js?v=2',
   './push.js?v=1',
   './shopping.js?v=5',
   './tasks.js?v=8',
@@ -18,11 +18,11 @@ const APP_SHELL = [
   './kitchen.js?v=4',
   './nosotros.js?v=10',
   './upkeep.js?v=1',
-  './documents.js?v=3',
+  './documents.js?v=4',
   './avatars.js?v=7',
-  './sims-world.js?v=17',
+  './sims-world.js?v=18',
   './sims-places.js?v=2',
-  './garden.js?v=3',
+  './garden.js?v=4',
   './sims.js?v=21',
   './sims-life.js?v=6',
   './sims-build.js?v=1',
@@ -33,7 +33,7 @@ const APP_SHELL = [
   './assets/sims/ines-faces.png?v=1',
   './assets/sims/matteo-faces.png?v=1',
   './assets/sims/house-floors.png?v=1',
-  './app.js?v=54',
+  './app.js?v=55',
   './summary.js?v=4',
   './today.js?v=1',
   './energy.js?v=4',
@@ -44,7 +44,7 @@ const APP_SHELL = [
   './smart-lights-config.js',
   './supabase-config.js',
   './mobile-bridge.js',
-  './vendor/lucide-1.49.0.js',
+  './vendor/icons.js?v=1',
   './vendor/supabase-2.117.3.js',
   './manifest.webmanifest',
   './icon.svg',
@@ -66,18 +66,33 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) return;
-  const isDocument = event.request.mode === 'navigate' || event.request.url.endsWith('.html') || event.request.url.endsWith('.js');
-  // La página y el código siempre del servidor (comprobando la versión, sin la caché del
-  // navegador de 10 minutos); sin conexión, la copia guardada.
-  event.respondWith((isDocument ? fetch(event.request, { cache: 'no-cache' }).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+  const request = event.request;
+  const isDocument = request.mode === 'navigate' || request.url.endsWith('.html') || request.url.endsWith('.js');
+  // Solo se guardan respuestas buenas (antes un 404 se quedaba guardado para siempre).
+  const save = (response) => {
+    if (response.ok) {
+      const copy = response.clone();
+      event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));
+    }
     return response;
-  }) : caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
-    const copy = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-    return response;
-  }))).catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html'))));
+  };
+  const fallback = () => caches.match(request).then((cached) => cached || (request.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
+  if (isDocument) {
+    // La página y el código, del servidor (comprobando la versión, sin la caché del navegador).
+    // Con mala cobertura no se espera más de 4 s: se abre la copia guardada y la nueva se
+    // guarda igualmente para la próxima vez.
+    const network = fetch(request, { cache: 'no-cache' }).then(save);
+    event.respondWith(new Promise((resolve) => {
+      let done = false;
+      const finish = (response) => { if (!done && response) { done = true; resolve(response); } };
+      const timer = setTimeout(() => fallback().then((cached) => { if (cached && cached.type !== 'error') finish(cached); }), 4000);
+      network.then((response) => { clearTimeout(timer); finish(response); })
+        .catch(() => { clearTimeout(timer); fallback().then(finish); });
+    }));
+    event.waitUntil(network.catch(() => {}));
+    return;
+  }
+  event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then(save)).catch(fallback));
 });
 
 // Avisos push enviados por la función notify-household.

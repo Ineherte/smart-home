@@ -701,6 +701,8 @@ async function connectNotes() {
     showToast('No se pudo conectar con tu hogar. Cierra sesión y vuelve a entrar.');
     return;
   }
+  // Lo que no hace falta para pintar la app va en paralelo y sin esperar.
+  loadHouseholdAdmin().catch(() => {});
   const { data: profile } = await supabaseClient.from('profiles').select('display_name').eq('id', authUserId).maybeSingle();
   if (profile?.display_name) setUser(profile.display_name);
   document.querySelector('#accountDisplayName').textContent = profile?.display_name || currentUser;
@@ -710,11 +712,11 @@ async function connectNotes() {
     document.querySelectorAll('[data-action="finance"]').forEach((element) => { element.hidden = true; });
     document.querySelectorAll('.finance-modal').forEach((element) => element.setAttribute('aria-hidden', 'true'));
   }
-  await loadHouseholdAdmin();
   if (inviteToken) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
-  await supabaseClient.auth.updateUser({ data: { name: currentUser } });
+  // Solo se escribe el nombre en la cuenta si ha cambiado (antes era una llamada más en cada arranque).
+  if (sessionData.session.user.user_metadata?.name !== currentUser) supabaseClient.auth.updateUser({ data: { name: currentUser } }).catch(() => {});
   status.innerHTML = '<i data-lucide="cloud-check"></i> Sincronizado entre los dos teléfonos';
   lucide.createIcons();
   renderNotes();
@@ -736,14 +738,33 @@ async function connectNotes() {
       drawStrokes();
     }
   }).subscribe();
+  // Los cambios llegan a ráfagas (el iPhone sincroniza muchos eventos, el banco importa muchos
+  // gastos): se recarga una sola vez cuando paran.
+  let eventsReload = 0;
   supabaseClient.channel('events-live').on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
-    renderCalendarData();
+    clearTimeout(eventsReload);
+    eventsReload = setTimeout(renderCalendarData, 500);
   }).subscribe();
+  // Volver a la app después de un rato en segundo plano, o recuperar la conexión: lo que haya
+  // cambiado mientras tanto no llegó por tiempo real, así que se recarga todo una vez.
+  let hiddenAt = 0;
+  const resync = () => {
+    renderCalendarData();
+    renderNotes();
+    if (householdRole !== 'guest') refreshFinance();
+    window.dispatchEvent(new CustomEvent('umbral:resync'));
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (hiddenAt && Date.now() - hiddenAt > 30 * 1000) resync();
+  });
+  window.addEventListener('online', resync);
   if (householdRole !== 'guest') {
     refreshFinance();
+    let financeReload = 0;
     const financeChannel = supabaseClient.channel('finance-live');
     ['shared_expenses', 'shared_bills', 'shared_fixed_costs', 'shared_settlements'].forEach((table) => {
-      financeChannel.on('postgres_changes', { event: '*', schema: 'public', table }, () => refreshFinance());
+      financeChannel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { clearTimeout(financeReload); financeReload = setTimeout(refreshFinance, 500); });
     });
     financeChannel.subscribe();
   }
@@ -1021,19 +1042,21 @@ document.querySelector('#closeWeather').addEventListener('click', () => history.
 // se tiran de los canales de ANSA y El País a través de rss2json.
 const newsFallbackFeeds = {
   italy: [
-    { id: 'inter', label: 'Inter', emoji: '⚽', url: 'https://www.ansa.it/sito/notizie/sport/calcio/calcio_rss.xml', keep: /\binter\b|nerazzurr|chivu|lautaro|san siro/i },
-    { id: 'politica', label: 'Política italiana', emoji: '🏛️', url: 'https://www.ansa.it/sito/notizie/politica/politica_rss.xml' }
+    { id: 'inter', label: 'Inter', emoji: '⚽', url: 'https://www.ansa.it/sito/notizie/sport/calcio/calcio_rss.xml', keep: /\binter\b|nerazzurr|chivu|lautaro|san siro/i, drop: /inter miami|\bmls\b/i },
+    // Igual que la función news: fuera el Papa, el horóscopo y el tiempo.
+    { id: 'politica', label: 'Política italiana', emoji: '🏛️', url: 'https://www.ansa.it/sito/notizie/politica/politica_rss.xml', drop: /\b(?:papa|pontefice|oroscopo|meteo)\b/i }
   ],
   spain: [{ id: 'portada', label: 'Lo más importante', emoji: '📰', url: 'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada' }]
 };
 let activeNewsCountry = 'italy';
-const newsCache = {};
+// Las últimas noticias se guardan en el teléfono: se ven al momento y se actualizan por detrás.
+const newsCache = (() => { try { return JSON.parse(localStorage.getItem('umbral-news') || '{}'); } catch { return {}; } })();
+const newsFetchedAt = {};
 const newsExpanded = new Set();
 
+// DOMParser no ejecuta nada (un <img onerror> en un titular RSS no se dispara, a diferencia de innerHTML).
 function stripNewsMarkup(value) {
-  const element = document.createElement('div');
-  element.innerHTML = value || '';
-  return element.textContent.trim();
+  return (new DOMParser().parseFromString(String(value || ''), 'text/html').body.textContent || '').trim();
 }
 
 function formatNewsTime(date = new Date()) {
@@ -1095,7 +1118,7 @@ async function loadNewsFallback(country) {
         link: item.link,
         source: (item.author || data.feed?.title?.split(' - ')[0] || 'Noticias').replace(/^Primo piano\s*/i, '').trim(),
         date: Date.parse(String(item.pubDate || '').replace(' ', 'T')) || 0
-      })).filter((item) => item.title && /^https?:\/\//i.test(item.link || '') && (!section.keep || section.keep.test(item.title)));
+      })).filter((item) => item.title && /^https?:\/\//i.test(item.link || '') && (!section.keep || section.keep.test(item.title)) && !section.drop?.test(item.title));
       return { id: section.id, label: section.label, emoji: section.emoji, items };
     } catch {
       return { id: section.id, label: section.label, emoji: section.emoji, items: [] };
@@ -1103,7 +1126,7 @@ async function loadNewsFallback(country) {
   }));
 }
 
-async function loadNews(country = activeNewsCountry) {
+async function loadNews(country = activeNewsCountry, { force = false } = {}) {
   const feed = document.querySelector('#italyNews');
   const updated = document.querySelector('#newsUpdated');
   const refreshIcon = document.querySelector('#refreshNews svg');
@@ -1115,13 +1138,15 @@ async function loadNews(country = activeNewsCountry) {
     const base = (window.SUPABASE_CONFIG?.url || '').replace(/\/$/, '');
     if (base) {
       try {
-        const response = await fetch(`${base}/functions/v1/news?country=${country}`, { signal: AbortSignal.timeout?.(12000) });
+        const response = await fetch(`${base}/functions/v1/news?country=${country}`, { signal: AbortSignal.timeout?.(12000), cache: force ? 'reload' : 'default' });
         if (response.ok) sections = (await response.json()).sections;
       } catch {}
     }
     if (!sections?.some((section) => section.items.length)) sections = await loadNewsFallback(country);
     if (!sections.some((section) => section.items.length)) throw new Error('Sin noticias');
     newsCache[country] = sections;
+    newsFetchedAt[country] = Date.now();
+    try { localStorage.setItem('umbral-news', JSON.stringify(newsCache)); } catch {}
     if (country === activeNewsCountry) renderNews(sections, country);
     updated.innerHTML = `<i data-lucide="clock-3"></i> Actualizado hoy a las ${formatNewsTime()}`;
     lucide.createIcons();
@@ -1154,7 +1179,7 @@ document.querySelectorAll('[data-news-country]').forEach((tab) => {
     loadNews(activeNewsCountry);
   });
 });
-document.querySelector('#refreshNews').addEventListener('click', () => loadNews(activeNewsCountry));
+document.querySelector('#refreshNews').addEventListener('click', () => loadNews(activeNewsCountry, { force: true }));
 
 function financeMoney(value) {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Number(value) || 0);
@@ -1172,16 +1197,15 @@ function readFinanceLocal(key) {
 
 async function getFinanceData() {
   if (supabaseClient && authUserId) {
-    const [{ data: expenses, error: expensesError }, { data: bills, error: billsError }] = await Promise.all([
+    // Las cuatro tablas a la vez (antes iban de dos en dos).
+    const [{ data: expenses, error: expensesError }, { data: bills, error: billsError }, { data: fixedCosts, error: fixedError }, { data: settlements, error: settlementsError }] = await Promise.all([
       supabaseClient.from('shared_expenses').select('*').order('expense_date', { ascending: false }),
-      supabaseClient.from('shared_bills').select('*').order('due_date', { ascending: true })
-    ]);
-    if (expensesError) throw expensesError;
-    if (billsError) throw billsError;
-    const [{ data: fixedCosts, error: fixedError }, { data: settlements, error: settlementsError }] = await Promise.all([
+      supabaseClient.from('shared_bills').select('*').order('due_date', { ascending: true }),
       supabaseClient.from('shared_fixed_costs').select('*').eq('active', true).order('created_at'),
       supabaseClient.from('shared_settlements').select('*').order('payment_date', { ascending: false })
     ]);
+    if (expensesError) throw expensesError;
+    if (billsError) throw billsError;
     if (fixedError) throw fixedError;
     if (settlementsError) throw settlementsError;
     return { expenses: dedupeImportedExpenses(expenses || []), bills: bills || [], fixedCosts: fixedCosts.length ? fixedCosts : await seedHouseholdFixedCosts(), settlements: settlements.map((payment) => ({ ...payment, from: payment.from_person, to: payment.to_person })) };
@@ -2030,6 +2054,7 @@ const spaceHeadings = {
 function setWorkspace(view) {
   if (view === 'nosotros' && typeof renderUs === 'function') renderUs();
   if (view === 'personal' && typeof renderUpkeep === 'function') renderUpkeep();
+  if (view === 'personal' && typeof loadNews === 'function' && Date.now() - (newsFetchedAt[activeNewsCountry] || 0) > 15 * 60 * 1000) loadNews();
   document.body.dataset.space = view;
   const [title, subtitle] = spaceHeadings[view] || [];
   if (title) {
@@ -2133,7 +2158,9 @@ renderCachedWeather();
 updateWeather();
 setInterval(() => { renderGreeting(); updateWeather(); }, 30 * 60 * 1000);
 connectNotes();
-loadNews();
+// Noticias: las guardadas se ven ya; las nuevas se piden cuando la app ha terminado de arrancar.
+if (newsCache[activeNewsCountry]) renderNews(newsCache[activeNewsCountry], activeNewsCountry);
+setTimeout(() => loadNews(), 4000);
 renderSmartLights();
 updateLightStatusText();
 updateConnectionState();

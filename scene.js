@@ -1207,9 +1207,11 @@
     apply();
     setInterval(apply, 5 * 60 * 1000);
     setInterval(changeAct, 45 * 1000);
-    const setPaused = (paused) => garden.setPaused(paused);
-    document.addEventListener('visibilitychange', () => setPaused(document.hidden));
-    if ('IntersectionObserver' in window) new IntersectionObserver(([entry]) => setPaused(!entry.isIntersecting || document.hidden)).observe(container);
+    // Quieto si la app está en segundo plano o el jardín no se ve (otra pestaña, scroll abajo).
+    let visible = true;
+    const sync = () => garden.setPaused(!visible || document.hidden);
+    document.addEventListener('visibilitychange', sync);
+    if ('IntersectionObserver' in window) new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); }).observe(container);
   }
 
   function mount(element) {
@@ -1252,11 +1254,10 @@
       window.dispatchEvent(new CustomEvent('umbral:scene-tap', { detail: plant ? { plant: plant.dataset.plantId } : { target: target.dataset.sceneTarget } }));
     });
     // Sin animar cuando no se ve: ahorra batería.
-    const setPaused = (paused) => container.classList.toggle('is-paused', paused);
-    document.addEventListener('visibilitychange', () => setPaused(document.hidden));
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(([entry]) => setPaused(!entry.isIntersecting || document.hidden)).observe(container);
-    }
+    let visible = true;
+    const sync = () => container.classList.toggle('is-paused', !visible || document.hidden);
+    document.addEventListener('visibilitychange', sync);
+    if ('IntersectionObserver' in window) new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync(); }).observe(container);
   }
 
   // Pinta los retratos pixel art en cuanto aparecen en la página (editor, Nosotros…).

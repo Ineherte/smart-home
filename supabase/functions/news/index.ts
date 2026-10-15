@@ -26,7 +26,8 @@ const SECTIONS: Record<string, Section[]> = {
         { url: googleNews('Inter nerazzurri') }
       ],
       // Fuera la publicidad y las páginas de servicio.
-      drop: /\b(?:diretta tv|dove vedere|streaming gratis|biglietti|codice sconto|oroscopo)\b/i
+      // Fuera también el Inter Miami (sale al buscar «Inter»).
+      drop: /\b(?:diretta tv|dove vedere|streaming gratis|biglietti|codice sconto|oroscopo|inter miami|mls)\b/i
     },
     {
       id: 'politica', label: 'Política italiana', emoji: '🏛️', max: 10,

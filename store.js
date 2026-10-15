@@ -51,10 +51,15 @@ function createHouseholdStore({ table, localKey }) {
       }
       writeLocal(readLocal().filter((row) => !list.includes(row.id)));
     },
-    // Avisa cuando la otra persona cambia algo (solo con Supabase).
+    // Avisa cuando la otra persona cambia algo (solo con Supabase). Los cambios que llegan
+    // seguidos (varias filas a la vez) se juntan en un solo aviso.
     subscribe(onChange) {
       if (!supabaseClient || !authUserId || !householdId) return;
-      supabaseClient.channel(`${table}-live`).on('postgres_changes', { event: '*', schema: 'public', table, filter: `household_id=eq.${householdId}` }, onChange).subscribe();
+      let timer = 0;
+      const notify = (payload) => { clearTimeout(timer); timer = setTimeout(() => onChange(payload), 250); };
+      // Al volver a la app tras un rato (el iPhone corta la conexión en segundo plano) se recarga.
+      window.addEventListener('umbral:resync', () => notify());
+      supabaseClient.channel(`${table}-live`).on('postgres_changes', { event: '*', schema: 'public', table, filter: `household_id=eq.${householdId}` }, notify).subscribe();
     }
   };
 }

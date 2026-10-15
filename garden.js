@@ -47,7 +47,9 @@
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+      // Como mucho el doble de resolución: en pantallas x3 el pixel art se ve igual y se pinta
+      // menos de la mitad de píxeles en cada fotograma (el CSS lo amplía sin suavizar).
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.max(1, Math.round(rect.width * dpr));
       canvas.height = Math.max(1, Math.round(rect.height * dpr));
       const s = Math.max(canvas.width / GW, canvas.height / GH);

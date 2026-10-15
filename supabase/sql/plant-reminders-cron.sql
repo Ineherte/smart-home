@@ -55,7 +55,8 @@ select cron.schedule(
   $$
 );
 
--- Cada minuto: ¿ha terminado la lavadora? (si no hay nada en marcha, la función no hace nada).
+-- Cada minuto: ¿ha terminado la lavadora? La propia base de datos lo mira primero y solo llama
+-- a la función si hay que avisar de algo (antes eran ~43.000 llamadas al mes para nada).
 select cron.schedule(
   'umbral-appliances',
   '* * * * *',
@@ -64,6 +65,13 @@ select cron.schedule(
     url := 'https://lnctwcizdjaeomvkcbst.supabase.co/functions/v1/notify-household',
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', 'PON_AQUI_EL_CRON_SECRET'),
     body := jsonb_build_object('job', 'appliances')
+  )
+  where exists (
+    select 1 from public.appliance_runs
+    where finished_at is null
+      and ends_at <= now() + interval '30 seconds'
+      and ends_at >= now() - interval '12 hours'
+      and (notified_at is null or (reminded_at is null and notified_at <= now() - interval '45 minutes'))
   );
   $$
 );

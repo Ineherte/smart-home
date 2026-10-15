@@ -421,6 +421,7 @@
         clearTimeout(timer);
         timer = setTimeout(load, 400);
       }).subscribe();
+      window.addEventListener('umbral:resync', () => load());
     }
   });
 
