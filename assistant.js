@@ -475,16 +475,17 @@
     if (history.state?.page !== 'assistant') history.pushState({ page: 'assistant' }, '', '#asistente');
     renderSuggestions();
     if (prefill) input.value = prefill;
-    if (listen && micButton && !micButton.hidden) setTimeout(() => micButton.click(), 200);
+    // Al momento (en el mismo toque): si se espera, Safari no deja abrir el micrófono.
+    if (listen) startListening();
     else setTimeout(() => input.focus(), 250);
   }
   function close() {
     if (!sheet.classList.contains('visible')) return;
-    stopListening();
+    stopListening({ discard: true });
     if (history.state?.page === 'assistant') history.back();
     else sheet.classList.remove('visible');
   }
-  window.addEventListener('popstate', () => { if (history.state?.page !== 'assistant') { sheet.classList.remove('visible'); stopListening(); } });
+  window.addEventListener('popstate', () => { if (history.state?.page !== 'assistant') { sheet.classList.remove('visible'); stopListening({ discard: true }); } });
 
   function bubble(html, who, extra = '') {
     log.querySelector('.assistant-hello')?.remove();
@@ -550,7 +551,7 @@
     }
   }
 
-  form.addEventListener('submit', (event) => { event.preventDefault(); stopListening(); handle(input.value); });
+  form.addEventListener('submit', (event) => { event.preventDefault(); stopListening({ discard: true }); handle(input.value); });
   sheet.addEventListener('click', (event) => {
     const idea = event.target.closest('[data-assistant-idea]');
     if (idea) return handle(idea.dataset.assistantIdea);
@@ -565,38 +566,81 @@
   });
 
   // ---------- Voz ----------
-  // Si el navegador lo permite, el micrófono dicta directamente; si no, el del teclado del
-  // iPhone (el micro junto a la barra espaciadora) funciona igual en el campo de texto.
+  // Si el navegador lo permite, el micrófono dicta directamente; si no (o si el iPhone no lo deja
+  // en la app instalada), se abre el teclado para usar su micrófono, que siempre funciona.
+  // En iPhone hay que arrancarlo justo en el toque (si no, Safari lo bloquea sin avisar), y casi
+  // nunca marca el texto como «final»: se usa lo último que haya oído.
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const placeholder = input.placeholder;
   let recognition = null;
-  function stopListening() {
+  let heard = '';
+  let silence = 0;
+  let voiceBlocked = false;
+  function setListening(on) {
+    micButton?.classList.toggle('is-listening', on);
+    micButton?.setAttribute('aria-pressed', String(on));
+    micButton?.setAttribute('aria-label', on ? 'Parar de escuchar' : 'Dictar');
+    input.placeholder = on ? 'Te escucho…' : placeholder;
+  }
+  function useKeyboard(message) {
+    setListening(false);
+    if (message) showToast(message, { duration: 5000 });
+    input.focus();
+  }
+  // discard: al enviar o cerrar, lo oído no se manda otra vez al parar.
+  function stopListening({ discard = false } = {}) {
+    if (discard) heard = '';
+    clearTimeout(silence);
     if (recognition) { try { recognition.stop(); } catch {} }
-    micButton?.classList.remove('is-listening');
+    setListening(false);
+  }
+  function startListening() {
+    if (!Recognition || voiceBlocked) return useKeyboard('Toca el micrófono del teclado para dictar');
+    if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
+    heard = '';
+    const current = new Recognition();
+    current.lang = 'es-ES';
+    current.interimResults = true;
+    current.continuous = false;
+    current.maxAlternatives = 1;
+    current.onresult = (event) => {
+      heard = [...event.results].map((result) => result[0].transcript).join(' ').replace(/\s+/g, ' ').trim();
+      input.value = heard;
+      // Un segundo y medio sin oír nada nuevo: se para y se envía.
+      clearTimeout(silence);
+      silence = setTimeout(() => { try { current.stop(); } catch {} }, 1500);
+    };
+    current.onerror = (event) => {
+      if (event.error === 'aborted') return;
+      if (event.error === 'service-not-allowed') { voiceBlocked = true; return useKeyboard('En la app instalada el iPhone no deja dictar aquí: usa el micrófono del teclado'); }
+      if (event.error === 'not-allowed') return useKeyboard('Sin permiso para el micrófono (Ajustes → Safari → Micrófono). Mientras, usa el del teclado');
+      if (event.error === 'no-speech') return showToast('No te he oído: prueba otra vez');
+      if (event.error === 'audio-capture') return useKeyboard('No encuentro el micrófono: usa el del teclado');
+      if (event.error === 'network') return useKeyboard('Para dictar aquí hace falta conexión: usa el micrófono del teclado');
+      showToast('No he podido escucharte: prueba otra vez');
+    };
+    current.onend = () => {
+      clearTimeout(silence);
+      if (recognition === current) recognition = null;
+      setListening(false);
+      const text = heard.trim();
+      heard = '';
+      if (text) handle(text);
+    };
+    recognition = current;
+    try {
+      current.start();
+      setListening(true);
+    } catch {
+      recognition = null;
+      useKeyboard('Toca el micrófono del teclado para dictar');
+    }
   }
   if (micButton) {
     micButton.hidden = !Recognition;
     micButton.addEventListener('click', () => {
-      if (recognition && micButton.classList.contains('is-listening')) return stopListening();
-      recognition = new Recognition();
-      recognition.lang = 'es-ES';
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      let finalText = '';
-      recognition.onresult = (event) => {
-        const text = [...event.results].map((result) => result[0].transcript).join('');
-        input.value = text;
-        if ([...event.results].every((result) => result.isFinal)) finalText = text;
-      };
-      recognition.onerror = (event) => {
-        micButton.classList.remove('is-listening');
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') showToast('Sin permiso para el micrófono: usa el micro del teclado');
-      };
-      recognition.onend = () => {
-        micButton.classList.remove('is-listening');
-        if (finalText.trim()) handle(finalText);
-      };
-      micButton.classList.add('is-listening');
-      try { recognition.start(); } catch { micButton.classList.remove('is-listening'); }
+      if (micButton.classList.contains('is-listening')) return stopListening();
+      startListening();
     });
   }
 

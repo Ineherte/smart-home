@@ -479,7 +479,8 @@ function hideUsSheet() {
 }
 
 async function newMoment(source) {
-  const file = await pickPhoto({ camera: source === 'camera' });
+  // La foto de hoy es de los dos juntos: con la cámara de los selfis.
+  const file = await pickPhoto({ camera: source === 'camera', facing: 'user' });
   if (!file) return;
   const preview = URL.createObjectURL(file);
   showUsSheet(`

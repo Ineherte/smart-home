@@ -38,7 +38,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=69" />
+    <link rel="stylesheet" href="styles.css?v=71" />
     <script src="vendor/lucide-1.49.0.js"></script>
   </head>
   <body>
@@ -65,6 +65,7 @@
       <div class="views">
         <div class="view view-home" data-space="home">
           <button type="button" class="assistant-bar" data-action="assistant"><span class="assistant-bar-icon"><i data-lucide="wand-sparkles"></i></span><span class="assistant-bar-text">Pídele algo a Umbral…<small>«Apunta leche», «he regado la monstera», «cena el sábado a las 21»</small></span><i data-lucide="mic" class="assistant-bar-mic"></i></button>
+          <section class="today-plan" id="todayPlan" aria-label="Para hoy"></section>
           <div class="quick-actions" aria-label="Añadir rápido">
             <button type="button" class="quick-action is-shopping" data-action="quick-shopping"><span><i data-lucide="shopping-basket"></i></span>Compra</button>
             <button type="button" class="quick-action is-task" data-action="quick-task"><span><i data-lucide="list-checks"></i></span>Tarea</button>
@@ -103,7 +104,8 @@
             </div>
           </article>
 
-          <section class="house-summary" id="houseSummary" aria-label="Estado de la casa"></section>
+          <section class="house-summary" id="houseSummary" aria-label="Estado de la casa" hidden></section>
+          <p class="tiles-heading">Todo de un vistazo</p>
           <div class="tile-grid">
             <button class="tile tile-tasks" type="button" data-action="tasks">
               <span class="tile-icon"><i data-lucide="list-checks"></i></span>
@@ -581,9 +583,9 @@
     <script src="money.js?v=5"></script>
     <script src="bank-import.js?v=1"></script>
     <script src="personal.js?v=7"></script>
-    <script src="media.js?v=1"></script>
+    <script src="media.js?v=2"></script>
     <script src="kitchen.js?v=4"></script>
-    <script src="nosotros.js?v=9"></script>
+    <script src="nosotros.js?v=10"></script>
     <script src="upkeep.js?v=1"></script>
     <script src="documents.js?v=3"></script>
     <script src="energy.js?v=4"></script>
@@ -599,7 +601,8 @@
     <script src="sims-mind.js?v=3"></script>
     <script src="app.js?v=54"></script>
     <script src="summary.js?v=4"></script>
-    <script src="assistant.js?v=2"></script>
+    <script src="today.js?v=1"></script>
+    <script src="assistant.js?v=3"></script>
     <script src="ux.js?v=2"></script>
     <script src="native.js?v=1"></script>
   </body>

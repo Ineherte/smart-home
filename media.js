@@ -5,25 +5,37 @@
 const MEDIA_BUCKET = 'household-media';
 const mediaUrlCache = new Map();
 
-function resizePhoto(file, maxSide = 1600, quality = 0.82) {
+// Reduce la foto antes de subirla. Las del iPhone 17 son de 48 MP: si el método normal no puede
+// con ella, se intenta con createImageBitmap antes de dar error.
+function loadImage(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const image = new Image();
-    image.onload = () => {
-      const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(image.width * scale);
-      canvas.height = Math.round(image.height * scale);
-      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No se pudo preparar la foto'))), 'image/jpeg', quality);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('No se pudo leer la foto'));
-    };
+    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la foto')); };
     image.src = url;
   });
+}
+async function resizePhoto(file, maxSide = 1600, quality = 0.82) {
+  let source;
+  try {
+    source = await loadImage(file);
+  } catch (error) {
+    if (!('createImageBitmap' in window)) throw error;
+    try { source = await createImageBitmap(file); } catch { throw new Error('No se pudo leer la foto (¿formato HEIC en el ordenador? Prueba desde el iPhone o en JPG)'); }
+  }
+  const width = source.naturalWidth || source.width;
+  const height = source.naturalHeight || source.height;
+  const scale = Math.min(1, maxSide / Math.max(width, height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+  source.close?.();
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+  canvas.width = canvas.height = 0;
+  if (!blob) throw new Error('No se pudo preparar la foto');
+  return blob;
 }
 
 const blobToDataUrl = (blob) => new Promise((resolve) => {
@@ -81,14 +93,28 @@ async function hydratePhotos(container) {
   });
 }
 
-// Selector de foto: cámara o galería.
-function pickPhoto({ camera = false } = {}) {
+// Selector de foto: cámara o galería. El campo va dentro de la página mientras se elige: en el
+// iPhone, uno suelto a veces se pierde y no llega a avisar de la foto elegida (sobre todo con la
+// cámara o si se tarda en elegir). facing: 'user' (cámara de los selfis) o 'environment'.
+function pickPhoto({ camera = false, facing = 'environment' } = {}) {
   return new Promise((resolve) => {
+    document.querySelectorAll('input[data-photo-picker]').forEach((old) => old.remove());
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    if (camera) input.capture = 'environment';
-    input.addEventListener('change', () => resolve(input.files?.[0] || null), { once: true });
+    input.dataset.photoPicker = '';
+    if (camera) input.setAttribute('capture', facing);
+    input.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';
+    let done = false;
+    const finish = (file) => {
+      if (done) return;
+      done = true;
+      resolve(file);
+      setTimeout(() => input.remove(), 1000);
+    };
+    input.addEventListener('change', () => finish(input.files?.[0] || null), { once: true });
+    input.addEventListener('cancel', () => finish(null), { once: true });
+    document.body.appendChild(input);
     input.click();
   });
 }
