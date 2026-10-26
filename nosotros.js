@@ -1,5 +1,6 @@
 // Nosotros: vuestro rincón. La foto del día (con aviso sorpresa, como BeReal) y el álbum por
-// meses, las fechas importantes con su cuenta atrás y los planes por hacer con vuestra nota.
+// meses, las fechas importantes con su cuenta atrás, los planes por hacer con vuestra nota y
+// los viajes (el organizador está en trips.js; aquí queda el mapa de sitios visitados).
 const momentsStore = createHouseholdStore({ table: 'moments', localKey: 'umbral-moments' });
 const datesStore = createHouseholdStore({ table: 'special_dates', localKey: 'umbral-special-dates' });
 const plansStore = createHouseholdStore({ table: 'plans', localKey: 'umbral-plans' });
@@ -288,7 +289,7 @@ function renderMap() {
   setTimeout(mountMap, 0);
   const placeRow = (place) => `<li><button type="button" class="us-place" data-fly-place="${escapeHtml(place.id)}"><span>${PLACE_KINDS[place.kind]?.emoji || '📍'}</span><b>${escapeHtml(place.name)}</b>${place.note ? `<small>${escapeHtml(place.note)}</small>` : ''}</button><button type="button" class="us-place-remove" data-remove-place="${escapeHtml(place.id)}" aria-label="Quitar ${escapeHtml(place.name)}"><i data-lucide="x"></i></button></li>`;
   return `<section class="panel us-map-panel">
-    <div class="section-heading"><div><p class="eyebrow">Nuestro mapa</p><h2>${visited.length} sitios juntos</h2></div><button type="button" class="pill-button" data-add-place><i data-lucide="map-pin-plus"></i> Añadir</button></div>
+    <div class="section-heading"><div><p class="eyebrow">Donde ya hemos estado</p><h2>${visited.length} sitios juntos</h2></div><button type="button" class="pill-button" data-add-place><i data-lucide="map-pin-plus"></i> Añadir</button></div>
     <div class="us-map-kpis">
       <span><b>${countries.length}</b>${countries.length === 1 ? 'país' : 'países'}</span>
       <span><b>${trips}</b>${trips === 1 ? 'viaje' : 'viajes'}</span>
@@ -375,7 +376,7 @@ async function addPlace(result) {
     if (placesShared) { const [created] = await placesStore.insert(row); places.push(created); }
     else { places.push({ ...row, id: createLocalId() }); saveFallbackPlaces(); }
     closeUsSheet();
-    setUsView('map');
+    setUsView('trips');
     const wish = kind === 'wish';
     showToast(wish ? `⭐ ${result.name}, a la lista de sitios por visitar` : `📍 ${result.name} añadido a vuestro mapa`);
     window.dispatchEvent(new CustomEvent('umbral:places', { detail: { places } }));
@@ -421,7 +422,7 @@ function renderUs() {
   renderUsHero();
   document.querySelectorAll('[data-us-view]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.usView === usView)));
   const content = document.querySelector('#usContent');
-  content.innerHTML = usLoaded ? ({ photos: renderPhotos, dates: renderDates, plans: renderPlans, map: renderMap }[usView] || renderPhotos)() : '<p class="empty-note">Cargando…</p>';
+  content.innerHTML = usLoaded ? ({ photos: renderPhotos, dates: renderDates, plans: renderPlans, trips: renderTrips, map: renderTrips }[usView] || renderPhotos)() : '<p class="empty-note">Cargando…</p>';
   hydratePhotos(content);
   // Cuenta atrás en Inicio.
   const next = upcomingDates()[0];
@@ -749,6 +750,7 @@ window.addEventListener('popstate', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   try { usView = localStorage.getItem('umbral-us-view') || 'photos'; } catch {}
+  if (usView === 'map') usView = 'trips';
 });
 
 document.addEventListener('umbral:ready', () => {

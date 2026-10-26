@@ -172,6 +172,8 @@ async function renderNotes() {
   renderNotesSummary();
   renderNotesBoard();
   if (noteEditor.note && !noteEditor.dirty) refreshEditorFromData();
+  // Los viajes enseñan su maleta y sus precauciones, que son notas.
+  window.dispatchEvent(new CustomEvent('umbral:notes'));
 }
 
 // ---------- Editor (se guarda solo) ----------
