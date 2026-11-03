@@ -556,7 +556,7 @@ function openTrip(id, { push = true } = {}) {
     tripInHistory = false;
   }
   rerenderTrips();
-  document.querySelector('#usContent')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function closeTrip() {

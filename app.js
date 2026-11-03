@@ -2056,25 +2056,14 @@ Object.entries(SECTION_DEFAULTS).forEach(([space, fallback]) => {
   setSectionTab(space, saved && host.querySelector(`[data-section-tab="${saved}"]`) ? saved : fallback, { quiet: true });
 });
 
-// El título de cada sección dice para qué sirve; Hoy lleva el saludo.
-const spaceHeadings = {
-  agenda: ['Agenda', 'Lo que hay que hacer y recordar', 'calendar-check'],
-  casa: ['Casa', 'La cocina, las plantas, las luces y los cuidados', 'house'],
-  cuentas: ['Cuentas', 'El dinero de la casa, el tuyo y la luz', 'wallet-cards'],
-  nosotros: ['Nosotros', 'Vuestras fotos, fechas, planes y viajes', 'heart']
-};
+// El título de la barra dice dónde estás; en Hoy, el saludo.
+const spaceHeadings = { agenda: 'Agenda', casa: 'Casa', cuentas: 'Cuentas', nosotros: 'Nosotros' };
 function setWorkspace(view) {
   if (view === 'nosotros' && typeof renderUs === 'function') renderUs();
   if (view === 'casa' && typeof renderUpkeep === 'function') renderUpkeep();
   if (view === 'cuentas') refreshFinance();
   document.body.dataset.space = view;
-  const [title, subtitle, icon] = spaceHeadings[view] || [];
-  if (title) {
-    document.querySelector('#spaceTitle').textContent = title;
-    document.querySelector('#spaceSubtitle').textContent = subtitle;
-    document.querySelector('#spaceIcon').innerHTML = `<i data-lucide="${icon}"></i>`;
-    lucide.createIcons();
-  }
+  document.querySelector('#spaceTitle').textContent = spaceHeadings[view] || '';
   document.querySelectorAll('.view[data-space]').forEach((section) => {
     section.classList.toggle('is-hidden', section.dataset.space !== view);
   });
@@ -2102,7 +2091,7 @@ window.addEventListener('popstate', () => {
   if (history.state?.page === 'weather') openWeather();
 });
 
-document.querySelectorAll('.brand, .nav-brand').forEach((brand) => brand.addEventListener('click', (event) => {
+document.querySelectorAll('.nav-brand').forEach((brand) => brand.addEventListener('click', (event) => {
   event.preventDefault();
   if (history.state?.page) history.back();
   showView('home');
@@ -2114,7 +2103,7 @@ function applyTheme(choice) {
   else document.documentElement.dataset.theme = theme;
   document.querySelectorAll('[data-theme-choice]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme)));
   const dark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0f1613' : '#f5f4ef');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0e0f0f' : '#f7f7f5');
 }
 
 document.querySelectorAll('[data-theme-choice]').forEach((button) => button.addEventListener('click', () => {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f4ef" />
+    <meta name="theme-color" content="#f7f7f5" />
     <meta name="description" content="Umbral, el centro compartido para tu casa y tu día." />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="assets/app/icon.svg" type="image/svg+xml" />
@@ -36,18 +36,15 @@
     <title>Umbral | Smart Home</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=74" />
+    <link rel="stylesheet" href="styles.css?v=78" />
     <script src="vendor/icons.js?v=3"></script>
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#top" aria-label="Inicio Umbral">
-          <span class="brand-mark"><i data-lucide="sparkles"></i></span>
-          <span>umbral</span>
-        </a>
+        <h1 class="page-title"><span class="page-title-home"><span id="greetingWord">Hola</span>, <span id="userName">Ines</span></span><span id="spaceTitle"></span></h1>
         <div class="topbar-actions">
           <span class="sync-status" id="syncStatus"><i data-lucide="circle-check"></i><span>Sincronizado</span></span>
           <button class="icon-button assistant-open" type="button" data-action="assistant" aria-label="Asistente: pídele algo a Umbral" title="Asistente"><i data-lucide="wand-sparkles"></i></button>
@@ -57,9 +54,7 @@
 
       <section class="greeting" id="top">
         <p class="greeting-date" id="todayLabel">Hoy</p>
-        <h1><span id="greetingWord">Hola</span>, <span id="userName">Ines</span><span class="accent-dot">.</span></h1>
         <p class="greeting-summary" id="daySummary">Preparando tu día…</p>
-        <div class="space-heading" id="spaceHeading" aria-live="polite"><span class="space-icon" id="spaceIcon"></span><div><h1 id="spaceTitle">Casa</h1><p id="spaceSubtitle"></p></div></div>
       </section>
 
       <div class="views">
@@ -125,7 +120,7 @@
             </div>
             <div class="directory-group" data-group="nosotros">
               <p><i data-lucide="heart"></i>Nosotros</p>
-              <button class="tile" type="button" data-action="nosotros"><span class="tile-label">Vuestro rincón</span><strong class="tile-value">Fotos y viajes</strong><small class="tile-detail">También fechas, planes y la casa del juego</small></button>
+              <button class="tile" type="button" data-action="nosotros"><span class="tile-label">Recuerdos</span><strong class="tile-value">Fotos y viajes</strong><small class="tile-detail">Fechas, planes y la casa del juego</small></button>
             </div>
           </section>
 
@@ -153,14 +148,6 @@
           </div>
 
           <div class="section-panel" data-section-panel="tareas" id="tasksView" role="tabpanel">
-            <section class="todo-hero" aria-labelledby="todoHeroTitle">
-              <div class="todo-hero-top">
-                <div class="todo-ring" id="todoRing"></div>
-                <div class="todo-hero-copy"><p class="eyebrow">Tu día</p><h2 id="todoHeroTitle">Cargando…</h2><p id="todoHeroDetail"></p></div>
-              </div>
-              <div class="todo-stats" id="todoStats"></div>
-              <div class="week-strip" id="weekStrip" aria-label="Carga de los próximos 7 días"></div>
-            </section>
 
             <form class="quick-add" id="pendingForm" autocomplete="off">
               <div class="quick-add-row">
@@ -182,6 +169,14 @@
             </div>
 
             <div class="todo-view" id="pendingList"></div>
+            <section class="todo-hero" aria-labelledby="todoHeroTitle">
+              <div class="todo-hero-top">
+                <div class="todo-ring" id="todoRing"></div>
+                <div class="todo-hero-copy"><p class="eyebrow">Tu día</p><h2 id="todoHeroTitle">Cargando…</h2><p id="todoHeroDetail"></p></div>
+              </div>
+              <div class="todo-stats" id="todoStats"></div>
+              <div class="week-strip" id="weekStrip" aria-label="Carga de los próximos 7 días"></div>
+            </section>
             <section class="money-card todo-insights" id="todoInsights" hidden></section>
           </div>
 
@@ -572,7 +567,7 @@
     <script src="media.js?v=2"></script>
     <script src="kitchen.js?v=4"></script>
     <script src="nosotros.js?v=12"></script>
-    <script src="trips.js?v=2"></script>
+    <script src="trips.js?v=3"></script>
     <script src="upkeep.js?v=2"></script>
     <script src="documents.js?v=5"></script>
     <script src="energy.js?v=4"></script>
@@ -586,7 +581,7 @@
     <script src="sims-build.js?v=1"></script>
     <script src="sims-music.js?v=1"></script>
     <script src="sims-mind.js?v=3"></script>
-    <script src="app.js?v=56"></script>
+    <script src="app.js?v=57"></script>
     <script src="summary.js?v=5"></script>
     <script src="today.js?v=2"></script>
     <script src="assistant.js?v=4"></script>

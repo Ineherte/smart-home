@@ -12,10 +12,10 @@
       "style": "DEFAULT"
     }
   },
-  "backgroundColor": "#f5f4ef",
+  "backgroundColor": "#f7f7f5",
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#f5f4ef",
+    "backgroundColor": "#f7f7f5",
     "preferredContentMode": "mobile"
   }
 }
