@@ -90,10 +90,10 @@
   // Cada intérprete mira la frase y, si es suya, devuelve qué hacer: { run } (async, devuelve
   // la respuesta) y algo de texto para mostrar mientras.
   const VIEW_WORDS = [
-    [/compra|lista de la compra|super/, 'compra', 'la compra'], [/tareas?|pendientes?|por hacer/, 'pendientes', 'Por hacer'], [/notas?/, 'notes', 'las notas'],
+    [/compra|lista de la compra|super/, 'compra', 'la compra'], [/tareas?|pendientes?|por hacer/, 'tareas', 'las tareas'], [/notas?/, 'notes', 'las notas'],
     [/plantas?|jardin/, 'plantas', 'las plantas'], [/luces|luz/, 'luces', 'las luces'], [/cuentas|gastos|finanzas|dinero/, 'finance', 'las cuentas'],
     [/calendario|agenda|eventos?/, 'calendar', 'el calendario'], [/menu/, 'menu', 'el menú'], [/recetas?/, 'recetas', 'las recetas'], [/nosotros/, 'nosotros', 'Nosotros'],
-    [/vida|noticias/, 'personal', 'Vida'], [/inicio|hoy/, 'home', 'Inicio'], [/sims|juego|casa del juego/, 'sims', 'el juego']
+    [/papeles|documentos?/, 'papeles', 'los papeles'], [/mantenimiento|cuidados/, 'mantenimiento', 'los cuidados de la casa'], [/noticias|inicio|hoy/, 'home', 'Hoy'], [/sims|juego|casa del juego/, 'sims', 'el juego']
   ];
 
   const handlers = [

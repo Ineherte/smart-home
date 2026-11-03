@@ -1,7 +1,7 @@
 // Viajes: el organizador de viajes de Nosotros. Cada viaje tiene su itinerario por días, los
 // sitios que queréis ver (restaurantes, playas, parques, sitios bonitos…) en su propio mapa y
 // lo que hay que preparar. Lo de preparar no vive aparte, para que salga también en
-// Casa → Pendientes:
+// Agenda:
 //   · «Antes de ir» son tareas normales en una lista propia («Viaje · Lisboa»);
 //   · la maleta y «A tener en cuenta» son notas normales con su lista para marcar.
 // Datos en trips y trip_stops (supabase/sql/trips.sql). Usa de nosotros.js el sheet (usSheet),
@@ -507,14 +507,14 @@ function packingSuggestions(trip, pack) {
 }
 
 function tripPrepView(trip, stops, prep) {
-  const shared = (label) => `<p class="trip-shared"><i data-lucide="${label === 'nota' ? 'notebook-pen' : 'list-todo'}"></i>También en Casa → Pendientes${label === 'nota' ? ' → Notas' : `, en la lista «${escapeHtml(trip.task_list || '')}»`}</p>`;
+  const shared = (label) => `<p class="trip-shared"><i data-lucide="${label === 'nota' ? 'notebook-pen' : 'list-todo'}"></i>También en Agenda → ${label === 'nota' ? 'Notas' : `Tareas, en la lista «${escapeHtml(trip.task_list || '')}»`}</p>`;
   const openTasks = [...prep.open].sort((first, second) => first.due_date.localeCompare(second.due_date));
   const taskTitles = new Set([...prep.open, ...prep.done].map((task) => normalizeText(task.title)));
   const careItems = prep.care?.items || [];
   const careTexts = new Set(careItems.map((item) => normalizeText(item.text)));
   const defaultDeadline = trip.start_date && tripPhase(trip) === 'upcoming' ? '7' : '';
   return `<section class="trip-prep-card is-todo">
-      <header><span class="trip-prep-icon">✅</span><div><h3>Antes de ir</h3>${shared('lista')}</div>${prep.todo.total ? `<b class="trip-prep-count">${prep.todo.done}/${prep.todo.total}</b>` : ''}<button type="button" class="icon-button small" data-trip-open-list aria-label="Ver en Pendientes" title="Ver en Pendientes"><i data-lucide="arrow-up-right"></i></button></header>
+      <header><span class="trip-prep-icon">✅</span><div><h3>Antes de ir</h3>${shared('lista')}</div>${prep.todo.total ? `<b class="trip-prep-count">${prep.todo.done}/${prep.todo.total}</b>` : ''}<button type="button" class="icon-button small" data-trip-open-list aria-label="Ver en Tareas" title="Ver en Tareas"><i data-lucide="arrow-up-right"></i></button></header>
       ${progressBar(prep.todo.done, prep.todo.total)}
       ${openTasks.length || prep.done.length ? `<ul class="trip-checks">${openTasks.map((task) => `<li class="trip-check-row" data-task-row="${escapeHtml(task.id)}"><button type="button" class="trip-check" data-trip-task-done="${escapeHtml(task.id)}" aria-label="Hecho: ${escapeHtml(task.title)}"><i data-lucide="check"></i></button><span><strong>${escapeHtml(task.title)}</strong><small class="${deadlineTone(task)}">${escapeHtml(deadlineLabel(task))} · ${escapeHtml(assigneeLabel(task))}</small></span></li>`).join('')}${prep.done.map((task) => `<li class="trip-check-row is-done"><button type="button" class="trip-check is-on" data-trip-task-undo="${escapeHtml(task.id)}" aria-label="Desmarcar: ${escapeHtml(task.title)}"><i data-lucide="check"></i></button><span><strong>${escapeHtml(task.title)}</strong><small>Hecho${task.completion?.done_by ? ` por ${escapeHtml(task.completion.done_by === currentUser ? 'ti' : task.completion.done_by)}` : ''}</small></span></li>`).join('')}</ul>` : '<p class="trip-day-empty">Reservas, billetes, seguro… lo que haya que dejar hecho antes de salir.</p>'}
       <form class="trip-add-row" data-trip-task-form autocomplete="off"><input name="title" type="text" maxlength="80" placeholder="Reservar la cena del sábado" aria-label="Algo que hacer antes de ir" data-trip-focus="task" /><select name="deadline" aria-label="Plazo">${BEFORE_DEADLINES.filter(([days]) => !days || trip.start_date).map(([days, label]) => `<option value="${days}" ${days === defaultDeadline ? 'selected' : ''}>${label}</option>`).join('')}</select><button type="submit" aria-label="Añadir"><i data-lucide="arrow-up"></i></button></form>
@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch {}
 });
 
-// Las tareas y notas del viaje también se tocan desde Pendientes: se refresca al cambiar.
+// Las tareas y notas del viaje también se tocan desde Agenda: se refresca al cambiar.
 window.addEventListener('umbral:tasks', () => {
   if (!trips.length) return;
   clearTimeout(tripHistoryTimer);

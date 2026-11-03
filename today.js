@@ -128,7 +128,7 @@
       calendar: () => openCalendar(),
       menu: () => showView('menu'),
       finance: () => openFinance(),
-      upkeep: () => { showView('personal'); setTimeout(() => document.querySelector('#upkeepSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); },
+      upkeep: () => { showView('mantenimiento'); setTimeout(() => document.querySelector('#upkeepSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); },
       dates: () => { showView('nosotros'); if (typeof setUsView === 'function') setUsView('dates'); }
     }[open.dataset.todayOpen];
     try { go?.(); } catch (error) { console.warn('[Umbral] Para hoy:', error); }

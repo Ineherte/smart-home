@@ -188,13 +188,13 @@ document.querySelector('.money-switch').addEventListener('click', (event) => {
   document.querySelectorAll('[data-money-pane]').forEach((pane) => { pane.hidden = pane.dataset.moneyPane !== tab.dataset.moneyTab; });
   if (tab.dataset.moneyTab === 'personal') openPersonalPane();
   // La luz va por facturas: el selector de mes no aplica.
-  document.querySelector('#financeModal .finance-month').hidden = tab.dataset.moneyTab === 'luz';
+  document.querySelector('#financeView .finance-month').hidden = tab.dataset.moneyTab === 'luz';
   if (tab.dataset.moneyTab === 'luz') window.umbralEnergy?.render();
-  document.querySelector('.finance-panel').scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'instant' });
 });
 
 // Las columnas de los dos gráficos de evolución cambian el mes de toda la sección.
-document.querySelector('#financeModal').addEventListener('click', (event) => {
+document.querySelector('#financeView').addEventListener('click', (event) => {
   const bar = event.target.closest('[data-select-month]');
   if (bar) {
     financeMonth = bar.dataset.selectMonth;

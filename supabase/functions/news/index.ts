@@ -1,4 +1,4 @@
-// Noticias de Vida: junta varias fuentes RSS, quita las repetidas y las devuelve por secciones.
+// Noticias de Hoy: junta varias fuentes RSS, quita las repetidas y las devuelve por secciones.
 // Italia: el Inter (FcInterNews, FCInter1908 y Google News) y la política italiana (ANSA
 // Politica y Google News). España: la portada de El País.
 // GET ?country=italy|spain → { sections: [{ id, label, emoji, items: [{ title, link, source, date }] }], updated }

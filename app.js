@@ -31,7 +31,6 @@ let currentUser = 'Ines';
 const notesModal = document.querySelector('#notesModal');
 const urgentModal = document.querySelector('#urgentModal');
 const weatherModal = document.querySelector('#weatherModal');
-const financeModal = document.querySelector('#financeModal');
 const authModal = document.querySelector('#authModal');
 const localSharedNotesKey = 'umbral-shared-notes';
 const localPrivateNotesKey = () => `umbral-private-notes-${currentUser.toLowerCase()}`;
@@ -291,8 +290,8 @@ function renderAttention(nextState = {}) {
   const list = document.querySelector('#attentionList');
   if (!list) return;
   const items = [];
-  if (urgentCount) items.push({ tone: 'urgent', icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Casa · Pendientes', action: 'notes' });
-  if (overdueTasks) items.push({ tone: 'tasks', icon: 'alarm-clock', title: `${overdueTasks} tarea${overdueTasks === 1 ? '' : 's'} atrasada${overdueTasks === 1 ? '' : 's'}`, detail: 'Revisar en Casa · Pendientes', action: 'tasks' });
+  if (urgentCount) items.push({ tone: 'urgent', icon: 'siren', title: `${urgentCount} nota${urgentCount === 1 ? '' : 's'} urgente${urgentCount === 1 ? '' : 's'}`, detail: 'Revisar en Agenda · Notas', action: 'notes' });
+  if (overdueTasks) items.push({ tone: 'tasks', icon: 'alarm-clock', title: `${overdueTasks} tarea${overdueTasks === 1 ? '' : 's'} atrasada${overdueTasks === 1 ? '' : 's'}`, detail: 'Revisar en Agenda · Tareas', action: 'tasks' });
   if (thirstyPlants.length) items.push({ tone: 'plants', icon: 'sprout', title: thirstyPlants.length === 1 ? `${thirstyPlants[0]} tiene sed` : `${thirstyPlants.length} plantas tienen sed`, detail: 'Toca regar hoy · Casa · Plantas', action: 'plantas' });
   if (pendingBills) items.push({ tone: 'bills', icon: 'receipt-text', title: `${pendingBills} factura${pendingBills === 1 ? '' : 's'} pendiente${pendingBills === 1 ? '' : 's'}`, detail: 'Revisar en Cuentas de casa', action: 'finance' });
   if (settlementAmount > 0.009) items.push({ tone: 'money', icon: 'arrow-right-left', title: `Falta saldar ${financeMoney(settlementAmount)}`, detail: 'Registrar un pago cuando lo hagáis', action: 'finance' });
@@ -354,13 +353,15 @@ function setNavBadge(view, count) {
     tabCount.textContent = count > 99 ? '99+' : String(count);
     tabCount.hidden = !count;
   }
-  const urgent = casaCounts.tareas + casaCounts.plantas;
-  const badge = document.querySelector('.nav-item[data-view-target="casa"] .nav-badge');
-  badge.textContent = urgent > 9 ? '9+' : String(urgent);
-  badge.hidden = !urgent;
+  // Cada sección de abajo avisa de lo suyo: las tareas en Agenda, las plantas en Casa.
+  [['agenda', casaCounts.tareas], ['casa', casaCounts.plantas]].forEach(([space, urgent]) => {
+    const badge = document.querySelector(`.nav-item[data-view-target="${space}"] .nav-badge`);
+    badge.textContent = urgent > 9 ? '9+' : String(urgent);
+    badge.hidden = !urgent;
+  });
 }
 
-// La pizarra compartida vive en su propio panel; las notas están en Casa → Pendientes.
+// La pizarra compartida vive en su propio panel; las notas están en Agenda → Notas.
 function openBoard() {
   notesModal.classList.add('visible');
   if (history.state?.page !== 'board') history.pushState({ page: 'board' }, '', '#pizarra');
@@ -372,7 +373,6 @@ document.querySelector('.notes-card[data-action="notes"]').addEventListener('key
 });
 document.querySelector('#closeNotes').addEventListener('click', () => history.back());
 document.querySelector('#closeUrgent').addEventListener('click', () => { urgentModal.classList.remove('visible'); openPending({ filter: 'all' }); });
-const calendarModal = document.querySelector('#calendarModal');
 const localEventsKey = () => `umbral-events-${currentUser.toLowerCase()}`;
 let selectedDate = new Date();
 let visibleMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
@@ -484,14 +484,12 @@ function renderAgendaPreview(todayEvents) {
 }
 
 async function openCalendar() {
-  calendarModal.classList.add('visible');
-  if (history.state?.page !== 'calendar') history.pushState({ page: 'calendar' }, '', '#agenda');
+  showView('calendario');
   await renderCalendarData();
 }
 
 document.querySelector('#previousMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1); renderCalendar(); });
 document.querySelector('#nextMonth').addEventListener('click', () => { visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1); renderCalendar(); });
-document.querySelector('#closeCalendar').addEventListener('click', () => history.back());
 // Guarda un evento (desde el formulario del calendario o desde el asistente). Devuelve su id.
 async function saveCalendarEvent(eventData) {
   let id = null;
@@ -709,8 +707,7 @@ async function connectNotes() {
   document.querySelector('#accountAvatar').textContent = (profile?.display_name || currentUser).slice(0, 2).toUpperCase();
   document.querySelector('#accountEmail').textContent = sessionData.session.user.email || 'Cuenta autenticada';
   if (householdRole === 'guest') {
-    document.querySelectorAll('[data-action="finance"]').forEach((element) => { element.hidden = true; });
-    document.querySelectorAll('.finance-modal').forEach((element) => element.setAttribute('aria-hidden', 'true'));
+    document.querySelectorAll('[data-action="finance"], .nav-item[data-view-target="cuentas"], .directory-group[data-group="cuentas"]').forEach((element) => { element.hidden = true; });
   }
   if (inviteToken) {
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -1484,9 +1481,7 @@ async function refreshFinance() {
 }
 
 function openFinance() {
-  financeModal.classList.add('visible');
-  if (history.state?.page !== 'finance') history.pushState({ page: 'finance' }, '', '#finanzas');
-  refreshFinance();
+  showView('cuentas');
 }
 
 let financeEditing = null;
@@ -1928,7 +1923,6 @@ document.querySelector('#exportFinance').addEventListener('click', async () => {
 document.querySelector('#financeSearch').addEventListener('input', () => renderFinance(financeCache));
 document.querySelector('#financePrevMonth').addEventListener('click', () => { financeMonth = shiftMonth(financeMonth, -1); renderFinance(financeCache); });
 document.querySelector('#financeNextMonth').addEventListener('click', () => { financeMonth = shiftMonth(financeMonth, 1); renderFinance(financeCache); });
-document.querySelector('#closeFinance').addEventListener('click', () => history.back());
 document.querySelector('#openSettlementForm').addEventListener('click', openSettlement);
 
 // Aviso abajo. Con action/onAction lleva un botón (por ejemplo «Deshacer») y dura más.
@@ -1981,6 +1975,7 @@ document.querySelectorAll('[data-action]').forEach((action) => {
     }
 
     if (type === 'lights') showView('luces');
+    if (type === 'nosotros') showView('nosotros');
     if (type === 'assistant') window.umbralAssistant?.open('', { listen: Boolean(event.target.closest('.assistant-bar-mic')) });
   });
 });
@@ -2017,51 +2012,70 @@ document.querySelector('#smartLightsList').addEventListener('click', (event) => 
   toggleSmartLight(toggle.dataset.lightToggle);
 });
 
-// Muestra un espacio: en el móvil cambia de pestaña; en escritorio, donde se ven
-// todos, lleva hasta él.
-// Casa agrupa Pendientes, Compra y Luces en pestañas; esos nombres llevan a su pestaña.
-const casaTabAliases = { pendientes: 'pendientes', tareas: 'pendientes', cocina: 'cocina', compra: 'cocina', menu: 'cocina', recetas: 'cocina', plantas: 'plantas', luces: 'luces' };
+// La organización de la app: cinco secciones (abajo en el móvil, a un lado en el ordenador), y
+// en Agenda y Casa, pestañas. Cada nombre lleva a su sitio (también los enlaces de los avisos,
+// el widget y el asistente; «pendientes» y «personal» son nombres antiguos que siguen valiendo).
+const SECTION_ROUTES = {
+  tareas: ['agenda', 'tareas'], pendientes: ['agenda', 'tareas'], notas: ['agenda', 'notas'], calendario: ['agenda', 'calendario'], papeles: ['agenda', 'papeles'], documentos: ['agenda', 'papeles'], personal: ['agenda', 'tareas'],
+  cocina: ['casa', 'cocina'], compra: ['casa', 'cocina'], menu: ['casa', 'cocina'], recetas: ['casa', 'cocina'], plantas: ['casa', 'plantas'], luces: ['casa', 'luces'], mantenimiento: ['casa', 'mantenimiento']
+};
+const SECTION_DEFAULTS = { agenda: 'tareas', casa: 'cocina' };
 const kitchenAliases = { compra: 'compra', menu: 'menu', recetas: 'recipes' };
 function showView(view) {
-  const casaTab = casaTabAliases[view];
-  if (casaTab) {
-    setCasaTab(casaTab);
+  const route = SECTION_ROUTES[view];
+  if (route) {
+    setSectionTab(route[0], route[1]);
     if (kitchenAliases[view] && typeof setKitchenView === 'function') setKitchenView(kitchenAliases[view]);
-    view = 'casa';
+    view = route[0];
   }
   setWorkspace(view);
-  document.querySelector(`[data-space="${view}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
-function setCasaTab(tab) {
-  document.querySelectorAll('[data-casa-tab]').forEach((button) => button.setAttribute('aria-selected', String(button.dataset.casaTab === tab)));
-  document.querySelectorAll('[data-casa-panel]').forEach((panel) => { panel.hidden = panel.dataset.casaPanel !== tab; });
-  try { localStorage.setItem('umbral-casa-tab', tab); } catch {}
+function setSectionTab(space, tab, { quiet = false } = {}) {
+  const host = document.querySelector(`.view[data-space="${space}"]`);
+  host.querySelectorAll('[data-section-tab]').forEach((button) => button.setAttribute('aria-selected', String(button.dataset.sectionTab === tab)));
+  host.querySelectorAll('[data-section-panel]').forEach((panel) => { panel.hidden = panel.dataset.sectionPanel !== tab; });
+  try { localStorage.setItem(`umbral-tab-${space}`, tab); } catch {}
+  if (quiet) return;
+  if (tab === 'calendario') renderCalendarData();
+  if (tab === 'mantenimiento' && typeof renderUpkeep === 'function') renderUpkeep();
+  if (tab === 'notas' && typeof renderNotesBoard === 'function') renderNotesBoard();
 }
 
-document.querySelector('.casa-tabs').addEventListener('click', (event) => {
-  const tab = event.target.closest('[data-casa-tab]');
-  if (tab) setCasaTab(tab.dataset.casaTab);
+document.querySelector('.views').addEventListener('click', (event) => {
+  const tab = event.target.closest('[data-section-tab]');
+  if (!tab) return;
+  setSectionTab(tab.closest('.view').dataset.space, tab.dataset.sectionTab);
+  window.umbralMobile?.tap?.();
+  window.scrollTo({ top: 0, behavior: 'instant' });
 });
-setCasaTab((() => { try { return localStorage.getItem('umbral-casa-tab'); } catch { return null; } })() || 'pendientes');
+Object.entries(SECTION_DEFAULTS).forEach(([space, fallback]) => {
+  const saved = (() => { try { return localStorage.getItem(`umbral-tab-${space}`); } catch { return null; } })();
+  const host = document.querySelector(`.view[data-space="${space}"]`);
+  setSectionTab(space, saved && host.querySelector(`[data-section-tab="${saved}"]`) ? saved : fallback, { quiet: true });
+});
 
-// En el móvil, el saludo grande solo sale en Hoy; las demás secciones llevan su título.
+// El título de cada sección dice para qué sirve; Hoy lleva el saludo.
 const spaceHeadings = {
-  casa: ['Casa', 'Pendientes, cocina, plantas y luces'],
-  nosotros: ['Nosotros', 'Vuestras fotos, fechas, planes y viajes'],
-  personal: ['Vida', 'Tu agenda, el cuidado de la casa y las noticias']
+  agenda: ['Agenda', 'Lo que hay que hacer y recordar', 'calendar-check'],
+  casa: ['Casa', 'La cocina, las plantas, las luces y los cuidados', 'house'],
+  cuentas: ['Cuentas', 'El dinero de la casa, el tuyo y la luz', 'wallet-cards'],
+  nosotros: ['Nosotros', 'Vuestras fotos, fechas, planes y viajes', 'heart']
 };
 function setWorkspace(view) {
   if (view === 'nosotros' && typeof renderUs === 'function') renderUs();
-  if (view === 'personal' && typeof renderUpkeep === 'function') renderUpkeep();
-  if (view === 'personal' && typeof loadNews === 'function' && Date.now() - (newsFetchedAt[activeNewsCountry] || 0) > 15 * 60 * 1000) loadNews();
+  if (view === 'casa' && typeof renderUpkeep === 'function') renderUpkeep();
+  if (view === 'cuentas') refreshFinance();
   document.body.dataset.space = view;
-  const [title, subtitle] = spaceHeadings[view] || [];
+  const [title, subtitle, icon] = spaceHeadings[view] || [];
   if (title) {
     document.querySelector('#spaceTitle').textContent = title;
     document.querySelector('#spaceSubtitle').textContent = subtitle;
+    document.querySelector('#spaceIcon').innerHTML = `<i data-lucide="${icon}"></i>`;
+    lucide.createIcons();
   }
-  document.querySelectorAll('[data-space]').forEach((section) => {
+  document.querySelectorAll('.view[data-space]').forEach((section) => {
     section.classList.toggle('is-hidden', section.dataset.space !== view);
   });
   document.querySelectorAll('.nav-item[data-view-target]').forEach((item) => {
@@ -2083,21 +2097,16 @@ document.querySelectorAll('.nav-item').forEach((item) => {
 
 window.addEventListener('popstate', () => {
   notesModal.classList.remove('visible');
-  calendarModal.classList.remove('visible');
   weatherModal.classList.remove('visible');
-  financeModal.classList.remove('visible');
   if (history.state?.page === 'board') openBoard();
-  if (history.state?.page === 'calendar') openCalendar();
   if (history.state?.page === 'weather') openWeather();
-  if (history.state?.page === 'finance') openFinance();
 });
 
-document.querySelector('.brand').addEventListener('click', (event) => {
-  if (history.state?.page) {
-    event.preventDefault();
-    history.back();
-  }
-});
+document.querySelectorAll('.brand, .nav-brand').forEach((brand) => brand.addEventListener('click', (event) => {
+  event.preventDefault();
+  if (history.state?.page) history.back();
+  showView('home');
+}));
 
 function applyTheme(choice) {
   const theme = ['light', 'dark'].includes(choice) ? choice : 'auto';
@@ -2121,11 +2130,11 @@ function renderGreeting() {
 }
 
 // Enlaces de los avisos: ?abrir=compra|tareas|casa|personal|notes|calendar|finance.
-const linkTargets = ['home', 'casa', 'personal', 'nosotros', 'pendientes', 'tareas', 'cocina', 'menu', 'recetas', 'compra', 'plantas', 'luces', 'notes', 'calendar', 'finance'];
+const linkTargets = ['home', 'agenda', 'casa', 'cuentas', 'nosotros', ...Object.keys(SECTION_ROUTES), 'notes', 'calendar', 'finance'];
 function openLinkTarget(target) {
   if (!linkTargets.includes(target)) return;
   if (target === 'notes') openPending({ filter: 'notes' });
-  else if (document.querySelector(`[data-space="${target}"]`) || casaTabAliases[target]) showView(target);
+  else if (document.querySelector(`.view[data-space="${target}"]`) || SECTION_ROUTES[target]) showView(target);
   else document.querySelector(`[data-action="${target}"]`)?.click();
 }
 const startTarget = new URLSearchParams(window.location.search).get('abrir');

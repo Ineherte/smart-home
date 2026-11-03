@@ -38,8 +38,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Pixelify+Sans:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>try { const theme = localStorage.getItem('umbral-theme'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch {}</script>
-    <link rel="stylesheet" href="styles.css?v=73" />
-    <script src="vendor/icons.js?v=2"></script>
+    <link rel="stylesheet" href="styles.css?v=74" />
+    <script src="vendor/icons.js?v=3"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -59,7 +59,7 @@
         <p class="greeting-date" id="todayLabel">Hoy</p>
         <h1><span id="greetingWord">Hola</span>, <span id="userName">Ines</span><span class="accent-dot">.</span></h1>
         <p class="greeting-summary" id="daySummary">Preparando tu día…</p>
-        <div class="space-heading" id="spaceHeading" aria-live="polite"><h1 id="spaceTitle">Casa</h1><p id="spaceSubtitle"></p></div>
+        <div class="space-heading" id="spaceHeading" aria-live="polite"><span class="space-icon" id="spaceIcon"></span><div><h1 id="spaceTitle">Casa</h1><p id="spaceSubtitle"></p></div></div>
       </section>
 
       <div class="views">
@@ -106,71 +106,63 @@
 
 
           <section class="house-summary" id="houseSummary" aria-label="Estado de la casa" hidden></section>
-          <p class="tiles-heading">Todo de un vistazo</p>
-          <div class="tile-grid">
-            <button class="tile tile-tasks" type="button" data-action="tasks">
-              <span class="tile-icon"><i data-lucide="list-checks"></i></span>
-              <span class="tile-label">Tareas</span>
-              <strong class="tile-value" id="tasksTileValue">—</strong>
-              <small class="tile-detail" id="tasksTileDetail">Cargando…</small>
-            </button>
-            <button class="tile tile-shopping" type="button" data-action="shopping">
-              <span class="tile-icon"><i data-lucide="shopping-basket"></i></span>
-              <span class="tile-label">Compra</span>
-              <strong class="tile-value" id="shoppingTileValue">—</strong>
-              <small class="tile-detail" id="shoppingTileDetail">Cargando…</small>
-            </button>
-            <button class="tile tile-agenda" type="button" data-action="calendar">
-              <span class="tile-icon"><i data-lucide="calendar-days"></i></span>
-              <span class="tile-label">Agenda de hoy</span>
-              <strong class="tile-value" id="agendaTileValue">—</strong>
-              <small class="tile-detail" id="calendarPreview">Cargando agenda…</small>
-            </button>
-            <article class="tile tile-notes notes-card" data-action="notes" tabindex="0" role="button" aria-label="Abrir notas">
-              <span class="tile-icon"><i data-lucide="notebook-pen"></i></span>
-              <span class="tile-label">Notas</span>
-              <strong class="tile-value" id="notesCount">Sin notas</strong>
-              <small class="tile-detail" id="notesPreview">Apuntes, listas e ideas</small>
-            </article>
-            <button class="tile tile-lights" type="button" data-action="lights">
-              <span class="tile-icon"><i data-lucide="lightbulb"></i></span>
-              <span class="tile-label">Luces</span>
-              <strong class="tile-value" id="lightsOnCount">—</strong>
-              <small class="tile-detail" id="lightsStatus">Cargando…</small>
-            </button>
-            <button class="tile tile-finance" type="button" data-action="finance">
-              <span class="tile-icon"><i data-lucide="wallet-cards"></i></span>
-              <span class="tile-label">Cuentas de casa</span>
-              <strong class="tile-value" id="financeTileValue">Ver cuentas</strong>
-              <small class="tile-detail" id="financeTileDetail">Gastos, fijos y facturas</small>
-            </button>
+          <section class="directory" aria-label="Todo lo demás">
+            <h2 class="directory-title">Todo lo demás</h2>
+            <div class="directory-group" data-group="agenda">
+              <p><i data-lucide="calendar-check"></i>Agenda</p>
+              <button class="tile tile-tasks" type="button" data-action="tasks"><span class="tile-label">Tareas</span><strong class="tile-value" id="tasksTileValue">—</strong><small class="tile-detail" id="tasksTileDetail">Cargando…</small></button>
+              <button class="tile tile-agenda" type="button" data-action="calendar"><span class="tile-label">Calendario</span><strong class="tile-value" id="agendaTileValue">—</strong><small class="tile-detail" id="calendarPreview">Cargando agenda…</small></button>
+              <article class="tile tile-notes notes-card" data-action="notes" tabindex="0" role="button" aria-label="Abrir notas"><span class="tile-label">Notas</span><strong class="tile-value" id="notesCount">Sin notas</strong><small class="tile-detail" id="notesPreview">Apuntes, listas e ideas</small></article>
+            </div>
+            <div class="directory-group" data-group="casa">
+              <p><i data-lucide="house"></i>Casa</p>
+              <button class="tile tile-shopping" type="button" data-action="shopping"><span class="tile-label">Compra</span><strong class="tile-value" id="shoppingTileValue">—</strong><small class="tile-detail" id="shoppingTileDetail">Cargando…</small></button>
+              <button class="tile tile-lights" type="button" data-action="lights"><span class="tile-label">Luces</span><strong class="tile-value" id="lightsOnCount">—</strong><small class="tile-detail" id="lightsStatus">Cargando…</small></button>
+            </div>
+            <div class="directory-group" data-group="cuentas">
+              <p><i data-lucide="wallet-cards"></i>Cuentas</p>
+              <button class="tile tile-finance" type="button" data-action="finance"><span class="tile-label">Este mes</span><strong class="tile-value" id="financeTileValue">Ver cuentas</strong><small class="tile-detail" id="financeTileDetail">Gastos, fijos y facturas</small></button>
+            </div>
+            <div class="directory-group" data-group="nosotros">
+              <p><i data-lucide="heart"></i>Nosotros</p>
+              <button class="tile" type="button" data-action="nosotros"><span class="tile-label">Vuestro rincón</span><strong class="tile-value">Fotos y viajes</strong><small class="tile-detail">También fechas, planes y la casa del juego</small></button>
+            </div>
+          </section>
+
+          <section class="panel news-section" aria-labelledby="news-title">
+              <div class="section-heading">
+                <div><p class="eyebrow">Para leer</p><h2 id="news-title">Noticias</h2></div>
+                <button class="icon-button small" type="button" id="refreshNews" aria-label="Actualizar noticias" title="Actualizar noticias"><i data-lucide="rotate-cw"></i></button>
+              </div>
+              <div class="news-tabs" role="tablist" aria-label="País de las noticias">
+            <button class="news-tab active" type="button" role="tab" aria-selected="true" aria-controls="italyNews" data-news-country="italy">Italia <span>IT</span></button>
+            <button class="news-tab" type="button" role="tab" aria-selected="false" aria-controls="spainNews" data-news-country="spain">España <span>ES</span></button>
           </div>
+          <p class="news-insight" id="newsInsight">Preparando una lectura rápida del día...</p>
+          <div class="news-feed" id="italyNews" role="tabpanel" aria-live="polite"></div>
+          <p class="news-updated" id="newsUpdated"><i data-lucide="clock-3"></i> Preparando el resumen...</p>
+            </section>
         </div>
 
-        <div class="view view-casa" data-space="casa">
-          <div class="casa-tabs" role="tablist" aria-label="Secciones de casa">
-            <button type="button" role="tab" data-casa-tab="pendientes" aria-selected="true" aria-controls="tasksView"><i data-lucide="list-todo"></i><span>Pendientes</span><b class="tab-count" id="pendingTabCount" hidden></b></button>
-            <button type="button" role="tab" data-casa-tab="cocina" aria-selected="false" aria-controls="kitchenView"><i data-lucide="chef-hat"></i><span>Cocina</span><b class="tab-count" id="shoppingTabCount" hidden></b></button>
-            <button type="button" role="tab" data-casa-tab="plantas" aria-selected="false" aria-controls="plantsView"><i data-lucide="sprout"></i><span>Plantas</span><b class="tab-count" id="plantsTabCount" hidden></b></button>
-            <button type="button" role="tab" data-casa-tab="luces" aria-selected="false" aria-controls="lightsView"><i data-lucide="lightbulb"></i><span>Luces</span><b class="tab-count" id="lightsTabCount" hidden></b></button>
+        <div class="view view-agenda" data-space="agenda">
+          <div class="section-tabs" role="tablist" aria-label="Secciones de la agenda">
+            <button type="button" role="tab" data-section-tab="tareas" aria-selected="true"><i data-lucide="list-todo"></i><span>Tareas</span><b class="tab-count" id="pendingTabCount" hidden></b></button>
+            <button type="button" role="tab" data-section-tab="calendario" aria-selected="false"><i data-lucide="calendar-days"></i><span>Calendario</span></button>
+            <button type="button" role="tab" data-section-tab="notas" aria-selected="false"><i data-lucide="notebook-pen"></i><span>Notas</span><b class="tab-count" id="notesTabCount" hidden></b></button>
+            <button type="button" role="tab" data-section-tab="papeles" aria-selected="false"><i data-lucide="folder-open"></i><span>Papeles</span></button>
           </div>
 
-          <div class="casa-panel" data-casa-panel="pendientes" id="tasksView" role="tabpanel">
-            <div class="pending-switch" role="group" aria-label="Por hacer o notas">
-              <button type="button" data-pending-pane="todo" aria-pressed="true"><i data-lucide="circle-check-big"></i><span><b>Por hacer</b><small>Tareas y rutinas</small></span></button>
-              <button type="button" data-pending-pane="notes" aria-pressed="false"><i data-lucide="notebook-pen"></i><span><b>Notas</b><small>Apuntes y listas</small></span></button>
-            </div>
-            <section class="todo-hero" data-pane="todo" aria-labelledby="todoHeroTitle">
+          <div class="section-panel" data-section-panel="tareas" id="tasksView" role="tabpanel">
+            <section class="todo-hero" aria-labelledby="todoHeroTitle">
               <div class="todo-hero-top">
                 <div class="todo-ring" id="todoRing"></div>
-                <div class="todo-hero-copy"><p class="eyebrow">Tu día en casa</p><h2 id="todoHeroTitle">Cargando…</h2><p id="todoHeroDetail"></p></div>
-                <button type="button" class="todo-board-button" data-action="board" aria-label="Abrir la pizarra" title="Pizarra"><i data-lucide="pen-line"></i></button>
+                <div class="todo-hero-copy"><p class="eyebrow">Tu día</p><h2 id="todoHeroTitle">Cargando…</h2><p id="todoHeroDetail"></p></div>
               </div>
               <div class="todo-stats" id="todoStats"></div>
               <div class="week-strip" id="weekStrip" aria-label="Carga de los próximos 7 días"></div>
             </section>
 
-            <form class="quick-add" id="pendingForm" data-pane="todo" autocomplete="off">
+            <form class="quick-add" id="pendingForm" autocomplete="off">
               <div class="quick-add-row">
                 <input name="title" type="text" maxlength="160" placeholder="Pagar la luz en 5 días #papeles" aria-label="Apuntar algo por hacer" enterkeyhint="done" />
                 <button type="submit" aria-label="Añadir"><i data-lucide="arrow-up"></i></button>
@@ -178,9 +170,9 @@
               <div class="quick-preview" id="quickPreview"></div>
             </form>
 
-            <div class="todo-lists" id="todoLists" data-pane="todo" role="group" aria-label="Listas"></div>
+            <div class="todo-lists" id="todoLists" role="group" aria-label="Listas"></div>
 
-            <div class="todo-toolbar" data-pane="todo">
+            <div class="todo-toolbar">
               <div class="segmented is-wide todo-views" role="group" aria-label="Cómo verlo">
                 <button type="button" data-todo-view="list" aria-pressed="true"><i data-lucide="list-checks"></i>Lista</button>
                 <button type="button" data-todo-view="week" aria-pressed="false"><i data-lucide="calendar-range"></i>Semana</button>
@@ -189,16 +181,50 @@
               <label class="mine-toggle"><input type="checkbox" id="onlyMine" /><span><i data-lucide="user-round"></i>Solo lo mío</span></label>
             </div>
 
-            <div class="todo-view" id="pendingList" data-pane="todo"></div>
-            <section class="money-card todo-insights" id="todoInsights" data-pane="todo" hidden></section>
+            <div class="todo-view" id="pendingList"></div>
+            <section class="money-card todo-insights" id="todoInsights" hidden></section>
+          </div>
 
-            <div class="notes-pane" id="notesPane" data-pane="notes" hidden>
+          <div class="section-panel" data-section-panel="calendario" hidden>
+            <section class="calendar-panel" aria-label="Calendario">
+        <div class="calendar-toolbar"><button class="icon-button small" type="button" id="previousMonth" aria-label="Mes anterior" title="Mes anterior"><i data-lucide="chevron-left"></i></button><strong id="calendarMonth"></strong><button class="icon-button small" type="button" id="nextMonth" aria-label="Mes siguiente" title="Mes siguiente"><i data-lucide="chevron-right"></i></button></div>
+        <div class="calendar-grid calendar-weekdays"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div class="calendar-grid" id="calendarDays"></div>
+        <div class="day-summary"><div class="section-heading"><div><p class="eyebrow muted">Eventos del día</p><h3 id="selectedDateLabel"></h3></div><span class="action-count" id="selectedDayCount">0 eventos</span></div><div class="event-list" id="calendarEvents"></div></div>
+        <button type="button" class="primary-button money-add" id="openEventForm"><i data-lucide="plus"></i> Añadir evento</button><form class="event-form" id="eventForm" hidden><p class="eyebrow muted">Nuevo evento</p><input name="title" type="text" maxlength="80" placeholder="Título del evento" aria-label="Título del evento" required /><div class="event-form-row"><input name="date" type="date" aria-label="Fecha del evento" required /><input name="time" type="time" aria-label="Hora del evento (opcional)" /></div><div class="event-form-row"><input name="duration" type="text" maxlength="20" placeholder="Duración (opcional, ej. 1 h)" aria-label="Duración opcional" /><select name="scope" aria-label="Quién lo ve"><option value="shared">Lo vemos los dos</option><option value="private">Solo yo</option></select></div><input name="location" type="text" maxlength="80" placeholder="Lugar o enlace (opcional)" aria-label="Lugar o enlace" /><button type="submit"><i data-lucide="check"></i> Guardar evento</button></form>
+        <p class="notes-local-warning" id="eventsConnectionStatus"><i data-lucide="info"></i> Con el icono de calendario de un evento lo añades al Calendario del iPhone.</p>
+            </section>
+          </div>
+
+          <div class="section-panel" data-section-panel="notas" hidden>
+            <div class="notes-pane" id="notesPane">
               <label class="notes-search"><i data-lucide="search"></i><input id="notesSearch" type="search" placeholder="Buscar en las notas" aria-label="Buscar en las notas" /></label>
               <div id="notesBoard"></div>
             </div>
+            <button type="button" class="board-link" data-action="board"><span><i data-lucide="pen-line"></i></span><span><strong>Pizarra compartida</strong><small>Dibujad o dejaos un mensaje a mano</small></span><i data-lucide="chevron-right"></i></button>
           </div>
 
-          <div class="casa-panel" data-casa-panel="cocina" id="kitchenView" role="tabpanel" hidden>
+          <div class="section-panel" data-section-panel="papeles" hidden>
+            <section class="panel documents-section" id="documentsSection" aria-labelledby="documentsTitle">
+              <div class="section-heading">
+                <div><p class="eyebrow">Papeles</p><h2 id="documentsTitle">Documentos</h2></div>
+                <button class="pill-button" type="button" data-doc-add><i data-lucide="upload"></i> Subir</button>
+              </div>
+              <p class="upkeep-summary" id="documentsSummary"></p>
+              <div id="documentsBody"><p class="empty-note">Cargando…</p></div>
+            </section>
+          </div>
+        </div>
+
+        <div class="view view-casa" data-space="casa">
+          <div class="section-tabs" role="tablist" aria-label="Secciones de la casa">
+            <button type="button" role="tab" data-section-tab="cocina" aria-selected="true"><i data-lucide="chef-hat"></i><span>Cocina</span><b class="tab-count" id="shoppingTabCount" hidden></b></button>
+            <button type="button" role="tab" data-section-tab="plantas" aria-selected="false"><i data-lucide="sprout"></i><span>Plantas</span><b class="tab-count" id="plantsTabCount" hidden></b></button>
+            <button type="button" role="tab" data-section-tab="luces" aria-selected="false"><i data-lucide="lightbulb"></i><span>Luces</span><b class="tab-count" id="lightsTabCount" hidden></b></button>
+            <button type="button" role="tab" data-section-tab="mantenimiento" aria-selected="false"><i data-lucide="wrench"></i><span>Cuidados</span></button>
+          </div>
+
+          <div class="section-panel" data-section-panel="cocina" id="kitchenView" role="tabpanel" hidden>
             <div class="segmented is-wide kitchen-switch" role="group" aria-label="Cocina">
               <button type="button" data-kitchen-view="menu" aria-pressed="true"><i data-lucide="calendar-days"></i>Menú</button>
               <button type="button" data-kitchen-view="recipes" aria-pressed="false"><i data-lucide="book-open"></i>Recetas</button>
@@ -243,7 +269,7 @@
             </div>
           </div>
 
-          <div class="casa-panel" data-casa-panel="plantas" id="plantsView" role="tabpanel" hidden>
+          <div class="section-panel" data-section-panel="plantas" id="plantsView" role="tabpanel" hidden>
             <section class="panel plants-panel" aria-labelledby="plantsTitle">
               <div class="section-heading">
                 <div class="heading-copy"><p class="eyebrow">Vuestro jardín</p><h2 id="plantsTitle">Plantas</h2></div>
@@ -254,7 +280,7 @@
             </section>
           </div>
 
-          <div class="casa-panel" data-casa-panel="luces" id="lightsView" role="tabpanel" hidden>
+          <div class="section-panel" data-section-panel="luces" id="lightsView" role="tabpanel" hidden>
             <section class="panel routines-panel" aria-labelledby="routinesTitle">
               <div class="section-heading">
                 <div><p class="eyebrow">Con un toque</p><h2 id="routinesTitle">Rutinas</h2></div>
@@ -272,37 +298,8 @@
               <div class="lights-list" id="smartLightsList"></div>
             </section>
           </div>
-        </div>
 
-          <div class="view view-nosotros" data-space="nosotros" id="usView">
-            <section class="us-hero" id="usHero"></section>
-            <div class="segmented is-wide us-switch" role="group" aria-label="Nosotros">
-              <button type="button" data-us-view="photos" aria-pressed="true"><i data-lucide="aperture"></i>Fotos</button>
-              <button type="button" data-us-view="dates" aria-pressed="false"><i data-lucide="calendar-heart"></i>Fechas</button>
-              <button type="button" data-us-view="plans" aria-pressed="false"><i data-lucide="popcorn"></i>Planes</button>
-              <button type="button" data-us-view="trips" aria-pressed="false"><i data-lucide="plane"></i>Viajes</button>
-            </div>
-            <div class="us-content" id="usContent"><p class="empty-note">Cargando…</p></div>
-          </div>
-
-          <div class="view view-vida" data-space="personal">
-            <section class="panel agenda-section" aria-labelledby="agenda-title">
-              <div class="section-heading">
-                <div><p class="eyebrow">Hoy</p><h2 id="agenda-title">Tu agenda</h2></div>
-                <button class="pill-button" type="button" data-action="calendar"><i data-lucide="calendar-days"></i> Calendario</button>
-              </div>
-              <div id="agendaList"><p class="empty-note">Cargando agenda…</p></div>
-            </section>
-
-            <section class="panel documents-section" id="documentsSection" aria-labelledby="documentsTitle">
-              <div class="section-heading">
-                <div><p class="eyebrow">Papeles</p><h2 id="documentsTitle">Documentos</h2></div>
-                <button class="pill-button" type="button" data-doc-add><i data-lucide="upload"></i> Subir</button>
-              </div>
-              <p class="upkeep-summary" id="documentsSummary"></p>
-              <div id="documentsBody"><p class="empty-note">Cargando…</p></div>
-            </section>
-
+          <div class="section-panel" data-section-panel="mantenimiento" hidden>
             <section class="panel upkeep-section" id="upkeepSection" aria-labelledby="upkeepTitle">
               <div class="section-heading">
                 <div><p class="eyebrow">Mantenimiento</p><h2 id="upkeepTitle">Casa al día</h2></div>
@@ -311,30 +308,97 @@
               <p class="upkeep-summary" id="upkeepSummary"></p>
               <div id="upkeepBody"><p class="empty-note">Cargando…</p></div>
             </section>
-
-            <section class="panel news-section" aria-labelledby="news-title">
-              <div class="section-heading">
-                <div><p class="eyebrow">La mirada del día</p><h2 id="news-title">Noticias</h2></div>
-                <button class="icon-button small" type="button" id="refreshNews" aria-label="Actualizar noticias" title="Actualizar noticias"><i data-lucide="rotate-cw"></i></button>
-              </div>
-              <div class="news-tabs" role="tablist" aria-label="País de las noticias">
-            <button class="news-tab active" type="button" role="tab" aria-selected="true" aria-controls="italyNews" data-news-country="italy">Italia <span>IT</span></button>
-            <button class="news-tab" type="button" role="tab" aria-selected="false" aria-controls="spainNews" data-news-country="spain">España <span>ES</span></button>
           </div>
-          <p class="news-insight" id="newsInsight">Preparando una lectura rápida del día...</p>
-          <div class="news-feed" id="italyNews" role="tabpanel" aria-live="polite"></div>
-          <p class="news-updated" id="newsUpdated"><i data-lucide="clock-3"></i> Preparando el resumen...</p>
-            </section>
+        </div>
+
+        <div class="view view-cuentas" data-space="cuentas" id="financeView">
+          <div class="finance-panel">
+        <div class="section-tabs money-switch" role="group" aria-label="Qué cuentas ver"><button type="button" data-money-tab="casa" aria-pressed="true"><i data-lucide="house"></i> Casa</button><button type="button" data-money-tab="personal" aria-pressed="false"><i data-lucide="user-round"></i> Mis gastos</button><button type="button" data-money-tab="luz" aria-pressed="false"><i data-lucide="zap"></i> Luz</button></div>
+        <div class="finance-month" role="group" aria-label="Mes que se muestra"><button type="button" id="financePrevMonth" aria-label="Mes anterior"><i data-lucide="chevron-left"></i></button><strong id="financeMonthLabel">Este mes</strong><button type="button" id="financeNextMonth" aria-label="Mes siguiente"><i data-lucide="chevron-right"></i></button></div>
+
+        <div class="money-pane" data-money-pane="casa">
+          <div class="finance-summary"><div class="finance-summary-figures"><div><span id="financeTotalLabel">Gastos de la casa</span><strong id="financeTotal">0,00 €</strong></div><div><span>Tu parte</span><b id="financeBalance">0,00 €</b></div></div><p class="finance-summary-note" id="financeMonthNote">Gastos, facturas y fijos de este mes.</p><div class="month-bars" id="financeTrend" aria-label="Gastos de la casa en los últimos meses"></div></div>
+          <button type="button" class="primary-button money-add" id="addHouseExpense"><i data-lucide="plus"></i> Añadir gasto</button>
+          <section class="money-card balance-card" aria-labelledby="balanceTitle">
+            <div class="finance-subheading"><strong id="balanceTitle">Quién debe a quién</strong><span id="settlementPaymentTotal"></span></div>
+            <div class="finance-insight settlement-card" id="financeSettlement"><i data-lucide="scale"></i><span>Añade gastos para calcular quién debe a quién.</span></div>
+            <p class="reset-note" id="financeResetNote" hidden></p>
+            <div class="settlement-actions"><button type="button" class="settlement-payment-button" id="openSettlementForm"><i data-lucide="hand-coins"></i> Saldar la deuda</button><button type="button" class="settlement-reset-button" id="openResetPanel" aria-expanded="false"><i data-lucide="rotate-ccw"></i> Poner a cero</button></div>
+            <div class="reset-panel" id="financeResetPanel" hidden></div>
+          </section>
+          <section class="money-card"><div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero <em id="financeBreakdownMonth"></em></strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div></section>
+          <section class="money-card"><div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha pagado <em id="financePayerMonth"></em></strong><span id="financePayerSplit"></span></div><div id="financePayerChart"></div><p class="finance-payer-note" id="financePayerNote" hidden></p></div></section>
+          <section class="money-card" aria-labelledby="fixedTitle"><div class="finance-subheading"><strong id="fixedTitle">Gastos fijos</strong><span id="fixedCostTotal"></span></div><div id="fixedCostList"></div></section>
+          <section class="money-card movements-card" aria-labelledby="houseMovesTitle">
+            <div class="finance-subheading"><strong id="houseMovesTitle">Movimientos</strong><span id="houseMovesCount"></span></div>
+            <input id="financeSearch" class="guide-search" type="search" placeholder="Buscar en todos los meses" aria-label="Buscar gastos y facturas" />
+            <div id="houseMovesFilter"></div>
+            <div id="houseMoves"></div>
+          </section>
+          <details class="money-tools"><summary><i data-lucide="arrow-down-up"></i> Exportar o importar</summary>
+            <div class="money-tools-body">
+              <button class="pill-button" type="button" id="exportFinance"><i data-lucide="download"></i> Descargar Excel</button>
+              <label class="pill-button finance-import-label"><i data-lucide="upload"></i> Importar Excel o CSV<input id="financeImport" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
+              <form class="finance-share-form" id="financeShareForm"><input id="financeShareLink" name="shareLink" type="url" placeholder="Enlace compartido de Tricount" aria-label="Enlace compartido de Tricount" required /><button type="submit"><i data-lucide="link-2"></i> Cargar</button></form>
+            </div>
+          </details>
+          <p class="notes-local-warning" id="financeStatus"><i data-lucide="cloud-check"></i> Preparado para sincronizar entre los dos perfiles.</p>
+        </div>
+
+        <div class="money-pane" data-money-pane="personal" id="personalPane" hidden>
+          <div class="finance-summary is-personal">
+            <div class="personal-kpis">
+              <div class="kpi-main"><span id="personalTotalLabel">Gastado este mes</span><strong id="personalTotal">0,00 €</strong><small id="personalCompare"></small></div>
+              <div class="kpi-side"><div><span>Ingresos</span><b id="personalIncome">—</b></div><div><span>Ahorro</span><b id="personalSaved">—</b></div></div>
+            </div>
+            <div class="savings-meter" id="personalSavingsMeter"></div>
+            <label class="share-toggle"><input type="checkbox" id="personalIncludeShare" /><span><i data-lucide="house"></i> Incluir mi parte de la casa <b id="personalShareAmount"></b></span></label>
+            <div class="month-bars" id="personalTrend" aria-label="Tus gastos en los últimos meses"></div>
+          </div>
+          <div class="personal-actions">
+            <label class="primary-button import-button"><i data-lucide="upload"></i> Importar extracto<input type="file" id="bankImport" accept=".xlsx,.xls,.csv,.txt" hidden /></label>
+            <button type="button" class="pill-button" id="personalAddButton"><i data-lucide="plus"></i> Añadir a mano</button>
+            <button type="button" class="pill-button is-quiet" id="personalBudgetButton"><i data-lucide="target"></i> Presupuestos</button>
+          </div>
+          <div id="personalImport"></div>
+          <section class="money-card" id="personalInsightsCard"><div class="finance-subheading"><strong>Lo destacado</strong><span id="personalInsightsMonth"></span></div><div class="insight-list" id="personalInsights"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Por categoría</strong><span id="personalCategoryHint"></span></div><div id="personalCategories"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Cuándo gastas</strong><span id="personalCalendarHint"></span></div><div class="spend-calendar" id="personalCalendar"></div><p class="insight-label">Media por día de la semana</p><div class="weekday-bars" id="personalWeekdays"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Fijos y suscripciones</strong><span id="personalRecurringTotal"></span></div><div id="personalRecurring"></div></section>
+          <section class="money-card"><div class="finance-subheading"><strong>Dónde más gastas</strong><span id="personalTopHint"></span></div><div id="personalTop"></div></section>
+          <section class="money-card movements-card" id="personalMovements">
+            <div class="finance-subheading"><strong id="personalListTitle">Movimientos</strong><span id="personalCount"></span></div>
+            <input type="search" class="guide-search" id="personalSearch" placeholder="Buscar comercio o concepto" aria-label="Buscar movimientos" />
+            <div class="category-chips" id="personalFilterChips"></div>
+            <div id="personalList"></div>
+          </section>
+          <details class="money-tools"><summary><i data-lucide="smartphone-nfc"></i> Apple Pay automático (opcional)</summary><div class="connect-steps" id="walletSteps"></div></details>
+          <p class="notes-local-warning" id="personalPrivacyNote"><i data-lucide="lock"></i> Tus gastos personales son privados: solo los ves tú.</p>
+        </div>
+        <div class="money-pane energy-pane" data-money-pane="luz" id="energyPane" hidden><p class="empty-note">Cargando…</p></div>
+          </div>
+        </div>
+
+                    <div class="view view-nosotros" data-space="nosotros" id="usView">
+            <div class="section-tabs us-switch" role="group" aria-label="Nosotros">
+              <button type="button" data-us-view="photos" aria-pressed="true"><i data-lucide="aperture"></i>Fotos</button>
+              <button type="button" data-us-view="dates" aria-pressed="false"><i data-lucide="calendar-heart"></i>Fechas</button>
+              <button type="button" data-us-view="plans" aria-pressed="false"><i data-lucide="popcorn"></i>Planes</button>
+              <button type="button" data-us-view="trips" aria-pressed="false"><i data-lucide="plane"></i>Viajes</button>
+            </div>
+            <section class="us-hero" id="usHero"></section>
+            <div class="us-content" id="usContent"><p class="empty-note">Cargando…</p></div>
           </div>
 
       </div>
 
       <nav class="bottom-nav" aria-label="Navegación principal">
+        <a class="nav-brand" href="#top" aria-label="Inicio Umbral"><span class="brand-mark"><i data-lucide="sparkles"></i></span><span>umbral</span></a>
         <button class="nav-item active" type="button" data-view-target="home"><i data-lucide="sun-medium"></i><span>Hoy</span></button>
+        <button class="nav-item" type="button" data-view-target="agenda"><i data-lucide="calendar-check"></i><span>Agenda</span><b class="nav-badge" hidden></b></button>
         <button class="nav-item" type="button" data-view-target="casa"><i data-lucide="house"></i><span>Casa</span><b class="nav-badge" hidden></b></button>
+        <button class="nav-item" type="button" data-view-target="cuentas"><i data-lucide="wallet-cards"></i><span>Cuentas</span></button>
         <button class="nav-item" type="button" data-view-target="nosotros"><i data-lucide="heart"></i><span>Nosotros</span></button>
-        <button class="nav-item" type="button" data-action="finance"><i data-lucide="wallet-cards"></i><span>Cuentas</span></button>
-        <button class="nav-item" type="button" data-view-target="personal"><i data-lucide="layers-3"></i><span>Vida</span></button>
       </nav>
     </main>
     <div class="auth-modal" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
@@ -394,17 +458,6 @@
         <div class="modal-heading"><div><p class="eyebrow muted">Para dejaros un mensaje</p><h2 id="notesTitle">Pizarra compartida</h2></div><button class="icon-button small" type="button" id="closeNotes" aria-label="Cerrar pizarra" title="Cerrar"><i data-lucide="x"></i></button></div>
         <div class="drawing-section"><div class="drawing-toolbar"><span><i data-lucide="pen-line"></i> Dibuja algo para <span id="boardPartnerLabel">Matteo</span>. Lo veis los dos.</span><button type="button" id="clearDrawing" aria-label="Borrar pizarra" title="Borrar pizarra"><i data-lucide="eraser"></i></button></div><canvas id="sharedCanvas" aria-label="Pizarra compartida táctil"></canvas></div>
         <p class="notes-local-warning" id="notesConnectionStatus"><i data-lucide="loader-circle"></i> Conectando…</p>
-      </div>
-    </div>
-    <div class="calendar-modal" id="calendarModal" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
-      <div class="calendar-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Vuestros planes</p><h2 id="calendarTitle">Agenda</h2></div><button class="icon-button small" type="button" id="closeCalendar" aria-label="Cerrar calendario" title="Cerrar"><i data-lucide="x"></i></button></div>
-        <div class="calendar-toolbar"><button class="icon-button small" type="button" id="previousMonth" aria-label="Mes anterior" title="Mes anterior"><i data-lucide="chevron-left"></i></button><strong id="calendarMonth"></strong><button class="icon-button small" type="button" id="nextMonth" aria-label="Mes siguiente" title="Mes siguiente"><i data-lucide="chevron-right"></i></button></div>
-        <div class="calendar-grid calendar-weekdays"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
-        <div class="calendar-grid" id="calendarDays"></div>
-        <div class="day-summary"><div class="section-heading"><div><p class="eyebrow muted">Eventos del día</p><h3 id="selectedDateLabel"></h3></div><span class="action-count" id="selectedDayCount">0 eventos</span></div><div class="event-list" id="calendarEvents"></div></div>
-        <button type="button" class="primary-button money-add" id="openEventForm"><i data-lucide="plus"></i> Añadir evento</button><form class="event-form" id="eventForm" hidden><p class="eyebrow muted">Nuevo evento</p><input name="title" type="text" maxlength="80" placeholder="Título del evento" aria-label="Título del evento" required /><div class="event-form-row"><input name="date" type="date" aria-label="Fecha del evento" required /><input name="time" type="time" aria-label="Hora del evento (opcional)" /></div><div class="event-form-row"><input name="duration" type="text" maxlength="20" placeholder="Duración (opcional, ej. 1 h)" aria-label="Duración opcional" /><select name="scope" aria-label="Quién lo ve"><option value="shared">Lo vemos los dos</option><option value="private">Solo yo</option></select></div><input name="location" type="text" maxlength="80" placeholder="Lugar o enlace (opcional)" aria-label="Lugar o enlace" /><button type="submit"><i data-lucide="check"></i> Guardar evento</button></form>
-        <p class="notes-local-warning" id="eventsConnectionStatus"><i data-lucide="info"></i> Con el icono de calendario de un evento lo añades al Calendario del iPhone.</p>
       </div>
     </div>
     <div class="plant-sheet" id="plantSheet" role="dialog" aria-modal="true" aria-labelledby="plantSheetTitle">
@@ -491,74 +544,6 @@
         <p class="notes-local-warning" id="weatherUpdated"><i data-lucide="clock-3"></i> Actualizando datos...</p>
       </div>
     </div>
-    <div class="finance-modal" id="financeModal" role="dialog" aria-modal="true" aria-labelledby="financeTitle">
-      <div class="finance-panel">
-        <div class="modal-heading"><div><p class="eyebrow muted">Dinero</p><h2 id="financeTitle">Cuentas</h2></div><button class="icon-button small" type="button" id="closeFinance" aria-label="Cerrar cuentas" title="Cerrar"><i data-lucide="x"></i></button></div>
-        <div class="segmented is-wide money-switch" role="group" aria-label="Qué cuentas ver"><button type="button" data-money-tab="casa" aria-pressed="true"><i data-lucide="house"></i> Casa</button><button type="button" data-money-tab="personal" aria-pressed="false"><i data-lucide="user-round"></i> Mis gastos</button><button type="button" data-money-tab="luz" aria-pressed="false"><i data-lucide="zap"></i> Luz</button></div>
-        <div class="finance-month" role="group" aria-label="Mes que se muestra"><button type="button" id="financePrevMonth" aria-label="Mes anterior"><i data-lucide="chevron-left"></i></button><strong id="financeMonthLabel">Este mes</strong><button type="button" id="financeNextMonth" aria-label="Mes siguiente"><i data-lucide="chevron-right"></i></button></div>
-
-        <div class="money-pane" data-money-pane="casa">
-          <div class="finance-summary"><div class="finance-summary-figures"><div><span id="financeTotalLabel">Gastos de la casa</span><strong id="financeTotal">0,00 €</strong></div><div><span>Tu parte</span><b id="financeBalance">0,00 €</b></div></div><p class="finance-summary-note" id="financeMonthNote">Gastos, facturas y fijos de este mes.</p><div class="month-bars" id="financeTrend" aria-label="Gastos de la casa en los últimos meses"></div></div>
-          <button type="button" class="primary-button money-add" id="addHouseExpense"><i data-lucide="plus"></i> Añadir gasto</button>
-          <section class="money-card balance-card" aria-labelledby="balanceTitle">
-            <div class="finance-subheading"><strong id="balanceTitle">Quién debe a quién</strong><span id="settlementPaymentTotal"></span></div>
-            <div class="finance-insight settlement-card" id="financeSettlement"><i data-lucide="scale"></i><span>Añade gastos para calcular quién debe a quién.</span></div>
-            <p class="reset-note" id="financeResetNote" hidden></p>
-            <div class="settlement-actions"><button type="button" class="settlement-payment-button" id="openSettlementForm"><i data-lucide="hand-coins"></i> Saldar la deuda</button><button type="button" class="settlement-reset-button" id="openResetPanel" aria-expanded="false"><i data-lucide="rotate-ccw"></i> Poner a cero</button></div>
-            <div class="reset-panel" id="financeResetPanel" hidden></div>
-          </section>
-          <section class="money-card"><div class="finance-breakdown"><div class="finance-subheading"><strong>En qué se va el dinero <em id="financeBreakdownMonth"></em></strong><span id="financeBreakdownTotal">0,00 €</span></div><div id="financeCategoryBreakdown"></div></div></section>
-          <section class="money-card"><div class="finance-breakdown finance-payer-breakdown"><div class="finance-subheading"><strong>Quién ha pagado <em id="financePayerMonth"></em></strong><span id="financePayerSplit"></span></div><div id="financePayerChart"></div><p class="finance-payer-note" id="financePayerNote" hidden></p></div></section>
-          <section class="money-card" aria-labelledby="fixedTitle"><div class="finance-subheading"><strong id="fixedTitle">Gastos fijos</strong><span id="fixedCostTotal"></span></div><div id="fixedCostList"></div></section>
-          <section class="money-card movements-card" aria-labelledby="houseMovesTitle">
-            <div class="finance-subheading"><strong id="houseMovesTitle">Movimientos</strong><span id="houseMovesCount"></span></div>
-            <input id="financeSearch" class="guide-search" type="search" placeholder="Buscar en todos los meses" aria-label="Buscar gastos y facturas" />
-            <div id="houseMovesFilter"></div>
-            <div id="houseMoves"></div>
-          </section>
-          <details class="money-tools"><summary><i data-lucide="arrow-down-up"></i> Exportar o importar</summary>
-            <div class="money-tools-body">
-              <button class="pill-button" type="button" id="exportFinance"><i data-lucide="download"></i> Descargar Excel</button>
-              <label class="pill-button finance-import-label"><i data-lucide="upload"></i> Importar Excel o CSV<input id="financeImport" type="file" accept=".csv,.xlsx,.xls" hidden /></label>
-              <form class="finance-share-form" id="financeShareForm"><input id="financeShareLink" name="shareLink" type="url" placeholder="Enlace compartido de Tricount" aria-label="Enlace compartido de Tricount" required /><button type="submit"><i data-lucide="link-2"></i> Cargar</button></form>
-            </div>
-          </details>
-          <p class="notes-local-warning" id="financeStatus"><i data-lucide="cloud-check"></i> Preparado para sincronizar entre los dos perfiles.</p>
-        </div>
-
-        <div class="money-pane" data-money-pane="personal" id="personalPane" hidden>
-          <div class="finance-summary is-personal">
-            <div class="personal-kpis">
-              <div class="kpi-main"><span id="personalTotalLabel">Gastado este mes</span><strong id="personalTotal">0,00 €</strong><small id="personalCompare"></small></div>
-              <div class="kpi-side"><div><span>Ingresos</span><b id="personalIncome">—</b></div><div><span>Ahorro</span><b id="personalSaved">—</b></div></div>
-            </div>
-            <div class="savings-meter" id="personalSavingsMeter"></div>
-            <label class="share-toggle"><input type="checkbox" id="personalIncludeShare" /><span><i data-lucide="house"></i> Incluir mi parte de la casa <b id="personalShareAmount"></b></span></label>
-            <div class="month-bars" id="personalTrend" aria-label="Tus gastos en los últimos meses"></div>
-          </div>
-          <div class="personal-actions">
-            <label class="primary-button import-button"><i data-lucide="upload"></i> Importar extracto<input type="file" id="bankImport" accept=".xlsx,.xls,.csv,.txt" hidden /></label>
-            <button type="button" class="pill-button" id="personalAddButton"><i data-lucide="plus"></i> Añadir a mano</button>
-            <button type="button" class="pill-button is-quiet" id="personalBudgetButton"><i data-lucide="target"></i> Presupuestos</button>
-          </div>
-          <div id="personalImport"></div>
-          <section class="money-card" id="personalInsightsCard"><div class="finance-subheading"><strong>Lo destacado</strong><span id="personalInsightsMonth"></span></div><div class="insight-list" id="personalInsights"></div></section>
-          <section class="money-card"><div class="finance-subheading"><strong>Por categoría</strong><span id="personalCategoryHint"></span></div><div id="personalCategories"></div></section>
-          <section class="money-card"><div class="finance-subheading"><strong>Cuándo gastas</strong><span id="personalCalendarHint"></span></div><div class="spend-calendar" id="personalCalendar"></div><p class="insight-label">Media por día de la semana</p><div class="weekday-bars" id="personalWeekdays"></div></section>
-          <section class="money-card"><div class="finance-subheading"><strong>Fijos y suscripciones</strong><span id="personalRecurringTotal"></span></div><div id="personalRecurring"></div></section>
-          <section class="money-card"><div class="finance-subheading"><strong>Dónde más gastas</strong><span id="personalTopHint"></span></div><div id="personalTop"></div></section>
-          <section class="money-card movements-card" id="personalMovements">
-            <div class="finance-subheading"><strong id="personalListTitle">Movimientos</strong><span id="personalCount"></span></div>
-            <input type="search" class="guide-search" id="personalSearch" placeholder="Buscar comercio o concepto" aria-label="Buscar movimientos" />
-            <div class="category-chips" id="personalFilterChips"></div>
-            <div id="personalList"></div>
-          </section>
-          <details class="money-tools"><summary><i data-lucide="smartphone-nfc"></i> Apple Pay automático (opcional)</summary><div class="connect-steps" id="walletSteps"></div></details>
-          <p class="notes-local-warning" id="personalPrivacyNote"><i data-lucide="lock"></i> Tus gastos personales son privados: solo los ves tú.</p>
-        </div>
-        <div class="money-pane energy-pane" data-money-pane="luz" id="energyPane" hidden><p class="empty-note">Cargando…</p></div>
-      </div>
-    </div>
     <div class="sims-modal" id="simsModal" role="dialog" aria-modal="true" aria-labelledby="simsTitle">
       <div class="sims-panel">
         <div class="modal-heading"><div><p class="eyebrow muted">Modo Sims</p><h2 id="simsTitle">Vuestra casa</h2></div><div class="sims-heading-actions"><button class="icon-button small sims-full" type="button" id="simsFull" aria-pressed="false" aria-label="Pantalla completa" title="Pantalla completa"><i data-lucide="maximize"></i></button><button class="icon-button small sims-zoom" type="button" id="simsZoom" aria-pressed="false" aria-label="Seguir de cerca a tu muñeco" title="Lupa"><i data-lucide="zoom-in"></i></button><button class="icon-button small sims-sound" type="button" id="simsSound" aria-pressed="true" aria-label="Quitar el sonido" title="Sonido"><i data-lucide="volume-2"></i></button><button class="icon-button small" type="button" id="closeSims" aria-label="Salir de casa" title="Salir"><i data-lucide="x"></i></button></div></div>
@@ -578,18 +563,18 @@
     <script src="push.js?v=1"></script>
     <script src="shopping.js?v=5"></script>
     <script src="tasks.js?v=8"></script>
-    <script src="notes.js?v=3"></script>
-    <script src="pending.js?v=4"></script>
+    <script src="notes.js?v=4"></script>
+    <script src="pending.js?v=5"></script>
     <script src="plants.js?v=5"></script>
-    <script src="money.js?v=5"></script>
+    <script src="money.js?v=6"></script>
     <script src="bank-import.js?v=1"></script>
     <script src="personal.js?v=7"></script>
     <script src="media.js?v=2"></script>
     <script src="kitchen.js?v=4"></script>
-    <script src="nosotros.js?v=11"></script>
-    <script src="trips.js?v=1"></script>
-    <script src="upkeep.js?v=1"></script>
-    <script src="documents.js?v=4"></script>
+    <script src="nosotros.js?v=12"></script>
+    <script src="trips.js?v=2"></script>
+    <script src="upkeep.js?v=2"></script>
+    <script src="documents.js?v=5"></script>
     <script src="energy.js?v=4"></script>
     <script src="appliances.js?v=3"></script>
     <script src="avatars.js?v=7"></script>
@@ -601,11 +586,11 @@
     <script src="sims-build.js?v=1"></script>
     <script src="sims-music.js?v=1"></script>
     <script src="sims-mind.js?v=3"></script>
-    <script src="app.js?v=55"></script>
-    <script src="summary.js?v=4"></script>
-    <script src="today.js?v=1"></script>
-    <script src="assistant.js?v=3"></script>
-    <script src="ux.js?v=2"></script>
+    <script src="app.js?v=56"></script>
+    <script src="summary.js?v=5"></script>
+    <script src="today.js?v=2"></script>
+    <script src="assistant.js?v=4"></script>
+    <script src="ux.js?v=3"></script>
     <script src="native.js?v=1"></script>
   </body>
 </html>

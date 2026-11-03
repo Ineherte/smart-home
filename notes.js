@@ -142,7 +142,7 @@ function renderNotesBoard() {
   const archived = householdNotes.filter((note) => note.completed && matchesSearch(note));
   const templates = NOTE_TEMPLATES.filter((template) => !householdNotes.some((note) => normalizeText(note.content) === normalizeText(template.title)));
   host.innerHTML = `
-    ${!householdNotes.length && !notesSearch ? '<div class="empty-state"><span class="empty-state-icon"><i data-lucide="notebook-pen"></i></span><strong>Vuestros apuntes</strong><span>La maleta del próximo viaje, la clave del wifi, ideas de regalos… Las cosas que hacer van en «Por hacer».</span></div>' : ''}
+    ${!householdNotes.length && !notesSearch ? '<div class="empty-state"><span class="empty-state-icon"><i data-lucide="notebook-pen"></i></span><strong>Vuestros apuntes</strong><span>La maleta del próximo viaje, la clave del wifi, ideas de regalos… Las cosas que hacer van en «Tareas».</span></div>' : ''}
     <div class="note-new-row">
       <button type="button" class="note-new" data-new-note=""><i data-lucide="plus"></i>Nota nueva</button>
       ${templates.map((template) => `<button type="button" class="note-template" data-new-note="${template.id}">${template.emoji} ${escapeHtml(template.title)}</button>`).join('')}

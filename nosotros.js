@@ -420,6 +420,8 @@ async function removePlace(id) {
 function renderUs() {
   if (!document.querySelector('#usContent')) return;
   renderUsHero();
+  // La portada solo en Fotos, la entrada a la sección: en las demás, directo a lo suyo.
+  document.querySelector('#usHero').hidden = usView !== 'photos';
   document.querySelectorAll('[data-us-view]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.usView === usView)));
   const content = document.querySelector('#usContent');
   content.innerHTML = usLoaded ? ({ photos: renderPhotos, dates: renderDates, plans: renderPlans, trips: renderTrips, map: renderTrips }[usView] || renderPhotos)() : '<p class="empty-note">Cargando…</p>';

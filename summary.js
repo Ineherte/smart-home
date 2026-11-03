@@ -19,7 +19,7 @@
       chip: overdue ? plural(overdue, 'plazo pasado', 'plazos pasados') : plural(tasks, 'cosa por hacer', 'cosas por hacer')
     });
     const urgent = att.urgentCount || 0;
-    if (urgent) list.push({ id: 'notes', icon: 'siren', label: 'Notas urgentes', value: plural(urgent, 'urgente', 'urgentes'), detail: 'Revisar en Pendientes', tone: 'alert', chip: plural(urgent, 'nota urgente', 'notas urgentes') });
+    if (urgent) list.push({ id: 'notes', icon: 'siren', label: 'Notas urgentes', value: plural(urgent, 'urgente', 'urgentes'), detail: 'Revisar en Notas', tone: 'alert', chip: plural(urgent, 'nota urgente', 'notas urgentes') });
     const thirsty = att.thirstyPlants || [];
     const toWater = Math.max(thirsty.length, day.plants || 0);
     list.push({
@@ -79,7 +79,7 @@
       finance: () => openFinance(),
       menu: () => showView('menu'),
       agenda: () => openCalendar(),
-      upkeep: () => { showView('personal'); setTimeout(() => document.querySelector('#upkeepSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); },
+      upkeep: () => { showView('mantenimiento'); setTimeout(() => document.querySelector('#upkeepSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); },
       dates: () => { showView('nosotros'); if (typeof setUsView === 'function') setUsView('dates'); }
     }[row.dataset.hs];
     try { go?.(); } catch (error) { console.warn('[Umbral] Resumen:', error); }

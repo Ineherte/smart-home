@@ -1,4 +1,4 @@
-// Vida → Documentos: una carpeta para los papeles importantes (DNI escaneado, contrato del piso,
+// Agenda → Papeles: una carpeta para los papeles importantes (DNI escaneado, contrato del piso,
 // tarjeta sanitaria, facturas, garantías…), en PDF o foto.
 // Cada documento es de alguien (tuyo, de tu pareja o de los dos) y lo ven los dos o solo tú.
 // Con Supabase, los archivos van al bucket privado household-documents y solo se abren con
@@ -160,7 +160,7 @@
       const { data, error } = await supabaseClient.from('documents').insert({ ...row, household_id: householdId, owner_id: authUserId }).select('*').single();
       if (error) { await removeFile(path); throw error; }
       documents.unshift(data);
-      if (row.scope === 'shared') notifyHousehold(`${currentUser} guardó un documento`, `${row.title} · ${row.category}`, { open: 'personal', tag: 'documents' });
+      if (row.scope === 'shared') notifyHousehold(`${currentUser} guardó un documento`, `${row.title} · ${row.category}`, { open: 'papeles', tag: 'documents' });
       return data;
     }
     const created = { ...row, id: createLocalId(), owner_id: currentUser, created_at: new Date().toISOString() };
@@ -180,7 +180,7 @@
     documents = documents.filter((entry) => entry.id !== doc.id);
   }
 
-  // ---------- Tarjeta en Vida ----------
+  // ---------- Tarjeta en Agenda → Papeles ----------
   const host = document.querySelector('#documentsBody');
   const visible = () => documents.filter((doc) =>
     (personFilter === 'all' || (personFilter === 'mine' ? doc.person === currentUser : personFilter === 'partner' ? doc.person === otherPerson(currentUser) : doc.person === 'both'))

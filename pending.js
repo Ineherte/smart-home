@@ -1,4 +1,4 @@
-// Casa → Por hacer: lo que hay que hacer, separado de las notas (notes.js).
+// Agenda → Tareas: lo que hay que hacer, separado de las notas (notes.js).
 // - Lo de una vez («pagar la luz en 5 días») está en la lista cada día, con su cuenta atrás,
 //   hasta que se marca. Las rutinas («basura cada semana») solo salen cuando toca.
 // - Listas: Casa, Papeles, Recados… (y las que creéis), con un filtro arriba.
@@ -8,7 +8,6 @@
 let todoView = 'list';
 let onlyMine = false;
 let activeList = '';
-let pendingPane = 'todo';
 let quickType = null;
 let openItem = null;
 
@@ -16,7 +15,6 @@ try {
   todoView = ['list', 'week', 'people'].includes(localStorage.getItem('umbral-todo-view')) ? localStorage.getItem('umbral-todo-view') : 'list';
   onlyMine = localStorage.getItem('umbral-only-mine') === 'true';
   activeList = localStorage.getItem('umbral-todo-list') || '';
-  pendingPane = localStorage.getItem('umbral-pending-pane') === 'notes' ? 'notes' : 'todo';
 } catch {}
 
 const WEEKDAYS = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
@@ -153,7 +151,7 @@ async function submitQuickAdd() {
   if (parsed.type === 'note') {
     form.title.value = '';
     renderQuickPreview();
-    setPendingPane('notes');
+    showView('notas');
     newNote();
     const title = document.querySelector('#noteSheet [name="noteTitle"]');
     if (title) { title.value = parsed.title; title.dispatchEvent(new Event('input', { bubbles: true })); }
@@ -360,7 +358,7 @@ function renderInsights() {
   const card = document.querySelector('#todoInsights');
   const since = Date.now() - 30 * 86400000;
   const recent = taskCompletions.filter((completion) => new Date(completion.done_at).getTime() >= since);
-  card.hidden = !recent.length || pendingPane !== 'todo';
+  card.hidden = !recent.length;
   if (card.hidden) return;
   const people = householdPeople;
   const days = Array.from({ length: 7 }, (_, index) => addDaysToISO(todayISO(), index - 6));
@@ -387,9 +385,6 @@ function renderInsights() {
 function renderPending() {
   const list = document.querySelector('#pendingList');
   if (!list) return;
-  document.querySelectorAll('[data-pending-pane]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.pendingPane === pendingPane)));
-  document.querySelectorAll('[data-pane="todo"]').forEach((el) => { el.hidden = pendingPane !== 'todo'; });
-  document.querySelectorAll('[data-pane="notes"]').forEach((el) => { el.hidden = pendingPane !== 'notes'; });
   renderHero();
   renderLists();
   document.querySelectorAll('[data-todo-view]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.todoView === todoView)));
@@ -409,27 +404,20 @@ function setTodoView(view) {
   try { localStorage.setItem('umbral-todo-view', view); } catch {}
   renderPending();
 }
-function setPendingPane(pane) {
-  pendingPane = pane;
-  try { localStorage.setItem('umbral-pending-pane', pane); } catch {}
-  renderPending();
-  if (pane === 'notes' && typeof renderNotesBoard === 'function') renderNotesBoard();
-}
 function setActiveList(list) {
   activeList = list;
   try { localStorage.setItem('umbral-todo-list', list); } catch {}
   renderPending();
 }
 
-// Abre Casa → Por hacer (o Notas); con kind, deja listo para escribir.
+// Abre Agenda → Tareas (o Notas); con kind, deja listo para escribir.
 function openPending({ filter, kind } = {}) {
-  showView('pendientes');
   if (filter === 'notes' || kind === 'note') {
-    setPendingPane('notes');
+    showView('notas');
     if (kind === 'note') setTimeout(() => newNote(), 250);
     return;
   }
-  setPendingPane('todo');
+  showView('tareas');
   if (filter) setTodoView('list');
   if (kind) {
     const input = document.querySelector('#pendingForm [name="title"]');
@@ -573,8 +561,6 @@ document.querySelector('#pendingForm').addEventListener('input', renderQuickPrev
 
 document.querySelector('#tasksView').addEventListener('click', (event) => {
   const target = event.target;
-  const pane = target.closest('[data-pending-pane]');
-  if (pane) return setPendingPane(pane.dataset.pendingPane);
   const done = target.closest('[data-task-done]');
   if (done) return completeTask(done.dataset.taskDone);
   const view = target.closest('[data-todo-view]');

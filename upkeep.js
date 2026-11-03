@@ -1,4 +1,4 @@
-// Casa al día (Vida): el mantenimiento que se repite cada cierto tiempo. Cada cosa tiene
+// Casa al día (Casa → Cuidados): el mantenimiento que se repite cada cierto tiempo. Cada cosa tiene
 // una frecuencia y la fecha de la última vez; aquí se ve cuánto falta, se marca como hecha
 // con un toque y, si se pasa de fecha, aparece en el estado de la casa de Inicio.
 // Usa createHouseholdStore (store.js), escapeHtml, showToast y currentUser de app.js.

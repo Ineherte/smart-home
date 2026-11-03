@@ -20,8 +20,8 @@
 
   // ---------- Deslizar hacia abajo para cerrar ----------
   // No en el modo Sims (se juega con el dedo), ni en la pizarra (se dibuja) ni en el acceso.
-  const SWIPEABLE = '.plant-sheet, .calendar-modal, .weather-modal, .finance-modal, .account-modal';
-  const panelOf = (dialog) => dialog.querySelector('.plant-sheet-panel, .calendar-panel, .weather-panel, .finance-panel, .account-panel');
+  const SWIPEABLE = '.plant-sheet, .weather-modal, .account-modal';
+  const panelOf = (dialog) => dialog.querySelector('.plant-sheet-panel, .weather-panel, .account-panel');
   const closeButtonOf = (dialog) => dialog.querySelector('.plant-sheet-close, [aria-label^="Cerrar"], [data-close-note], [data-close-item]');
   let drag = null;
   document.addEventListener('touchstart', (event) => {
@@ -80,7 +80,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) updateBadge(); });
 
   // ---------- Pestañas: memoria del desplazamiento y dirección ----------
-  const ORDER = ['home', 'casa', 'nosotros', 'personal'];
+  const ORDER = ['home', 'agenda', 'casa', 'cuentas', 'nosotros'];
   const scrollMemory = {};
   const viewsEl = document.querySelector('.views');
   document.querySelectorAll('.nav-item[data-view-target]').forEach((item) => {
