@@ -2103,7 +2103,7 @@ function applyTheme(choice) {
   else document.documentElement.dataset.theme = theme;
   document.querySelectorAll('[data-theme-choice]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme)));
   const dark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0e0f0f' : '#f7f7f5');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#121512' : '#f6f3ec');
 }
 
 document.querySelectorAll('[data-theme-choice]').forEach((button) => button.addEventListener('click', () => {
