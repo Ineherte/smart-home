@@ -4,25 +4,13 @@
 // Agenda:
 //   · «Antes de ir» son tareas normales en una lista propia («Viaje · Lisboa»);
 //   · la maleta y «A tener en cuenta» son notas normales con su lista para marcar.
-// Datos en trips y trip_stops (supabase/sql/trips.sql). Usa de nosotros.js el sheet (usSheet),
+// Datos en trips y trip_stops (supabase/sql/trips.sql). Los tipos de sitio y los enlaces de
+// Google Maps, en map-utils.js. Usa de nosotros.js el sheet (usSheet),
 // el mapa de sitios visitados (places) y las fechas (special_dates), y de tasks.js y notes.js
 // las tareas y las notas.
 const tripsStore = createHouseholdStore({ table: 'trips', localKey: 'umbral-trips' });
 const tripStopsStore = createHouseholdStore({ table: 'trip_stops', localKey: 'umbral-trip-stops' });
 
-const STOP_KINDS = {
-  food: { label: 'Restaurante', plural: 'Restaurantes', emoji: '🍽️', color: '#e0703a' },
-  cafe: { label: 'Café y copas', plural: 'Cafés y copas', emoji: '☕', color: '#9a6a44' },
-  beach: { label: 'Playa', plural: 'Playas', emoji: '🏖️', color: '#1f9fc4' },
-  nature: { label: 'Parque y naturaleza', plural: 'Parques y naturaleza', emoji: '🌳', color: '#3c9a5b' },
-  view: { label: 'Sitio bonito', plural: 'Sitios bonitos', emoji: '🌅', color: '#e6a127' },
-  culture: { label: 'Museo y cultura', plural: 'Museos y cultura', emoji: '🏛️', color: '#6a58c2' },
-  fun: { label: 'Actividad', plural: 'Actividades', emoji: '🎟️', color: '#d9466a' },
-  shop: { label: 'Compras', plural: 'Compras', emoji: '🛍️', color: '#c2569b' },
-  stay: { label: 'Alojamiento', plural: 'Alojamiento', emoji: '🛏️', color: '#275b49' },
-  move: { label: 'Transporte', plural: 'Transporte', emoji: '🚆', color: '#566778' },
-  other: { label: 'Otro', plural: 'Otros', emoji: '📍', color: '#8a8a80' }
-};
 const TRIP_COLORS = { sea: ['#1f6f8b', '#4fb0a5'], sunset: ['#d9534f', '#f2a65a'], forest: ['#2f5d46', '#7bb07f'], lavender: ['#5a4a7e', '#a487cf'], sand: ['#a8703f', '#e6bb7a'], night: ['#1f2a44', '#44649a'] };
 const TRIP_EMOJIS = ['✈️', '🏖️', '🏔️', '🏙️', '🍷', '🚗', '🚆', '⛺', '🎄', '💞'];
 const TRIP_INFO = [
@@ -63,7 +51,6 @@ let tripInHistory = false;
 const tripById = (id) => trips.find((trip) => trip.id === id);
 const stopsOf = (trip) => tripStops.filter((stop) => stop.trip_id === trip.id);
 const stopKind = (stop) => STOP_KINDS[stop.category] || STOP_KINDS.other;
-const hasCoords = (item) => item && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lon)) && item.lat !== null && item.lon !== null;
 const byPosition = (first, second) => (first.position || 0) - (second.position || 0) || String(first.created_at).localeCompare(String(second.created_at));
 const normalizeTrip = (trip) => ({ ...trip, info: trip.info || {}, days: trip.days || {} });
 const tripColors = (trip) => TRIP_COLORS[trip.color] || TRIP_COLORS.sea;
@@ -111,12 +98,8 @@ function tripCountdown(trip) {
   return left < 60 ? `Faltan ${left} días` : `Faltan ${Math.round(left / 30)} meses`;
 }
 
-// Enlace a Google Maps: el que pegasteis o una búsqueda del sitio.
-function mapsLink(stop, trip) {
-  if (/^https?:\/\/([a-z]+\.)?(google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(stop.url || '')) return stop.url;
-  const query = stop.address ? `${stop.name}, ${stop.address}` : hasCoords(stop) ? `${stop.lat},${stop.lon}` : `${stop.name}, ${tripWhere(trip) || trip.title}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
+// Enlace a Google Maps: el que pegasteis o una búsqueda del sitio (map-utils.js).
+const mapsLink = (stop, trip) => googleMapsLink(stop, tripWhere(trip) || trip.title);
 
 // La ruta del día, sitio a sitio, andando (Google admite unos diez puntos).
 function dayRouteLink(list) {
@@ -125,55 +108,6 @@ function dayRouteLink(list) {
   const [origin, ...rest] = points;
   const destination = rest.pop();
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${rest.length ? `&waypoints=${encodeURIComponent(rest.join('|'))}` : ''}&travelmode=walking`;
-}
-
-// Un enlace de Google Maps pegado: nombre y coordenadas si vienen en él.
-function parseMapsLink(text) {
-  const url = String(text || '').trim();
-  if (!/^https?:\/\//i.test(url)) return null;
-  // !3d…!4d… es el punto exacto del sitio; @lat,lon, el centro de la vista.
-  const pin = [/!3d(-?\d+\.\d+)/.exec(url), /!4d(-?\d+\.\d+)/.exec(url)];
-  const coords = pin[0] && pin[1] ? [null, pin[0][1], pin[1][1]] : /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(url) || /[?&](?:q|query|ll|destination)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i.exec(url);
-  let place = '';
-  try { place = decodeURIComponent((/\/place\/([^/@?]+)/.exec(url)?.[1] || '').replace(/\+/g, ' ')); } catch {}
-  return { url: url.slice(0, 500), name: place.split(',')[0].trim(), address: place.split(',').slice(1).join(',').trim(), lat: coords ? Number(coords[1]) : null, lon: coords ? Number(coords[2]) : null };
-}
-
-// Qué es un sitio según OpenStreetMap.
-function guessKind(key, value) {
-  const tag = `${key}:${value}`;
-  if (/restaurant|fast_food|food_court|ice_cream/.test(tag)) return 'food';
-  if (/cafe|:bar|:pub|biergarten|wine|bakery|pastry/.test(tag)) return 'cafe';
-  if (/beach|:bay|coastline/.test(tag)) return 'beach';
-  if (/park|garden|nature_reserve|forest|wood|peak|mountain|waterfall|lake|valley|island/.test(tag)) return 'nature';
-  if (/museum|gallery|monument|memorial|castle|church|cathedral|place_of_worship|ruins|archaeolog|theatre|historic|artwork/.test(tag)) return 'culture';
-  if (/viewpoint|attraction|lighthouse|square|fountain/.test(tag)) return 'view';
-  if (/hotel|hostel|guest_house|apartment|motel|camp_site|chalet/.test(tag)) return 'stay';
-  if (/station|aerodrome|airport|ferry|terminal|railway|bus_stop/.test(tag)) return 'move';
-  if (/shop|mall|marketplace|market/.test(tag)) return 'shop';
-  if (/zoo|theme_park|aquarium|cinema|stadium|water_park|leisure/.test(tag)) return 'fun';
-  return 'other';
-}
-
-// Busca sitios concretos (restaurantes, playas, miradores…) cerca del destino.
-async function searchStops(query, trip) {
-  const near = hasCoords(trip) ? `&lat=${trip.lat}&lon=${trip.lon}` : '';
-  try {
-    const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8${near}`);
-    if (!response.ok) throw new Error('photon');
-    const data = await response.json();
-    return (data.features || []).map(({ properties: p, geometry }) => ({
-      name: p.name || p.street || query,
-      address: [p.street && `${p.street}${p.housenumber ? ` ${p.housenumber}` : ''}`, p.city || p.town || p.village || p.county, p.country].filter(Boolean).join(', '),
-      lat: geometry.coordinates[1],
-      lon: geometry.coordinates[0],
-      category: guessKind(p.osm_key, p.osm_value)
-    }));
-  } catch {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=es&q=${encodeURIComponent(query)}`);
-    const data = await response.json();
-    return data.map((row) => ({ name: row.name || row.display_name.split(',')[0], address: row.display_name.split(',').slice(1, 4).join(',').trim(), lat: Number(row.lat), lon: Number(row.lon), category: guessKind(row.category, row.type) }));
-  }
 }
 
 // ---------- Datos ----------
@@ -762,7 +696,7 @@ function applyStopLocation(found) {
   const form = usSheet.querySelector('[data-trip-stop-form]');
   usSheetState.loc = { lat: found.lat, lon: found.lon, address: found.address || null };
   if (found.name) form.name.value = found.name.slice(0, 120);
-  if (found.category && found.category !== 'other') form.querySelector(`[name="category"][value="${found.category}"]`).checked = true;
+  if (STOP_KINDS[found.category] && found.category !== 'other') form.querySelector(`[name="category"][value="${found.category}"]`).checked = true;
   if (found.url) form.url.value = found.url;
   usSheet.querySelector('[data-trip-stop-where]').innerHTML = stopWhereText(usSheetState.loc);
   usSheet.querySelector('[data-trip-stop-results]').innerHTML = '';
@@ -771,22 +705,23 @@ function applyStopLocation(found) {
 
 async function runStopSearch(query) {
   const box = usSheet.querySelector('[data-trip-stop-results]');
-  const link = parseMapsLink(query);
-  if (link) {
-    if (hasCoords(link)) {
-      applyStopLocation(link);
+  if (parseMapsLink(query)) {
+    box.innerHTML = '<p class="empty-note">Buscando el sitio…</p>';
+    const link = await resolveMapsLink(query).catch(() => null);
+    const form = usSheet.querySelector('[data-trip-stop-form]');
+    if (link && hasCoords(link)) {
+      applyStopLocation({ ...link, category: link.category && STOP_KINDS[link.category] ? link.category : guessKindFromName(link.name) });
       showToast('📍 Sitio de Google Maps listo');
     } else {
-      const form = usSheet.querySelector('[data-trip-stop-form]');
-      form.url.value = link.url;
-      if (link.name) form.name.value = link.name;
-      box.innerHTML = '<p class="empty-note">He guardado el enlace, pero no trae la ubicación (pasa con los enlaces cortos). Busca el sitio por su nombre para situarlo en el mapa.</p>';
+      form.url.value = link?.url || query;
+      if (link?.name) form.name.value = link.name;
+      box.innerHTML = '<p class="empty-note">He guardado el enlace, pero no encuentro dónde está. Busca el sitio por su nombre para situarlo en el mapa.</p>';
     }
     return;
   }
   box.innerHTML = '<p class="empty-note">Buscando…</p>';
   try {
-    const results = await searchStops(query, tripById(usSheetState.tripId));
+    const results = (await searchPlacesByName(query, tripById(usSheetState.tripId))).map((result) => ({ ...result, category: STOP_KINDS[result.category] ? result.category : 'other' }));
     usSheetState.results = results;
     box.innerHTML = results.length ? results.map((result, index) => {
       const kind = STOP_KINDS[result.category] || STOP_KINDS.other;

@@ -1,8 +1,8 @@
-const CACHE_NAME = 'umbral-shell-v104';
+const CACHE_NAME = 'umbral-shell-v105';
 const APP_SHELL = [
   './',
   './index.html',
-  './styles.css?v=79',
+  './styles.css?v=80',
   './scene.js?v=13',
   './store.js?v=2',
   './push.js?v=1',
@@ -16,8 +16,10 @@ const APP_SHELL = [
   './personal.js?v=7',
   './media.js?v=2',
   './kitchen.js?v=4',
-  './nosotros.js?v=12',
-  './trips.js?v=3',
+  './map-utils.js?v=1',
+  './nosotros.js?v=13',
+  './places-map.js?v=1',
+  './trips.js?v=4',
   './upkeep.js?v=2',
   './documents.js?v=5',
   './avatars.js?v=7',
@@ -45,7 +47,7 @@ const APP_SHELL = [
   './smart-lights-config.js',
   './supabase-config.js',
   './mobile-bridge.js',
-  './vendor/icons.js?v=3',
+  './vendor/icons.js?v=4',
   './vendor/supabase-2.117.3.js',
   './manifest.webmanifest',
   './icon.svg',
